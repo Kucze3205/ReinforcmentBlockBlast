@@ -6,6 +6,8 @@ class Piece:
     def __init__(self, shape, name):
         self.shape = shape
         self.name = name
+        self.index = None  # Will be set when added to the pool
+
 
 PIECE_SHAPES = [
     # Tetrominoes
@@ -31,3 +33,6 @@ PIECE_SHAPES = [
 ]
 
 PIECE_POOL = [Piece(shape, name) for shape, name in PIECE_SHAPES]
+for i, piece in enumerate(PIECE_POOL):
+    piece.index = i
+

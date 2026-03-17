@@ -13,6 +13,8 @@ class Board:
         self.grid = [[0 for _ in range(Board.WIDTH)] for _ in range(Board.HEIGHT)]
 
     def place_piece(self, piece, x, y):
+        if piece is None:
+            return False
         for dy, row in enumerate(piece.shape):
             for dx, cell in enumerate(row):
                 if cell:
