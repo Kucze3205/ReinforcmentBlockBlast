@@ -25,11 +25,24 @@ PIECE_SHAPES = [
     ([[1, 1, 1]], "1x3"),
     ([[1], [1], [1]], "3x1"),
     ([[1, 1], [1, 1]], "2x2"),
-    ([[1, 1, 1, 1]], "1x4"),
     ([[1], [1], [1], [1]], "4x1"),
     ([[1, 1, 1], [1, 1, 1], [1, 1, 1]], "3x3"),
     ([[1, 1, 1], [1, 1, 1]], "2x3"),
     ([[1, 1], [1, 1], [1, 1]], "3x2"),
+]
+
+def pad_to_4x4_top_right(shape):
+    rows = len(shape)
+    cols = len(shape[0])
+    grid = [[0]*4 for _ in range(4)]
+    for r in range(rows):
+        for c in range(cols):
+            grid[r][c] = shape[r][c]
+    return grid
+
+PIECE_SHAPES_4X4 = [
+    (pad_to_4x4_top_right(shape), name)
+    for shape, name in PIECE_SHAPES
 ]
 
 PIECE_POOL = [Piece(shape, name) for shape, name in PIECE_SHAPES]

@@ -59,47 +59,67 @@ class Game:
 
     def step(self, action):
 
-        message = "successful placement"
-        if self.done:
-            message = {"game_over": True}
-            return self.get_state(), self.score, True, message
         idx, x, y = action
         piece = self.pieces[idx]
+        this_round_score = 0
+        reward = 0
+
         if not self.board.place_piece(piece, x, y):
-            message = {"wrong_placement": True}
             self.done = True
-            return self.get_state(), self.score, self.done, message
-        reward = placement_points(piece)
+            return -10, self.score, self.done, "wrong_placement"
+        
+        # Calculate reward: 
+        # Base points for placement (+1 for each cell)
+        this_round_score = placement_points(piece)
+        
+        # bonus point for simultaneous clears (k^2 * 10)
         rows, cols = self.board.check_full_lines()
         k = len(rows) + len(cols)
-        reward += simultaneous_clear_points(k)
+
+        if(k > 0):
+            this_round_score += simultaneous_clear_points(k)
+            reward += simultaneous_clear_points(k)
+
         self.last_lines_cleared += k
         self.board.clear_lines(rows, cols)
+
+        # BONUS: sprawdź czy plansza jest całkowicie pusta po ruchu
+        if all(all(cell == 0 for cell in row) for row in self.board.grid):
+            this_round_score += 100  # bonus za wyczyszczenie całej planszy
+            reward += 1000
+
         self.pieces[idx] = None
+
         self.round_placement += 1
         if self.round_placement == 3:
             if self.last_lines_cleared > 0:
                 self.streak += 1
             else:
                 self.streak = 0
+
+            # Bonus points for streaks (s^2 * 5)    
+            this_round_score += streak_bonus(self.streak)
             reward += streak_bonus(self.streak)
+
             self.pieces = self.generator.next_pieces()
+
             self.round_placement = 0
             self.last_lines_cleared = 0
-        self.score += reward
-        self.done = not self._can_place_any()
+
+        self.score += this_round_score
+        
+        #check if there is no place left for any piece, if so - end the game
+        if not self._can_place_any():
+            self.refresh_ui()
+            return -10, self.score, True, "game_over"
 
         #self.ui.clock.tick(1)
-        self.ui.screen.fill(COLORS['bg'])
-        self.ui.draw_grid(self.board.grid)
-        self.ui.draw_panel(self.pieces)
-        self.ui.draw_info(self.score, self.streak, self.round_placement + 1)
-        pygame.display.flip()
+        self.refresh_ui()
 
-        return self.get_state(), self.score, self.done, message
+        return reward, self.score, self.done, "successful placement"
 
     def _can_place_any(self):
-        for idx, piece in enumerate(self.pieces):
+        for  idx, piece in enumerate(self.pieces):
             if piece is None:
                 continue
             for y in range(Board.HEIGHT - len(piece.shape) + 1):

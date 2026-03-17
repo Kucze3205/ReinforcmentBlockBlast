@@ -6,13 +6,13 @@ import sys
 
 from board import Board
 
-CELL_SIZE = 72
+CELL_SIZE = 60
 GRID_SIZE = 8
-MARGIN = 36
+MARGIN = 28
 # Ensure enough width for 3 large pieces in the panel
-PIECE_PANEL_HEIGHT = 240  # było 180, zwiększono na 240
+PIECE_PANEL_HEIGHT = 180
 SCREEN_WIDTH = max(GRID_SIZE * CELL_SIZE + 2 * MARGIN, 3 * CELL_SIZE * 5 + 2 * MARGIN)
-SCREEN_HEIGHT = GRID_SIZE * CELL_SIZE + PIECE_PANEL_HEIGHT + 3 * MARGIN + 160  # było +100, zwiększono na +160
+SCREEN_HEIGHT = GRID_SIZE * CELL_SIZE + PIECE_PANEL_HEIGHT + 3 * MARGIN + 80
 
 COLORS = {
     'bg': (30, 30, 40),
