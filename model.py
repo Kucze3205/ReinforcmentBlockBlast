@@ -36,11 +36,12 @@ class QTrainer:
 
     def train_step(self, state, action, reward, next_state, done):
         # Implementation for training step
-        state = torch.tensor(state, dtype=torch.float)
-        next_state = torch.tensor(next_state, dtype=torch.float)
-        reward = torch.tensor(reward, dtype=torch.float)
-        action = torch.tensor(action, dtype=torch.long)
-        done = torch.tensor(done, dtype=torch.bool)
+        device = next(self.model.parameters()).device
+        state = torch.tensor(state, dtype=torch.float, device=device)
+        next_state = torch.tensor(next_state, dtype=torch.float, device=device)
+        reward = torch.tensor(reward, dtype=torch.float, device=device)
+        action = torch.tensor(action, dtype=torch.long, device=device)
+        done = torch.tensor(done, dtype=torch.bool, device=device)
 
         if(len(state.shape) == 1):
             state = torch.unsqueeze(state, 0)

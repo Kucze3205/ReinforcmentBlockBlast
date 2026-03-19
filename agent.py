@@ -17,24 +17,32 @@ GRID_SIZE = 8*8
 
 class Agent:
     def __init__(self):
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.n_games = 0
         self.epsilon = 0 # randomness
         self.gamma = 0.9 # discount rate
         self.memory = deque(maxlen=MAX_MEMORY)
-        self.model = Linear_Q(GRID_SIZE + 3 + 3, 512, 3*8*8).to(device) # Placeholder for the neural network model
+        self.model = Linear_Q(GRID_SIZE + 3*4*4 + 4, 2048, 3*8*8).to(self.device) # Placeholder for the neural network model
         self.trainer = QTrainer(self.model, lr=0.001, gamma=0.9) # Placeholder for the trainer (e.g., optimizer, loss function)
+        self.mask = np.zeros(3*8*8, dtype=int)
+        self.spaces_amount = 0
         pass
 
     def get_state(self, game):
         flatten_grid = np.array(game.board.grid).flatten()
+
+        pieces4x4 = []
+        for idx, piece in enumerate(game.pieces):
+            piece4x4 = []
+            if piece is None:
+                piece4x4 = [[0]*4 for _ in range(4)]
+            else:
+                piece4x4 = PIECE_SHAPES_4X4[piece.index][0]
+            pieces4x4.append(np.array(piece4x4).flatten())
+        flatted_pieces4x4 = np.array(pieces4x4).flatten()
         
-        pieces_indices = np.array([piece.index if piece else -1 for piece in game.pieces])
-        rest_values = np.array([game.score, game.streak, game.round_placement])
-        state = np.concatenate([flatten_grid, pieces_indices, rest_values])
-
-
-
+        rest_values = np.array([game.score, game.streak, game.round_placement, self.spaces_amount])
+        state = np.concatenate([flatten_grid, flatted_pieces4x4, rest_values])
         return state
     
     def remember(self, state, action, reward, next_state, done):
@@ -56,10 +64,10 @@ class Agent:
         self.trainer.train_step(state, action, reward, next_state, done)
         pass
 
-    def create_mask(self, state):
-        grid = state[:GRID_SIZE].reshape(8, 8)
-        pieces_indices = state[GRID_SIZE:GRID_SIZE+3]
-
+    def get_mask(self, game):
+        grid = game.board.grid
+        pieces_indices = [piece.index if piece else -1 for piece in game.pieces]
+        spaces_amount = 0
         mask = np.zeros(3*8*8, dtype=int)
 
         i = 0
@@ -70,36 +78,33 @@ class Agent:
                     for x in range(8 - len(piece.shape[0]) + 1):
                         temp_board = Board()
                         temp_board.grid = grid.copy()
-                        if temp_board.place_piece(piece, x, y):
+                        if temp_board.can_place_piece(piece, x, y):
                             mask_idx = i * 64 + y * 8 + x
                             mask[mask_idx] = 1
+                            spaces_amount += 1
 
         
             i += 1
-        return mask
+        return mask, spaces_amount
+    
+
 
     def get_action(self, state):
         # random moves: tradeoff exploration / exploitation
-        self.epsilon = 160 - self.n_games
+        self.epsilon = 400 - self.n_games
         final_move = [0,0,0] # Placeholder for the action (e.g., piece index, x, y)
 
-        mask = self.create_mask(state)
-
-        if random.randint(0, 200) < self.epsilon:
-
+        if random.randint(0, 100) < self.epsilon:
             random_prediction = []
             for i in range(3*8*8):
                 random_prediction.append(random.random())
-            
-            masked_prediction = np.where(mask, random_prediction, -np.inf) # Apply mask to filter out invalid moves
+            masked_prediction = np.where(self.mask, random_prediction, -np.inf) # Apply mask to filter out invalid moves
         else:
-            state0 = torch.tensor(state, dtype=torch.float32)
-            predition = self.model(state0) # Placeholder for model prediction
-            predition = predition.detach().numpy() # Apply mask to filter out invalid moves
+            state0 = torch.tensor(state, dtype=torch.float32).to(self.device)
+            predition = self.model(state0)
+            predition = predition.detach().cpu().numpy() # Ensure on CPU for numpy
+            masked_prediction = np.where(self.mask, predition, -np.inf)
 
-            masked_prediction = np.where(mask, predition, -np.inf)
-
-            # Take the index of the max value in each part
         idx = torch.argmax(torch.tensor(masked_prediction)).item()
 
         if idx < 64:
@@ -123,12 +128,15 @@ def train():
     plot_scores = []
     plot_mean_scores = []
     total_score = 0
+    total_reward = 0
+
     recod = 0
     rounds = 0
     agent = Agent()
     game = Game(seed=42)
+    agent.mask, agent.spaces_amount = agent.get_mask(game)
     while True:
-        
+
         #get old state
         state_old = agent.get_state(game)
         #get move
@@ -136,15 +144,17 @@ def train():
         #perform move and get new state
         reward, score, done, message = game.step(final_move)
 
+        agent.mask, agent.spaces_amount = agent.get_mask(game)
         state_new = agent.get_state(game)
-        rounds += 1
-        if reward >= 0: reward = rounds
 
         #train short memory
         agent.train_short_term(state_old, final_move, reward, state_new, done)
 
         #remember
         agent.remember(state_old, final_move, reward, state_new, done)
+
+        total_reward += reward
+
         print('Message:', message)
         if done:
             rounds = 0
@@ -158,13 +168,15 @@ def train():
             if score > recod:
                 recod = score
 
-            
-            print('Game', agent.n_games, 'Score', score, 'Record:', recod)
+            mean_reward = total_reward / agent.n_games
+            print('Game', agent.n_games, 'Score', score, 'Record:', recod, 'Mean reward', mean_reward)
             plot_scores.append(score)
             total_score += score
             mean_score = total_score / agent.n_games
             plot_mean_scores.append(mean_score)
             plot(plot_scores, plot_mean_scores)
+            
+            agent.model.save() # Save the model after each game
         
     pass
 

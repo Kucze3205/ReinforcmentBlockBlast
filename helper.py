@@ -17,4 +17,3 @@ def plot(scores, mean_scores):
     plt.legend()
     plt.ylim(ymin=0)
     plt.show(block=False)
-    plt.pause(0.1)

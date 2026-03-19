@@ -32,6 +32,18 @@ class UI:
         pygame.display.set_caption("Block Blast")
         self.font = pygame.font.SysFont(None, 32)
         self.clock = pygame.time.Clock()
+        # Button definitions
+        self.button_height = 50
+        self.button_width = 180
+        self.button_margin = 20
+        # Place buttons below the piece panel
+        button_y = SCREEN_HEIGHT - self.button_height - self.button_margin // 2
+        self.buttons = {
+            'train': pygame.Rect(MARGIN, button_y, self.button_width, self.button_height),
+            'step': pygame.Rect(MARGIN + self.button_width + self.button_margin, button_y, self.button_width, self.button_height),
+            'restart': pygame.Rect(MARGIN + 2 * (self.button_width + self.button_margin), button_y, self.button_width, self.button_height)
+        }
+        self.training = False
         
 
     def draw_grid(self, board):
@@ -69,4 +81,31 @@ class UI:
         self.screen.blit(score_text, (MARGIN, SCREEN_HEIGHT - PIECE_PANEL_HEIGHT - 2 * MARGIN))
         self.screen.blit(streak_text, (MARGIN + 180, SCREEN_HEIGHT - PIECE_PANEL_HEIGHT - 2 * MARGIN))
         self.screen.blit(round_text, (MARGIN + 360, SCREEN_HEIGHT - PIECE_PANEL_HEIGHT - 2 * MARGIN))
+
+    def draw_buttons(self):
+        # Button styles
+        button_styles = {
+            'train': ((70, 180, 70), "Stop Training" if self.training else "Start Training"),
+            'step': ((70, 70, 180), "Step"),
+            'restart': ((180, 70, 70), "Restart")
+        }
+        for name, rect in self.buttons.items():
+            color, label = button_styles[name]
+            # Draw filled rectangle
+            pygame.draw.rect(self.screen, color, rect, border_radius=8)
+            # Draw border
+            pygame.draw.rect(self.screen, (255,255,255), rect, 2, border_radius=8)
+            # Render text
+            text = self.font.render(label, True, (255,255,255))
+            text_rect = text.get_rect(center=rect.center)
+            self.screen.blit(text, text_rect)
+
+    def check_button_click(self, pos):
+        for name, rect in self.buttons.items():
+            if rect.collidepoint(pos):
+                return name
+        return None
+
+    def set_training(self, training):
+        self.training = training
 

@@ -15,6 +15,18 @@ class Board:
     def place_piece(self, piece, x, y):
         if piece is None:
             return False
+        if not self.can_place_piece(piece, x, y):
+            return False
+        
+        for dy, row in enumerate(piece.shape):
+            for dx, cell in enumerate(row):
+                if cell:
+                    self.grid[y + dy][x + dx] = 1
+        return True
+    
+    def can_place_piece(self, piece, x, y):
+        if piece is None:
+            return False
         for dy, row in enumerate(piece.shape):
             for dx, cell in enumerate(row):
                 if cell:
@@ -23,10 +35,6 @@ class Board:
                         return False
                     if self.grid[by][bx]:
                         return False
-        for dy, row in enumerate(piece.shape):
-            for dx, cell in enumerate(row):
-                if cell:
-                    self.grid[y + dy][x + dx] = 1
         return True
 
     def check_full_lines(self):

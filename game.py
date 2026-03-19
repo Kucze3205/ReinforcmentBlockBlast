@@ -43,7 +43,7 @@ class Game:
             for y in range(Board.HEIGHT - len(piece.shape) + 1):
                 for x in range(Board.WIDTH - len(piece.shape[0]) + 1):
                     temp_board = self.board.copy()
-                    if temp_board.place_piece(piece, x, y):
+                    if temp_board.can_place_piece(piece, x, y):
                         actions.append((idx, x, y))
         return actions
     
@@ -52,6 +52,7 @@ class Game:
         self.ui.draw_grid(self.board.grid)
         self.ui.draw_panel(self.pieces)
         self.ui.draw_info(self.score, self.streak, self.round_placement + 1)
+        self.ui.draw_buttons()
         pygame.display.flip()
         pygame.event.pump()
     
@@ -125,7 +126,7 @@ class Game:
             for y in range(Board.HEIGHT - len(piece.shape) + 1):
                 for x in range(Board.WIDTH - len(piece.shape[0]) + 1):
                     temp_board = self.board.copy()
-                    if temp_board.place_piece(piece, x, y):
+                    if temp_board.can_place_piece(piece, x, y):
                         return True
         return False
 
