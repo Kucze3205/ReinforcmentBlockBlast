@@ -1,49 +1,62 @@
+
 import numpy as np
 import random
 from collections import deque
 
 import torch
 from game import Game
-from model import Linear_Q, QTrainer
+from model import QTrainer, CustomNet
 from helper import plot
 from pieces import PIECE_POOL, PIECE_SHAPES_4X4
 from board import Board
 
 
 MAX_MEMORY = 100_000
-BATCH_SIZE = 1000
+BATCH_SIZE = 256
 GRID_SIZE = 8*8
-
+EPSILON_START = 1.0
+EPSILON_END   = 0.1
+EPSILON_STEPS = 50_000
 
 class Agent:
     def __init__(self):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.n_games = 0
-        self.epsilon = 0 # randomness
+        self.epsilon = EPSILON_START # randomness
         self.gamma = 0.9 # discount rate
         self.memory = deque(maxlen=MAX_MEMORY)
-        self.model = Linear_Q(GRID_SIZE + 3*4*4 + 4, 2048, 3*8*8).to(self.device) # Placeholder for the neural network model
-        self.trainer = QTrainer(self.model, lr=0.001, gamma=0.9) # Placeholder for the trainer (e.g., optimizer, loss function)
+        self.model = CustomNet(4, 3*8*8).to(self.device) # Placeholder for the neural network model
+        self.trainer = QTrainer(self.model, lr=0.01, gamma=0.9) # Placeholder for the trainer (e.g., optimizer, loss function)
         self.mask = np.zeros(3*8*8, dtype=int)
         self.spaces_amount = 0
+        
         pass
 
     def get_state(self, game):
-        flatten_grid = np.array(game.board.grid).flatten()
+        # Grid jako [8,8] float32
+        grid = np.array(game.board.grid, dtype=np.float32)
+       
+        self.mask, self.spaces_amount = self.get_weighted_mask(game)
+        # Kanały: plansza + 3 maski
+        grid4 = np.zeros((4, 8, 8), dtype=np.float32)
+        grid4[0] = grid
+        # mask: 192 -> 3x[8,8]
+        for i in range(3):
+            grid4[i+1] = self.mask[i*64:(i+1)*64].reshape(8,8)
 
-        pieces4x4 = []
-        for idx, piece in enumerate(game.pieces):
-            piece4x4 = []
+        # Shapes jako lista 3 x [4,4] float32
+        shapes = []
+        for piece in game.pieces:
             if piece is None:
-                piece4x4 = [[0]*4 for _ in range(4)]
+                shape = np.zeros((4, 4), dtype=np.float32)
             else:
-                piece4x4 = PIECE_SHAPES_4X4[piece.index][0]
-            pieces4x4.append(np.array(piece4x4).flatten())
-        flatted_pieces4x4 = np.array(pieces4x4).flatten()
-        
-        rest_values = np.array([game.score, game.streak, game.round_placement, self.spaces_amount])
-        state = np.concatenate([flatten_grid, flatted_pieces4x4, rest_values])
-        return state
+                shape = np.array(PIECE_SHAPES_4X4[piece.index][0], dtype=np.float32)
+            shapes.append(shape)
+
+        # Wartości liczbowe jako [score, streak, round_placement, spaces_amount] float32
+        numeric = np.array([game.score, game.streak, game.round_placement, self.spaces_amount], dtype=np.float32)
+
+        return grid4, shapes, numeric
     
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
@@ -64,6 +77,33 @@ class Agent:
         self.trainer.train_step(state, action, reward, next_state, done)
         pass
 
+    def print_board_and_masks(self, grid, mask, game):
+
+        shapes = []
+        for piece in game.pieces:
+            if piece is None:
+                shape = np.zeros((4, 4), dtype=np.float32)
+            else:
+                shape = np.array(PIECE_SHAPES_4X4[piece.index][0], dtype=np.float32)
+            shapes.append(shape)
+
+        # grid: 8x8, mask: 3*8*8, shapes: 3x[4x4]
+        board_arr = np.array(grid)
+        masks = [mask[i*64:(i+1)*64].reshape(8,8) for i in range(3)]
+        print("\nTablice obok siebie:")
+        for y in range(8):
+            row = []
+            row.append(' '.join(f"{int(board_arr[y][x])}" for x in range(8)))
+            for m in masks:
+                row.append(' '.join(f"{int(m[y][x])}" for x in range(8)))
+            # Dodaj kształty tylko dla pierwszych 4 wierszy
+            if shapes is not None and y < 4:
+                shape_row = []
+                for shape in shapes:
+                    shape_row.append(' '.join(f"{int(shape[y][x])}" for x in range(4)))
+                row.append('   |   '.join(shape_row))
+            print('   |   '.join(row))
+
     def get_mask(self, game):
         grid = game.board.grid
         pieces_indices = [piece.index if piece else -1 for piece in game.pieces]
@@ -82,28 +122,149 @@ class Agent:
                             mask_idx = i * 64 + y * 8 + x
                             mask[mask_idx] = 1
                             spaces_amount += 1
-
-        
             i += 1
+
+        # Przygotuj shapes do wyświetlenia
+        shapes = []
+        for piece in game.pieces:
+            if piece is None:
+                shape = np.zeros((4, 4), dtype=np.float32)
+            else:
+                shape = np.array(PIECE_SHAPES_4X4[piece.index][0], dtype=np.float32)
+            shapes.append(shape)
+
+        # Wywołanie funkcji drukującej tablice z shapes
+        #self.print_board_and_masks(grid, mask, shapes)
         return mask, spaces_amount
     
+    def get_weighted_mask(self, game):
+        mask, spaces_amount = self.get_mask(game)
+        grid = game.board.grid
+        pieces_indices = [piece.index if piece else -1 for piece in game.pieces]
+        weighted_mask = np.zeros(3 * 8 * 8, dtype=float)
+
+        # N=0, E=1, S=2, W=3
+        face_adj  = [(-1,0),(0,1),(1,0),(0,-1)]   # sąsiednia komórka po zewnętrznej stronie ściany
+        travel    = [(0,1),(1,0),(0,-1),(-1,0)]   # kierunek ruchu wzdłuż ściany
+
+        def is_contact(r, c, d, cells):
+            nr, nc = r + face_adj[d][0], c + face_adj[d][1]
+            if not (0 <= nr < 8 and 0 <= nc < 8):
+                return 1                                      # ściana planszy
+            if (nr, nc) not in cells and grid[nr][nc] == 1:
+                return 1                                      # zajęte pole
+            return 0
+
+        def next_face(r, c, d, cells):
+            """Następna ściana obwodu idąc zgodnie z ruchem wskazówek zegara."""
+
+            # 1. Narożnik wypukły: skręt w prawo — sąsiednia komórka w kierunku rd
+            #    NIE należy do klocka → oba boki tego narożnika są zewnętrzne
+            rd = (d + 1) % 4
+            ar, ac = r + face_adj[rd][0], c + face_adj[rd][1]
+            if (ar, ac) not in cells:
+                return r, c, rd                               # ta sama komórka, następna ściana
+
+            # 2. Prosto: następna komórka w kierunku ruchu ma tę samą zewnętrzną ścianę
+            tr, tc = r + travel[d][0], c + travel[d][1]
+            if (tr, tc) in cells:
+                er, ec = tr + face_adj[d][0], tc + face_adj[d][1]
+                if (er, ec) not in cells:
+                    return tr, tc, d
+
+            # 3. Narożnik wklęsły: skok po przekątnej do sąsiedniej komórki
+            #    (zmiana kierunku o 90° w lewo, przejście na inną komórkę)
+            er, ec = r + face_adj[d][0], c + face_adj[d][1]
+            tr2, tc2 = er + travel[d][0], ec + travel[d][1]
+            return tr2, tc2, (d - 1) % 4
+
+        def trace_perimeter(piece_cells): #funckja może być zhardcodowana dla każdego elementu, zeby przyspieszyć!!!!!!!!!!!!!!!!!!!!
+            """Obchodzi obwód klocka zgodnie z ruchem wskazówek zegara.
+            Przy narożniku wypukłym: oba boki pojawiają się kolejno (2 elementy).
+            Przy narożniku wklęsłym: skok — też 2 elementy z różnych komórek.
+            Zwraca listę 0/1 (czy dana ściana dotyka czegoś)."""
 
 
+            cells = frozenset(piece_cells)
+
+            # Start: najwyższy wiersz, najbardziej lewy, ściana N
+            min_r = min(r for r, c in cells)
+            min_c = min(c for r, c in cells if r == min_r)
+            start = (min_r, min_c, 0)
+
+            seq = []
+            r, c, d = start
+            for _ in range(500):                              # limit bezpieczeństwa
+                seq.append(is_contact(r, c, d, cells))
+                r, c, d = next_face(r, c, d, cells)
+                if (r, c, d) == start:
+                    break
+            return seq
+
+        def longest_run(seq):
+            """Najdłuższy ciągły odcinek jedynek w kołowej tablicy."""
+            if not seq:
+                return 0
+            if all(v == 1 for v in seq):
+                return len(seq)
+            doubled = seq + seq
+            best = cur = 0
+            for v in doubled:
+                if v == 1:
+                    cur += 1
+                    if cur > best:
+                        best = cur
+                else:
+                    cur = 0
+            return min(best, len(seq))                        # nie więcej niż cały obwód
+
+        for i, idx in enumerate(pieces_indices):
+            if idx < 0:
+                continue
+            piece = PIECE_POOL[idx]
+            shape = piece.shape
+            ph, pw = len(shape), len(shape[0])
+
+            for y in range(8 - ph + 1):
+                for x in range(8 - pw + 1):
+                    if mask[i * 64 + y * 8 + x] == 0:
+                        continue
+
+                    piece_cells = {
+                        (y + py, x + px)
+                        for py in range(ph)
+                        for px in range(pw)
+                        if shape[py][px]
+                    }
+
+                    seq = trace_perimeter(piece_cells)
+                    weighted_mask[i * 64 + y * 8 + x] = longest_run(seq)
+
+        #self.print_board_and_masks(grid, weighted_mask, game)
+        return weighted_mask, spaces_amount
+    
     def get_action(self, state):
         # random moves: tradeoff exploration / exploitation
-        self.epsilon = 400 - self.n_games
+        progress = min(1.0, self.n_games / EPSILON_STEPS)
+        self.epsilon = EPSILON_START - progress * (EPSILON_START - EPSILON_END)
+
         final_move = [0,0,0] # Placeholder for the action (e.g., piece index, x, y)
 
-        if random.randint(0, 100) < self.epsilon:
+        if random.randrange(0, 200) < self.epsilon:
             random_prediction = []
             for i in range(3*8*8):
                 random_prediction.append(random.random())
             masked_prediction = np.where(self.mask, random_prediction, -np.inf) # Apply mask to filter out invalid moves
+            #masked_prediction = self.mask
         else:
-            state0 = torch.tensor(state, dtype=torch.float32).to(self.device)
-            predition = self.model(state0)
-            predition = predition.detach().cpu().numpy() # Ensure on CPU for numpy
-            masked_prediction = np.where(self.mask, predition, -np.inf)
+            grid, shapes, numeric = state
+            # grid: [4,8,8] -> [1,4,8,8]
+            grid_t = torch.tensor(grid, dtype=torch.float32, device=self.device).unsqueeze(0)
+            shapes_t = [torch.tensor(s, dtype=torch.float32, device=self.device).unsqueeze(0).unsqueeze(0) for s in shapes]
+            numeric_t = torch.tensor(numeric, dtype=torch.float32, device=self.device).unsqueeze(0)
+            prediction = self.model(grid_t, shapes_t, numeric_t)
+            prediction = prediction.detach().cpu().numpy().flatten() # Ensure on CPU for numpy
+            masked_prediction = np.where(self.mask, prediction, -np.inf)
 
         idx = torch.argmax(torch.tensor(masked_prediction)).item()
 
@@ -123,10 +284,84 @@ class Agent:
         final_move = [piece_index, x, y]
 
         return final_move
+    
+    def count_blobs(self, grid):
+        """
+        Tworzy grid 10x10 z ramką jedynek wokół planszy 8x8.
+        Liczy wszystkie odrębne plamy (i zer i jedynek).
+        Zwraca liczba_plam - 2.
+
+        Pusta plansza:  ramka(1 plama) + wnętrze(1 plama) = 2 → 2-2 = 0
+        Klocek w środku: ramka(1) + klocek(1) + wnętrze(1) = 3 → 3-2 = 1
+        Klocek przy ścianie: klocek łączy się z ramką → ramka(1) + wnętrze(1) = 2 → 2-2 = 0
+        """
+        # Stwórz planszę 10x10 z ramką jedynek
+        padded = [[1] * 10 for _ in range(10)]
+        for y in range(8):
+            for x in range(8):
+                padded[y + 1][x + 1] = grid[y][x]
+
+        visited = [[False] * 10 for _ in range(10)]
+        blobs = 0
+
+        def bfs(start_y, start_x):
+            value = padded[start_y][start_x]
+            queue = deque([(start_y, start_x)])
+            visited[start_y][start_x] = True
+            while queue:
+                cy, cx = queue.popleft()
+                for dy, dx in [(-1,0),(1,0),(0,-1),(0,1)]:
+                    ny, nx = cy + dy, cx + dx
+                    if 0 <= ny < 10 and 0 <= nx < 10:
+                        if not visited[ny][nx] and padded[ny][nx] == value:
+                            visited[ny][nx] = True
+                            queue.append((ny, nx))
+
+        for y in range(10):
+            for x in range(10):
+                if not visited[y][x]:
+                    bfs(y, x)
+                    blobs += 1
+
+        return blobs - 2
+
+    def count_new_holes(self, board_before, board_after):
+        holes_before = self.count_blobs(board_before)
+        holes_after  = self.count_blobs(board_after) #można zooptymalizować
+        return holes_after - holes_before
+
+    def count_reward(self, state_old, state_new, action, rounds):
+        """
+        Liczy reward na podstawie kontaktów, dziur, rundy i czyszczenia linii.
+        state_old, state_new: (grid4, shapes, numeric)
+        """
+        grid4_old, shapes_old, numeric_old = state_old
+        grid4_new, shapes_new, numeric_new = state_new
+        board_before = grid4_old[0]
+        board_after = grid4_new[0]
+
+        idx, x, y = action
+        reward = 0.0
+
+        reward += grid4_old[idx][y][x] * 0.2  # Za kontakt z istniejącymi blokami
+
+        # holes_after - holes_before > 0 → więcej dziur → kara || holes_after - holes_before < 0 → mniej dziur → nagroda
+        reward -= self.count_new_holes(board_before, board_after) * 0.5
+
+        # Za wyższą rundę
+        round_new = numeric_new[2] if len(numeric_new) > 2 else 0
+        reward += round_new * 0.05
+
+        # Za czyszczenie linii (jeśli plansza po ruchu ma mniej bloków niż przed)
+        if np.sum(board_after) < np.sum(board_before):
+            reward += 1.0
+        return reward
+
 
 def train():
     plot_scores = []
     plot_mean_scores = []
+    plot_mean_reward = []
     total_score = 0
     total_reward = 0
 
@@ -134,7 +369,6 @@ def train():
     rounds = 0
     agent = Agent()
     game = Game(seed=42)
-    agent.mask, agent.spaces_amount = agent.get_mask(game)
     while True:
 
         #get old state
@@ -144,8 +378,10 @@ def train():
         #perform move and get new state
         reward, score, done, message = game.step(final_move)
 
-        agent.mask, agent.spaces_amount = agent.get_mask(game)
         state_new = agent.get_state(game)
+
+        rounds += 1
+        reward += agent.count_reward(state_old, state_new, final_move, rounds)
 
         #train short memory
         agent.train_short_term(state_old, final_move, reward, state_new, done)
@@ -154,6 +390,7 @@ def train():
         agent.remember(state_old, final_move, reward, state_new, done)
 
         total_reward += reward
+        
 
         print('Message:', message)
         if done:
@@ -169,14 +406,18 @@ def train():
                 recod = score
 
             mean_reward = total_reward / agent.n_games
-            print('Game', agent.n_games, 'Score', score, 'Record:', recod, 'Mean reward', mean_reward)
-            plot_scores.append(score)
+            print(f'Game {agent.n_games} Score {score} Record: {recod} Mean reward {mean_reward}', end='\r', flush=True)
+
+
             total_score += score
-            mean_score = total_score / agent.n_games
-            plot_mean_scores.append(mean_score)
-            plot(plot_scores, plot_mean_scores)
+            if agent.n_games % 1 == 0:
+                # plot_mean_reward.append(mean_reward)
+                # plot_scores.append(score)
+                # mean_score = total_score / agent.n_games
+                # plot_mean_scores.append(mean_score)
+                # plot(plot_scores, plot_mean_scores, plot_mean_reward)
             
-            agent.model.save() # Save the model after each game
+                agent.model.save() # Save the model after each game
         
     pass
 

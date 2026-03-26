@@ -1,22 +1,82 @@
+from turtle import done
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import os
+import copy
 
 
-
-class Linear_Q(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
+class CustomNet(nn.Module):
+    def __init__(self, num_numeric=4, output_dim=192):
         super().__init__()
-        self.linear1 = nn.Linear(input_size, hidden_size)
-        self.linear2 = nn.Linear(hidden_size, output_size)
 
-    def forward(self, x):
-        x = self.linear1(x)
-        x = torch.relu(x)
-        x = self.linear2(x)
-        return x
+        # Gałąź 1: CNN dla planszy (4 kanały: board + 3 weighted maski)
+        self.board_cnn = nn.Sequential(
+            nn.Conv2d(4, 32, 3, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, 3, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.Flatten(),
+            nn.Linear(64 * 8 * 8, 256),
+            nn.ReLU()
+        )
+
+        # Gałąź 2: Shared CNN dla klocków
+        self.piece_cnn = nn.Sequential(
+            nn.Conv2d(1, 16, 3, padding=1),
+            nn.ReLU(),
+            nn.Flatten(),
+            nn.Linear(16 * 4 * 4, 64),
+            nn.ReLU()
+        )
+
+        # Gałąź 3: MLP dla cech heurystycznych
+        self.numeric_mlp = nn.Sequential(
+            nn.Linear(num_numeric, 64),
+            nn.LayerNorm(64),
+            nn.ReLU(),
+            nn.Linear(64, 64),
+            nn.ReLU()
+        )
+
+        # Wspólna warstwa łącząca: 256 + 3*64 + 64 = 512
+        self.shared_fc = nn.Sequential(
+            nn.Linear(512, 512),
+            nn.ReLU(),
+            nn.Dropout(0.2)
+        )
+
+        # Dueling streams
+        self.value_stream = nn.Sequential(
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Linear(256, 1)
+        )
+        self.advantage_stream = nn.Sequential(
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Linear(256, output_dim)
+        )
+
+    def forward(self, board, pieces, numeric):
+        board_feat = self.board_cnn(board)
+        piece_feats = [self.piece_cnn(p) for p in pieces]
+        piece_feat = torch.cat(piece_feats, dim=1)
+        numeric_feat = self.numeric_mlp(numeric)
+
+        x = torch.cat([board_feat, piece_feat, numeric_feat], dim=1)
+        x = self.shared_fc(x)
+
+        value = self.value_stream(x)
+        advantage = self.advantage_stream(x)
+
+        q = value + (advantage - advantage.mean(dim=1, keepdim=True))
+        return q
+
     def save(self, file_name='model.pth'):
         model_folder_path = './model'
         if not os.path.exists(model_folder_path):
@@ -24,41 +84,110 @@ class Linear_Q(nn.Module):
         file_name = os.path.join(model_folder_path, file_name)
         torch.save(self.state_dict(), file_name)
 
+
 class QTrainer:
-    def __init__(self, model, lr, gamma):
+    def __init__(self, model, lr, gamma, target_update_freq=1000):
         self.model = model
         self.lr = lr
         self.gamma = gamma
+        self.steps = 0
+        self.target_update_freq = target_update_freq
+
+        # --- TARGET NETWORK (kluczowa zmiana z papieru) ---
+        # Oddzielna sieć do obliczania Q(s', a') w równaniu Bellmana.
+        # Wagi zamrożone, aktualizowane co target_update_freq kroków.
+        # Bez tego: sieć goni samą siebie → oscylacje → dywergencja.
+        self.target_model = copy.deepcopy(model)
+        self.target_model.load_state_dict(model.state_dict())
+        # target_model NIGDY nie jest trenowany przez optimizer
+        for param in self.target_model.parameters():
+            param.requires_grad = False
+
         self.optimizer = optim.Adam(model.parameters(), lr=lr)
-        self.criterion = nn.MSELoss()
 
-
+    def _sync_target(self):
+        """Kopiuje wagi z modelu online do target network."""
+        self.target_model.load_state_dict(self.model.state_dict())
 
     def train_step(self, state, action, reward, next_state, done):
-        # Implementation for training step
         device = next(self.model.parameters()).device
-        state = torch.tensor(state, dtype=torch.float, device=device)
-        next_state = torch.tensor(next_state, dtype=torch.float, device=device)
-        reward = torch.tensor(reward, dtype=torch.float, device=device)
-        action = torch.tensor(action, dtype=torch.long, device=device)
-        done = torch.tensor(done, dtype=torch.bool, device=device)
 
-        if(len(state.shape) == 1):
-            state = torch.unsqueeze(state, 0)
-            next_state = torch.unsqueeze(next_state, 0)
-            reward = torch.unsqueeze(reward, 0)
-            action = torch.unsqueeze(action, 0)
-            done = (done, )
+        if isinstance(state, tuple) and isinstance(state[0], np.ndarray):
+            # --- Tryb pojedynczy (short-term) ---
+            grid, shapes, numeric = state
+            next_grid, next_shapes, next_numeric = next_state
 
-        pred = self.model(state)
-        target = pred.clone()
+            grid        = torch.tensor(grid,    dtype=torch.float32, device=device).unsqueeze(0)
+            shapes      = [torch.tensor(s,      dtype=torch.float32, device=device).unsqueeze(0) for s in shapes]
+            numeric     = torch.tensor(numeric, dtype=torch.float32, device=device).unsqueeze(0)
+
+            next_grid   = torch.tensor(next_grid,    dtype=torch.float32, device=device).unsqueeze(0)
+            next_shapes = [torch.tensor(s,           dtype=torch.float32, device=device).unsqueeze(0) for s in next_shapes]
+            next_numeric= torch.tensor(next_numeric, dtype=torch.float32, device=device).unsqueeze(0)
+
+            reward = torch.tensor(reward, dtype=torch.float32, device=device).unsqueeze(0)
+            action = torch.tensor(action, dtype=torch.long,    device=device).unsqueeze(0)
+            done   = (done,)
+
+        else:
+            # --- Tryb batch (long-term) ---
+            grids, shapes_list, numerics             = zip(*state)
+            next_grids, next_shapes_list, next_numerics = zip(*next_state)
+
+            grid        = torch.tensor(np.array(grids),    dtype=torch.float32, device=device)
+            shapes      = [torch.tensor(np.array(s),       dtype=torch.float32, device=device) for s in zip(*shapes_list)]
+            numeric     = torch.tensor(np.array(numerics), dtype=torch.float32, device=device)
+
+            next_grid   = torch.tensor(np.array(next_grids),    dtype=torch.float32, device=device)
+            next_shapes = [torch.tensor(np.array(s),            dtype=torch.float32, device=device) for s in zip(*next_shapes_list)]
+            next_numeric= torch.tensor(np.array(next_numerics), dtype=torch.float32, device=device)
+
+            reward = torch.tensor(reward, dtype=torch.float32, device=device)
+            action = torch.tensor(action, dtype=torch.long,    device=device)
+            done   = torch.tensor(done,   dtype=torch.bool,    device=device)
+
+        shapes      = [s.unsqueeze(1) for s in shapes]
+        next_shapes = [s.unsqueeze(1) for s in next_shapes]
+
+        # --- Predykcja online modelu ---
+        self.model.train()
+        pred = self.model(grid, shapes, numeric)
+        target = pred.clone().detach()
+
+        # --- TARGET NETWORK: oblicz Q(s', a') zamrożoną siecią ---
+        # (paper eq. 3: θ_{i-1} są zamrożone przy optymalizacji L_i(θ_i))
+        self.target_model.eval()
+        with torch.no_grad():
+            next_q_all = self.target_model(
+                next_grid,
+                next_shapes,
+                next_numeric
+            )                                          # [batch, 192]
+
         for idx in range(len(done)):
             Q_new = reward[idx]
             if not done[idx]:
-                Q_new = reward[idx] + self.gamma * torch.max(self.model(next_state[idx]))
-            target[idx][torch.argmax(action[idx]).item()] = Q_new
-        
+                # Używamy target_model zamiast self.model — kluczowa różnica
+                Q_new = reward[idx] + self.gamma * torch.max(next_q_all[idx])
+
+            piece_idx, x, y = action[idx][0], action[idx][1], action[idx][2]
+            flat_idx = int(piece_idx) * 64 + int(y) * 8 + int(x)
+            target[idx][flat_idx] = Q_new
+
+        # --- Huber loss zamiast MSE ---
+        # MSE karze kwadratowo za duże błędy → niestabilny gradient gdy Q eksploduje.
+        # Huber = MSE dla małych błędów, MAE dla dużych → bardziej stabilny trening.
+        loss = F.huber_loss(pred, target)
+
         self.optimizer.zero_grad()
-        loss = self.criterion(target, pred)
         loss.backward()
+
+        # --- Gradient clipping (paper nie wymienia, ale stabilizuje trening) ---
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=10.0)
+
         self.optimizer.step()
+
+        # --- Synchronizacja target network co N kroków ---
+        self.steps += 1
+        if self.steps % self.target_update_freq == 0:
+            self._sync_target()

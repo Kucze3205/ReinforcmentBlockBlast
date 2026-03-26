@@ -17,9 +17,11 @@ class Game:
         self.score = 0
         self.streak = 0
         self.round_placement = 0
+        self.game_round = 0  # Licznik tur gry
         self.pieces = self.generator.next_pieces()
         self.done = False
         self.last_lines_cleared = 0
+        
 
         self.refresh_ui()
 
@@ -29,6 +31,7 @@ class Game:
         self.score = 0
         self.streak = 0
         self.round_placement = 0
+        self.game_round = 0  # Resetuj licznik tur gry
         self.pieces = self.generator.next_pieces()
         self.done = False
         self.last_lines_cleared = 0
@@ -57,67 +60,53 @@ class Game:
         pygame.event.pump()
     
 
-
     def step(self, action):
-
+        self.game_round += 1  # Zwiększ licznik tur przy każdym ruchu
         idx, x, y = action
         piece = self.pieces[idx]
-        this_round_score = 0
-        reward = 0
-
         if not self.board.place_piece(piece, x, y):
             self.done = True
+            self.game_round = 0
             return -10, self.score, self.done, "wrong_placement"
-        
-        # Calculate reward: 
-        # Base points for placement (+1 for each cell)
-        this_round_score = placement_points(piece)
-        
+
+        self.score = self.calculate_round_score(idx)
+
+        #check if there is no place left for any piece, if so - end the game
+        if not self._can_place_any():
+            self.refresh_ui()
+            self.game_round = 0
+            return -10, self.score, True, "game_over"
+
+        self.refresh_ui()
+        return 0, self.score, self.done, "successful placement"
+
+    def calculate_round_score(self, idx):
+        this_round_score = 0
         # bonus point for simultaneous clears (k^2 * 10)
         rows, cols = self.board.check_full_lines()
         k = len(rows) + len(cols)
-
-        if(k > 0):
+        if k > 0:
             this_round_score += simultaneous_clear_points(k)
-            reward += simultaneous_clear_points(k)
-
         self.last_lines_cleared += k
         self.board.clear_lines(rows, cols)
-
         # BONUS: sprawdź czy plansza jest całkowicie pusta po ruchu
         if all(all(cell == 0 for cell in row) for row in self.board.grid):
             this_round_score += 100  # bonus za wyczyszczenie całej planszy
-            reward += 1000
-
         self.pieces[idx] = None
-
         self.round_placement += 1
         if self.round_placement == 3:
             if self.last_lines_cleared > 0:
                 self.streak += 1
             else:
                 self.streak = 0
-
-            # Bonus points for streaks (s^2 * 5)    
-            this_round_score += streak_bonus(self.streak)
-            reward += streak_bonus(self.streak)
-
+            # Bonus points for streaks (s^2 * 5)
+            if self.streak > 1:
+                this_round_score += streak_bonus(self.streak)
             self.pieces = self.generator.next_pieces()
-
             self.round_placement = 0
             self.last_lines_cleared = 0
-
         self.score += this_round_score
-        
-        #check if there is no place left for any piece, if so - end the game
-        if not self._can_place_any():
-            self.refresh_ui()
-            return -10, self.score, True, "game_over"
-
-        #self.ui.clock.tick(1)
-        self.refresh_ui()
-
-        return reward, self.score, self.done, "successful placement"
+        return this_round_score
 
     def _can_place_any(self):
         for  idx, piece in enumerate(self.pieces):
