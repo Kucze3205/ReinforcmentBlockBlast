@@ -15,22 +15,22 @@ class CustomNet(nn.Module):
         # Gałąź 1: CNN dla planszy (4 kanały: board + 3 weighted maski)
         self.board_cnn = nn.Sequential(
             nn.Conv2d(4, 32, 3, padding=1),
-            nn.BatchNorm2d(32),
+            nn.GroupNorm(32, 32),
             nn.ReLU(),
             nn.Conv2d(32, 64, 3, padding=1),
-            nn.BatchNorm2d(64),
+            nn.GroupNorm(64, 64),
             nn.ReLU(),
             nn.Flatten(),
             nn.Linear(64 * 8 * 8, 256),
             nn.ReLU()
         )
 
-        # Gałąź 2: Shared CNN dla klocków
-        self.piece_cnn = nn.Sequential(
-            nn.Conv2d(1, 16, 3, padding=1),
-            nn.ReLU(),
+        # MLP zamiast CNN — 4x4 to za mało dla konwolucji
+        self.piece_mlp = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(16 * 4 * 4, 64),
+            nn.Linear(16, 64),
+            nn.ReLU(),
+            nn.Linear(64, 64),
             nn.ReLU()
         )
 
@@ -64,7 +64,7 @@ class CustomNet(nn.Module):
 
     def forward(self, board, pieces, numeric):
         board_feat = self.board_cnn(board)
-        piece_feats = [self.piece_cnn(p) for p in pieces]
+        piece_feats = [self.piece_mlp(p) for p in pieces]
         piece_feat = torch.cat(piece_feats, dim=1)
         numeric_feat = self.numeric_mlp(numeric)
 
@@ -79,10 +79,13 @@ class CustomNet(nn.Module):
 
     def save(self, file_name='model.pth'):
         model_folder_path = './model'
-        if not os.path.exists(model_folder_path):
-            os.makedirs(model_folder_path)
-        file_name = os.path.join(model_folder_path, file_name)
-        torch.save(self.state_dict(), file_name)
+        try:
+            if not os.path.exists(model_folder_path):
+                os.makedirs(model_folder_path)
+            file_name = os.path.join(model_folder_path, file_name)
+            torch.save(self.state_dict(), file_name)
+        except Exception as e:
+            print(f"[ERROR] Model save failed: {e}")
 
 
 class QTrainer:

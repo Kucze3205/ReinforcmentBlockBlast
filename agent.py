@@ -6,7 +6,7 @@ from collections import deque
 import torch
 from game import Game
 from model import QTrainer, CustomNet
-from helper import plot
+# from helper import plot  # UI/plotting disabled
 from pieces import PIECE_POOL, PIECE_SHAPES_4X4
 from board import Board
 
@@ -240,7 +240,7 @@ class Agent:
                     seq = trace_perimeter(piece_cells)
                     weighted_mask[i * 64 + y * 8 + x] = longest_run(seq)
 
-        #self.print_board_and_masks(grid, weighted_mask, game)
+        self.print_board_and_masks(grid, weighted_mask, game)
         return weighted_mask, spaces_amount
     
     def get_action(self, state):
@@ -250,7 +250,7 @@ class Agent:
 
         final_move = [0,0,0] # Placeholder for the action (e.g., piece index, x, y)
 
-        if random.randrange(0, 200) < self.epsilon:
+        if random.random() < self.epsilon:
             random_prediction = []
             for i in range(3*8*8):
                 random_prediction.append(random.random())
@@ -262,9 +262,15 @@ class Agent:
             grid_t = torch.tensor(grid, dtype=torch.float32, device=self.device).unsqueeze(0)
             shapes_t = [torch.tensor(s, dtype=torch.float32, device=self.device).unsqueeze(0).unsqueeze(0) for s in shapes]
             numeric_t = torch.tensor(numeric, dtype=torch.float32, device=self.device).unsqueeze(0)
-            prediction = self.model(grid_t, shapes_t, numeric_t)
+
+            self.model.eval()                    # wyłącz Dropout i BN podczas inferencji
+            with torch.no_grad():
+                prediction = self.model(grid_t, shapes_t, numeric_t)
+            self.model.train()
+
             prediction = prediction.detach().cpu().numpy().flatten() # Ensure on CPU for numpy
-            masked_prediction = np.where(self.mask, prediction, -np.inf)
+
+            masked_prediction = np.where(self.mask > 0, prediction + self.mask * 0.1 , -np.inf)
 
         idx = torch.argmax(torch.tensor(masked_prediction)).item()
 
@@ -357,18 +363,34 @@ class Agent:
             reward += 1.0
         return reward
 
+    def get_heuristic_action(self, state):
+        grid, shapes, numeric = state
+        
+
+        final_move = [piece_index, x, y]
+
+        return final_move
 
 def train():
-    plot_scores = []
-    plot_mean_scores = []
-    plot_mean_reward = []
+    # UI/plotting disabled for long training
     total_score = 0
     total_reward = 0
-
     recod = 0
     rounds = 0
     agent = Agent()
     game = Game(seed=42)
+    SAVE_EVERY = 100  # Save model and print stats every N games
+    import csv
+    import os
+    CSV_FILE = 'training_stats1.csv'
+    csv_header = ['Game', 'Sample_score', 'Sample_reward', 'MeanScore', 'Mean_reward', 'Record']
+
+    # Write header if file does not exist
+    if not os.path.exists(CSV_FILE):
+        with open(CSV_FILE, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(csv_header)
+
     while True:
 
         #get old state
@@ -392,7 +414,7 @@ def train():
         total_reward += reward
         
 
-        print('Message:', message)
+        #print('Message:', message)
         if done:
             rounds = 0
             #train long memory, plot result
@@ -406,18 +428,25 @@ def train():
                 recod = score
 
             mean_reward = total_reward / agent.n_games
-            print(f'Game {agent.n_games} Score {score} Record: {recod} Mean reward {mean_reward}', end='\r', flush=True)
-
+            #print(f'Game {agent.n_games} Score {score} Record: {recod} Mean reward {mean_reward}', end='\r', flush=True)
 
             total_score += score
-            if agent.n_games % 1 == 0:
-                # plot_mean_reward.append(mean_reward)
-                # plot_scores.append(score)
-                # mean_score = total_score / agent.n_games
-                # plot_mean_scores.append(mean_score)
-                # plot(plot_scores, plot_mean_scores, plot_mean_reward)
-            
-                agent.model.save() # Save the model after each game
+            mean_score = total_score / agent.n_games
+            # Save and print stats every SAVE_EVERY games
+            if agent.n_games % SAVE_EVERY == 0:
+                print(f'Game {agent.n_games} Sample_score {score} Sample_reward {reward} MeanScore: {mean_score} Mean reward {mean_reward} Record: {recod}', end='\r', flush=True)
+                # Append stats to CSV
+                with open(CSV_FILE, 'a', newline='') as f:
+                    writer = csv.writer(f)
+                    writer.writerow([
+                        agent.n_games,
+                        score,
+                        reward,
+                        mean_score,
+                        mean_reward,
+                        recod
+                    ])
+                agent.model.save()
         
     pass
 
