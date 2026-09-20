@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.prof
+*.pth
+test_output.txt
+.vscode/
