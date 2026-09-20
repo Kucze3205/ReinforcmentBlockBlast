@@ -345,33 +345,6 @@ class Agent:
         holes_after  = self.count_blobs(board_after) #można zooptymalizować
         return holes_after - holes_before
 
-    def count_reward(self, state_old, state_new, action, rounds):
-        """
-        Liczy reward na podstawie kontaktów, dziur, rundy i czyszczenia linii.
-        state_old, state_new: (grid4, shapes, numeric)
-        """
-        grid4_old, shapes_old, numeric_old, _ = state_old
-        grid4_new, shapes_new, numeric_new, _ = state_new
-        board_before = grid4_old[0]
-        board_after = grid4_new[0]
-
-        idx, x, y = action
-        reward = 0.0
-
-        reward += grid4_old[idx][y][x] * 0.2  # Za kontakt z istniejącymi blokami
-
-        # holes_after - holes_before > 0 → więcej dziur → kara || holes_after - holes_before < 0 → mniej dziur → nagroda
-        reward -= self.count_new_holes(board_before, board_after) * 0.5
-
-        # Za wyższą rundę
-        round_new = numeric_new[2] if len(numeric_new) > 2 else 0
-        reward += round_new * 0.05
-
-        # Za czyszczenie linii (jeśli plansza po ruchu ma mniej bloków niż przed)
-        if np.sum(board_after) < np.sum(board_before):
-            reward += 1.0
-        return reward
-
     def get_heuristic_action(self, state):
         """
         Heuristic: choose (piece, x, y) that results in the minimal number of new blobs after placement.
@@ -439,7 +412,6 @@ def train():
     total_score = 0
     total_reward = 0
     recod = 0
-    rounds = 0
     agent = Agent()
     game = Game(seed=42)
     SAVE_EVERY = 100  # Save model and print stats every N games
@@ -469,8 +441,8 @@ def train():
 
         state_new = agent.get_state(game)
 
-        rounds += 1
-        reward += agent.count_reward(state_old, state_new, final_move, rounds)
+        # Nagroda = przyrost wyniku zwrocony przez game.step (decyzja #23).
+        # Zadnego shapingu: poprzedni pochodzil z nieskalibrowanej gry.
 
         #train short memory
         agent.train_short_term(state_old, final_move, reward, state_new, done)
@@ -483,7 +455,6 @@ def train():
 
         #print('Message:', message)
         if done:
-            rounds = 0
             #train long memory, plot result
             game.reset(seed=42)
 
