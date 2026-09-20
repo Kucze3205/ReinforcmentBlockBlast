@@ -1,0 +1,98 @@
+pygame-ce 2.5.7 (SDL 2.32.10, Python 3.14.2)
+
+============================================================
+=== TEST 1: Gradienty ===
+============================================================
+
+Warstwa                                       Status     Max |grad|
+---------------------------------------------------------------------------
+  board_cnn.0.weight                          OK         0.031900
+  board_cnn.0.bias                            OK         0.000000
+  board_cnn.1.weight                          OK         0.008014
+  board_cnn.1.bias                            OK         0.009916
+  board_cnn.3.weight                          OK         0.032174
+  board_cnn.3.bias                            OK         0.000000
+  board_cnn.4.weight                          OK         0.007554
+  board_cnn.4.bias                            OK         0.008927
+  board_cnn.7.weight                          OK         0.054415
+  board_cnn.7.bias                            OK         0.013500
+  piece_mlp.1.weight                          OK         0.005754
+  piece_mlp.1.bias                            OK         0.005582
+  piece_mlp.3.weight                          OK         0.025206
+  piece_mlp.3.bias                            OK         0.027686
+  numeric_mlp.0.weight                        OK         0.016483
+  numeric_mlp.0.bias                          OK         0.021901
+  numeric_mlp.1.weight                        OK         0.013471
+  numeric_mlp.1.bias                          OK         0.008077
+  numeric_mlp.3.weight                        OK         0.027129
+  numeric_mlp.3.bias                          OK         0.014358
+  shared_fc.0.weight                          OK         0.064344
+  shared_fc.0.bias                            OK         0.050952
+  value_stream.0.weight                       OK         0.024699
+  value_stream.0.bias                         OK         0.062427
+  value_stream.2.weight                       OK         0.154468
+  value_stream.2.bias                         OK         1.000000
+  advantage_stream.0.weight                   OK         0.025658
+  advantage_stream.0.bias                     OK         0.064853
+  advantage_stream.2.weight                   OK         0.153077
+  advantage_stream.2.bias                     OK         0.994792
+
+WYNIK: OK
+
+============================================================
+=== TEST 2: Wariancja wyjść ===
+============================================================
+
+  Liczba stanów:    20
+  Średnia Q:        -0.007842
+  Wariancja Q:      0.001941
+  Min Q:            -0.140240
+  Max Q:            0.127416
+  Śr. różnica Q między kolejnymi stanami: 0.016630
+
+  ⚠ OSTRZEŻENIE: wariancja < 0.01 — sieć prawdopodobnie ignoruje wejście!
+WYNIK: PROBLEM — Zbyt mała wariancja wyjść sieci
+
+============================================================
+=== TEST 3: Overfit na 1 próbce ===
+============================================================
+
+  Krok     Loss           Q[0]
+  -----------------------------------
+  50       0.017595       11.2683
+  100      0.007896       7.3665
+  150      0.000004       7.3761
+  200      0.001111       10.9362
+
+WYNIK: OK — architektura zdolna do dopasowania jednego przykładu
+
+============================================================
+=== TEST 4: Wzrost Q podczas treningu ===
+============================================================
+
+  Krok     Śr. max Q
+  ----------------------
+  0        0.088274
+  50       0.037256
+  100      0.172122
+  150      0.158164
+  200      0.105174
+  250      0.177228
+  300      0.019618
+  350      0.139134
+  400      0.125391
+  450      0.086862
+  500      0.184327
+
+WYNIK: OK — Q wzrosło z 0.0883 do 0.1843
+
+============================================================
+=== TEST 5: Porównanie z losowym agentem ===
+============================================================
+
+  Agent                Śr. score       Max score
+  ---------------------------------------------
+  Losowy               5.36            14.00
+  Model (eval)         4.00            4.00
+
+WYNIK: PROBLEM — model NIE jest lepszy od losowego (model=4.00, losowy=5.36). Potrzeba więcej treningu lub korekty architektury.

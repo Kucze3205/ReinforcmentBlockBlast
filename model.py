@@ -117,8 +117,8 @@ class QTrainer:
 
         if isinstance(state, tuple) and isinstance(state[0], np.ndarray):
             # --- Tryb pojedynczy (short-term) ---
-            grid, shapes, numeric = state
-            next_grid, next_shapes, next_numeric = next_state
+            grid, shapes, numeric, _ = state
+            next_grid, next_shapes, next_numeric, _ = next_state
 
             grid        = torch.tensor(grid,    dtype=torch.float32, device=device).unsqueeze(0)
             shapes      = [torch.tensor(s,      dtype=torch.float32, device=device).unsqueeze(0) for s in shapes]
@@ -134,8 +134,8 @@ class QTrainer:
 
         else:
             # --- Tryb batch (long-term) ---
-            grids, shapes_list, numerics             = zip(*state)
-            next_grids, next_shapes_list, next_numerics = zip(*next_state)
+            grids, shapes_list, numerics, _             = zip(*state)
+            next_grids, next_shapes_list, next_numerics, _ = zip(*next_state)
 
             grid        = torch.tensor(np.array(grids),    dtype=torch.float32, device=device)
             shapes      = [torch.tensor(np.array(s),       dtype=torch.float32, device=device) for s in zip(*shapes_list)]
@@ -167,6 +167,7 @@ class QTrainer:
                 next_numeric
             )                                          # [batch, 192]
 
+        flat_indices = []
         for idx in range(len(done)):
             Q_new = reward[idx]
             if not done[idx]:
@@ -176,11 +177,15 @@ class QTrainer:
             piece_idx, x, y = action[idx][0], action[idx][1], action[idx][2]
             flat_idx = int(piece_idx) * 64 + int(y) * 8 + int(x)
             target[idx][flat_idx] = Q_new
+            flat_indices.append(flat_idx)
 
-        # --- Huber loss zamiast MSE ---
-        # MSE karze kwadratowo za duże błędy → niestabilny gradient gdy Q eksploduje.
-        # Huber = MSE dla małych błędów, MAE dla dużych → bardziej stabilny trening.
-        loss = F.huber_loss(pred, target)
+        # --- Huber loss tylko dla wybranej akcji (gather) ---
+        # Zamiast liczyć loss po całym wektorze 192 (gdzie 191/192 to kopia pred → gradient≈0
+        # i advantage_stream nie dostaje sygnału), zbieramy tylko wybrany indeks.
+        flat_indices_t = torch.tensor(flat_indices, dtype=torch.long, device=device)
+        pred_selected   = pred.gather(1, flat_indices_t.unsqueeze(1)).squeeze(1)
+        target_selected = target.gather(1, flat_indices_t.unsqueeze(1)).squeeze(1)
+        loss = F.huber_loss(pred_selected, target_selected)
 
         self.optimizer.zero_grad()
         loss.backward()

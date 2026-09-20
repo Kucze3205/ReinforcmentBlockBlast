@@ -16,7 +16,7 @@ BATCH_SIZE = 256
 GRID_SIZE = 8*8
 EPSILON_START = 1.0
 EPSILON_END   = 0.1
-EPSILON_STEPS = 50_000
+EPSILON_STEPS = 500
 
 class Agent:
     def __init__(self):
@@ -26,7 +26,7 @@ class Agent:
         self.gamma = 0.9 # discount rate
         self.memory = deque(maxlen=MAX_MEMORY)
         self.model = CustomNet(4, 3*8*8).to(self.device) # Placeholder for the neural network model
-        self.trainer = QTrainer(self.model, lr=0.01, gamma=0.9) # Placeholder for the trainer (e.g., optimizer, loss function)
+        self.trainer = QTrainer(self.model, lr=5e-4, gamma=0.9) # Placeholder for the trainer (e.g., optimizer, loss function)
         self.mask = np.zeros(3*8*8, dtype=int)
         self.spaces_amount = 0
         
@@ -56,7 +56,8 @@ class Agent:
         # Wartości liczbowe jako [score, streak, round_placement, spaces_amount] float32
         numeric = np.array([game.score, game.streak, game.round_placement, self.spaces_amount], dtype=np.float32)
 
-        return grid4, shapes, numeric
+        meta_pieces_indices = [piece.index if piece else -1 for piece in game.pieces]
+        return grid4, shapes, numeric, meta_pieces_indices
     
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
@@ -240,7 +241,7 @@ class Agent:
                     seq = trace_perimeter(piece_cells)
                     weighted_mask[i * 64 + y * 8 + x] = longest_run(seq)
 
-        self.print_board_and_masks(grid, weighted_mask, game)
+        #self.print_board_and_masks(grid, weighted_mask, game)
         return weighted_mask, spaces_amount
     
     def get_action(self, state):
@@ -341,8 +342,8 @@ class Agent:
         Liczy reward na podstawie kontaktów, dziur, rundy i czyszczenia linii.
         state_old, state_new: (grid4, shapes, numeric)
         """
-        grid4_old, shapes_old, numeric_old = state_old
-        grid4_new, shapes_new, numeric_new = state_new
+        grid4_old, shapes_old, numeric_old, _ = state_old
+        grid4_new, shapes_new, numeric_new, _ = state_new
         board_before = grid4_old[0]
         board_after = grid4_new[0]
 
@@ -364,12 +365,66 @@ class Agent:
         return reward
 
     def get_heuristic_action(self, state):
-        grid, shapes, numeric = state
-        
+        """
+        Heuristic: choose (piece, x, y) that results in the minimal number of new blobs after placement.
+        If there are ties, select the one with the highest weighted_mask value.
+        """
+        grid, shapes, numeric, pieces_indices = state
+        weighted_mask = self.mask
+        # We need the indices of the pieces in the current state
 
-        final_move = [piece_index, x, y]
-
-        return final_move
+        min_blobs = None
+        best_moves = []
+        # First pass: find all moves with minimal new blobs
+        for idx in range(3*8*8):
+            if weighted_mask[idx] <= 0:
+                continue
+            # Decode idx to (piece_slot, x, y)
+            if idx < 64:
+                piece_slot = 0
+                x = idx % 8
+                y = idx // 8
+            elif idx < 128:
+                piece_slot = 1
+                x = (idx - 64) % 8
+                y = (idx - 64) // 8
+            else:
+                piece_slot = 2
+                x = (idx - 128) % 8
+                y = (idx - 128) // 8
+            piece_idx = pieces_indices[piece_slot] if piece_slot < len(pieces_indices) else -1
+            if piece_idx < 0:
+                continue
+            piece = PIECE_POOL[piece_idx]
+            board_before = np.array(grid[0])
+            temp_board = Board()
+            temp_board.grid = board_before.copy()
+            if not temp_board.can_place_piece(piece, x, y):
+                continue
+            temp_board.place_piece(piece, x, y)
+            board_after = temp_board.grid
+            new_blobs = self.count_new_holes(board_before, board_after)
+            if (min_blobs is None) or (new_blobs < min_blobs):
+                min_blobs = new_blobs
+                best_moves = [(piece_slot, x, y, weighted_mask[idx])]
+            elif new_blobs == min_blobs:
+                best_moves.append((piece_slot, x, y, weighted_mask[idx]))
+        # Second pass: among best_moves, pick one with max weighted_mask
+        if best_moves:
+            best_moves.sort(key=lambda t: t[3], reverse=True)
+            piece_slot, x, y, _ = best_moves[0]
+            return [piece_slot, x, y]
+        # Fallback: pick any valid move
+        for idx in range(3*8*8):
+            if weighted_mask[idx] > 0:
+                if idx < 64:
+                    return [0, idx % 8, idx // 8]
+                elif idx < 128:
+                    return [1, (idx - 64) % 8, (idx - 64) // 8]
+                else:
+                    return [2, (idx - 128) % 8, (idx - 128) // 8]
+        # If still none, just return a default
+        return [0, 0, 0]
 
 def train():
     # UI/plotting disabled for long training
@@ -380,6 +435,7 @@ def train():
     agent = Agent()
     game = Game(seed=42)
     SAVE_EVERY = 100  # Save model and print stats every N games
+    state_new = agent.get_state(game) # Initialize state_new before the loop
     import csv
     import os
     CSV_FILE = 'training_stats1.csv'
@@ -394,9 +450,12 @@ def train():
     while True:
 
         #get old state
-        state_old = agent.get_state(game)
+        state_old = state_new
         #get move
+        #final_move = agent.get_action(state_old)
+
         final_move = agent.get_action(state_old)
+        
         #perform move and get new state
         reward, score, done, message = game.step(final_move)
 
@@ -435,6 +494,7 @@ def train():
             # Save and print stats every SAVE_EVERY games
             if agent.n_games % SAVE_EVERY == 0:
                 print(f'Game {agent.n_games} Sample_score {score} Sample_reward {reward} MeanScore: {mean_score} Mean reward {mean_reward} Record: {recod}', end='\r', flush=True)
+
                 # Append stats to CSV
                 with open(CSV_FILE, 'a', newline='') as f:
                     writer = csv.writer(f)
@@ -446,6 +506,7 @@ def train():
                         mean_reward,
                         recod
                     ])
+                
                 agent.model.save()
         
     pass
