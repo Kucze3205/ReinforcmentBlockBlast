@@ -6,6 +6,7 @@ Data badania: 2026-09-20
 > **Konwencja oznaczeń.** Każde twierdzenie ma etykietę:
 > **[DOK]** — potwierdzone oficjalną dokumentacją (link przy twierdzeniu).
 > **[ŹRÓDŁO]** — potwierdzone pierwotnym źródłem niebędącym dokumentacją (kod źródłowy, issue autora narzędzia, changelog).
+> **[POMIAR]** — zmierzone w trakcie tego badania na prawdziwym emulatorze **albo** pochodzące z cudzego opublikowanego pomiaru (zaznaczam który). **Uwaga: pomiary własne robione były na Windows/WHPX/API 36, nie na Linux/KVM/API 34.** Rząd wielkości i kolejność wariantów są miarodajne, bezwzględne liczby dla runnera — nie.
 > **[SZAC]** — moje oszacowanie/wnioskowanie. Nie zweryfikowane pomiarem. Traktuj jako hipotezę do sprawdzenia empirycznie.
 
 ---
@@ -150,11 +151,36 @@ Trzy warianty, w kolejności rosnącej wydajności:
 
 **[DOK]** — dokumentacja adb podaje wprost, że `exec-out` służy do danych binarnych (*„use 'exec-out' instead of 'shell' to get raw data"*), bo `shell` przepuszcza strumień przez translację końców linii, która psuje PNG.
 
-**[SZAC] — arytmetyka, którą trzeba potwierdzić pomiarem (§9.2 krok 4):** ekran 1080×2400 to ~10 MB surowego RGBA wobec ~1–2 MB po kompresji PNG. Kodowanie PNG na emulowanym CPU kosztuje dziesiątki–setki ms; przesłanie 10 MB przez lokalne ADB (emulator gada z hostem przez pętlę zwrotną TCP, nie przez USB) kosztuje znacznie mniej. **Dlatego wariant surowy powinien wygrać** — ale dokładnie tego nie zmierzyłem i nie mam wiarygodnego, pierwotnego źródła z liczbami. **Nie przyjmuj tego na wiarę.**
+#### Format surowy: pomiar obala intuicję
 
-Dwie optymalizacje warte rozważenia dopiero, gdy pomiar pokaże, że `screencap` jest wąskim gardłem **[SZAC]**:
-- **zmniejszyć ekran**: `profile` o niższej rozdzielczości albo `adb shell wm size 540x1200`. Rasteryzacja programowa skaluje się najgorzej z rozdzielczością (§3), więc to bije w dwa wąskie gardła naraz. Do odczytu planszy 8×8 nie potrzeba 1080p.
-- **strumień wideo zamiast pojedynczych zrzutów** (podejście `scrcpy`: H.264 przez MediaCodec). Daje ciągły obraz zamiast serii round-tripów, ale dokłada dekodowanie po stronie hosta i komplikację, której pętla na starcie nie potrzebuje.
+Format surowy to 16-bajtowy nagłówek (`width`, `height`, `pixelFormat`, `dataspace`, little-endian) i dalej upakowane wiersze RGBA. **[ŹRÓDŁO]** — AOSP `cmds/screencap/screencap.cpp`. Zweryfikowane empirycznie: 1080×2424 → dokładnie 10 471 696 B = 16 + 1080·2424·4.
+
+**Intuicja mówi, że surowy wygrywa, bo nie płacimy za kodowanie PNG na emulowanym CPU. Pomiar mówi, że nie.** **[POMIAR]** (Windows/WHPX, API 36, `-gpu swiftshader`, ADB przez pętlę zwrotną TCP, 1080×2424 — inny host niż runner, ale kolejność wariantów jest miarodajna):
+
+| Operacja | n | średnia |
+|---|---|---|
+| `adb shell true` (czysty round-trip ADB) | 15 | **57 ms** |
+| `adb shell screencap /dev/null` (samo przechwycenie, **bez transferu**) | 10 | **229 ms** |
+| `adb exec-out screencap` (surowy, 10,5 MB przez kabel) | 10 | **625 ms** |
+| `adb exec-out screencap -p` (PNG) | 10 | **333 ms** |
+| `adb exec-out screencap --jpeg` | 10 | **156 ms** |
+| `adb shell screencap -p /sdcard/x.png` + `adb pull` | 5 | **143 ms** |
+| przepustowość kanału `exec-out`, 10 MB | 3 | **8–33 MB/s** |
+
+Trzy wnioski, każdy przeciwny obiegowej opinii:
+
+1. **Samo przechwycenie z SurfaceFlingera kosztuje ~150–230 ms i jest największym stałym składnikiem** — większym niż kodowanie PNG prostego ekranu. Tego nie da się obejść wyborem formatu.
+2. **Surowy format przegrywa**, bo stały transfer 10,5 MB przy 8–33 MB/s to 300–1300 ms. Plansza Block Blasta to duże, płaskie obszary jednolitego koloru — czyli materiał idealny dla PNG. **Dla tej gry `-p` albo `--jpeg` powinno bić format surowy.**
+3. **`--jpeg` był najszybszy** (156 ms). Nieudokumentowany w `usage`, ale obecny w `LONG_OPTIONS` w źródle. **[ŹRÓDŁO]**
+
+> **Zastrzeżenie do liczb kodowania:** w pomiarze bufor ramki w trybie headless wracał **cały czarny**, więc czasy kodowania PNG/JPEG to dolne ograniczenie, nie wartość reprezentatywna dla prawdziwego ekranu gry. Czasy przechwycenia, transferu i round-tripu ADB są tym nietknięte. **Kolejność wariantów trzeba potwierdzić na prawdziwym ekranie Block Blasta** — to krok 4 w §9.2.
+
+Niezależne potwierdzenie rzędu wielkości: Appium mierzy **~350 ms na zrzut na emulatorze z akceleracją**, spadające do ~150 ms przy zamianie na serwer MJPEG. **[POMIAR — strona trzecia]** — [appiumpro.com/editions/83](https://appiumpro.com/editions/83)
+
+#### Optymalizacje
+
+- **Zmniejszyć ekran**: `adb shell wm size 540x1212` ćwiartuje koszt przechwycenia **i** transferu naraz. Rasteryzacja programowa skaluje się najgorzej z rozdzielczością (§3), więc to uderza w dwa wąskie gardła. Do odczytu planszy 8×8 nie potrzeba 1080p. **Najtańsza dostępna optymalizacja.**
+- **Strumień zamiast pojedynczych zrzutów** — jedyna droga powyżej ~5 ruchów/s (§4.4). `scrcpy` deklaruje *„low latency: 35~70ms"* i koduje przez `MediaCodec` na urządzeniu **[DOK]**; `minicap` podaje 10–20 FPS na słabym i 30–40 FPS na nowszym sprzęcie **[DOK]**. **Uwaga: README `minicap` wprost wyklucza emulatory** (*„excluding 3.x and emulators"*), więc dla nas zostaje droga w stylu scrcpy. Obie mają wadę dla pętli odpytującej: *„a new frame is produced only when the screen content changes"* — nieruchoma plansza nie generuje klatek. **[DOK]**
 
 ### 4.3 Ruch palcem
 
