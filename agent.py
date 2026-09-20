@@ -7,7 +7,7 @@ import torch
 from game import Game
 from model import QTrainer, CustomNet
 # from helper import plot  # UI/plotting disabled
-from pieces import PIECE_POOL, PIECE_SHAPES_4X4
+from pieces import PIECE_POOL, PIECE_GRID, PIECE_SHAPES_PADDED
 from board import Board
 
 
@@ -44,17 +44,19 @@ class Agent:
         for i in range(3):
             grid4[i+1] = self.mask[i*64:(i+1)*64].reshape(8,8)
 
-        # Shapes jako lista 3 x [4,4] float32
+        # Shapes jako lista 3 x [PIECE_GRID,PIECE_GRID] float32
         shapes = []
         for piece in game.pieces:
             if piece is None:
-                shape = np.zeros((4, 4), dtype=np.float32)
+                shape = np.zeros((PIECE_GRID, PIECE_GRID), dtype=np.float32)
             else:
-                shape = np.array(PIECE_SHAPES_4X4[piece.index][0], dtype=np.float32)
+                shape = np.array(PIECE_SHAPES_PADDED[piece.index][0], dtype=np.float32)
             shapes.append(shape)
 
-        # Wartości liczbowe jako [score, streak, round_placement, spaces_amount] float32
-        numeric = np.array([game.score, game.streak, game.round_placement, self.spaces_amount], dtype=np.float32)
+        # Wartości liczbowe jako [log1p(score), combo, round_placement, spaces_amount] float32.
+        # score kumuluje się przez całą partię (do milionów), więc surowa wartość
+        # zdominowałaby pozostałe cechy — stąd skala logarytmiczna.
+        numeric = np.array([np.log1p(game.score), game.combo, game.round_placement, self.spaces_amount], dtype=np.float32)
 
         meta_pieces_indices = [piece.index if piece else -1 for piece in game.pieces]
         return grid4, shapes, numeric, meta_pieces_indices
@@ -83,9 +85,9 @@ class Agent:
         shapes = []
         for piece in game.pieces:
             if piece is None:
-                shape = np.zeros((4, 4), dtype=np.float32)
+                shape = np.zeros((PIECE_GRID, PIECE_GRID), dtype=np.float32)
             else:
-                shape = np.array(PIECE_SHAPES_4X4[piece.index][0], dtype=np.float32)
+                shape = np.array(PIECE_SHAPES_PADDED[piece.index][0], dtype=np.float32)
             shapes.append(shape)
 
         # grid: 8x8, mask: 3*8*8, shapes: 3x[4x4]
@@ -129,9 +131,9 @@ class Agent:
         shapes = []
         for piece in game.pieces:
             if piece is None:
-                shape = np.zeros((4, 4), dtype=np.float32)
+                shape = np.zeros((PIECE_GRID, PIECE_GRID), dtype=np.float32)
             else:
-                shape = np.array(PIECE_SHAPES_4X4[piece.index][0], dtype=np.float32)
+                shape = np.array(PIECE_SHAPES_PADDED[piece.index][0], dtype=np.float32)
             shapes.append(shape)
 
         # Wywołanie funkcji drukującej tablice z shapes
@@ -244,14 +246,20 @@ class Agent:
         #self.print_board_and_masks(grid, weighted_mask, game)
         return weighted_mask, spaces_amount
     
-    def get_action(self, state):
-        # random moves: tradeoff exploration / exploitation
-        progress = min(1.0, self.n_games / EPSILON_STEPS)
-        self.epsilon = EPSILON_START - progress * (EPSILON_START - EPSILON_END)
+    def get_action(self, state, epsilon=None):
+        """Wybiera ruch. `epsilon=0` daje tryb deterministyczny wymagany przez benchmark (#8).
+
+        Bez podanego `epsilon` obowiązuje harmonogram treningowy, który nigdy nie schodzi
+        poniżej EPSILON_END — w pełni wytrenowany bot i tak grałby 10% ruchów losowo.
+        """
+        if epsilon is None:
+            progress = min(1.0, self.n_games / EPSILON_STEPS)
+            epsilon = EPSILON_START - progress * (EPSILON_START - EPSILON_END)
+        self.epsilon = epsilon
 
         final_move = [0,0,0] # Placeholder for the action (e.g., piece index, x, y)
 
-        if random.random() < self.epsilon:
+        if self.epsilon > 0 and random.random() < self.epsilon:
             random_prediction = []
             for i in range(3*8*8):
                 random_prediction.append(random.random())

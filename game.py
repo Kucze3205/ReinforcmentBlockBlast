@@ -1,42 +1,37 @@
 """
 Block Blast Game Engine
+
+Skalibrowany pod wzór referencyjny z badania #2. Punktacja jest naliczana
+po KAŻDYM postawieniu (R-3), combo mnoży bonus za czyszczenie (R-2) i wygasa
+przez licznik, a nie natychmiast (R-4). `score` kumuluje się przez całą partię.
 """
-from ui import UI, COLORS, SCREEN_WIDTH, SCREEN_HEIGHT
 from board import Board
 from generator import Generator
-import pygame
-import sys
-import time
-from scoring import placement_points, simultaneous_clear_points, streak_bonus
+from scoring import (
+    COMBO_COUNTER_BASE,
+    FULL_CLEAR_BONUS,
+    clear_points,
+    placement_points,
+)
+
 
 class Game:
     def __init__(self, seed=None):
         self.board = Board()
         self.generator = Generator(seed)
-        #self.ui = UI()
-        self.score = 0
-        self.streak = 0
-        self.round_placement = 0
-        self.game_round = 0  # Licznik tur gry
-        self.pieces = self.generator.next_pieces()
-        self.done = False
-        self.last_lines_cleared = 0
-        
-
-        #self.refresh_ui()
+        self.reset(seed)
 
     def reset(self, seed=None):
         self.generator.reset(seed)
         self.board.reset()
         self.score = 0
-        self.streak = 0
+        self.combo = 0
+        self.combo_counter = COMBO_COUNTER_BASE
         self.round_placement = 0
-        self.game_round = 0  # Resetuj licznik tur gry
+        self.placements = 0          # przeżycie: liczba udanych postawień w partii
+        self.last_lines_cleared = 0  # linie wyczyszczone ostatnim postawieniem
         self.pieces = self.generator.next_pieces()
         self.done = False
-        self.last_lines_cleared = 0
-
-        #self.refresh_ui()
 
     def available_actions(self):
         actions = []
@@ -45,92 +40,77 @@ class Game:
                 continue
             for y in range(Board.HEIGHT - len(piece.shape) + 1):
                 for x in range(Board.WIDTH - len(piece.shape[0]) + 1):
-                    temp_board = self.board.copy()
-                    if temp_board.can_place_piece(piece, x, y):
+                    if self.board.can_place_piece(piece, x, y):
                         actions.append((idx, x, y))
         return actions
-    
-    # def refresh_ui(self):
-    #     self.ui.screen.fill(COLORS['bg'])
-    #     self.ui.draw_grid(self.board.grid)
-    #     self.ui.draw_panel(self.pieces)
-    #     self.ui.draw_info(self.score, self.streak, self.round_placement + 1)
-    #     self.ui.draw_buttons()
-    #     pygame.display.flip()
-    #     pygame.event.pump()
-    
 
     def step(self, action):
-        self.game_round += 1  # Zwiększ licznik tur przy każdym ruchu
         idx, x, y = action
-        piece = self.pieces[idx]
-        if not self.board.place_piece(piece, x, y):
+        piece = self.pieces[idx] if 0 <= idx < len(self.pieces) else None
+        if piece is None or not self.board.place_piece(piece, x, y):
             self.done = True
-            self.game_round = 0
             return -5, self.score, self.done, "wrong_placement"
 
-        self.score = self.calculate_round_score(idx)
+        gained = self.apply_placement(idx)
+        self.placements += 1
 
-        #check if there is no place left for any piece, if so - end the game
         if not self._can_place_any():
-            #self.refresh_ui()
-            self.game_round = 0
+            self.done = True
             return -5, self.score, True, "game_over"
 
-        #self.refresh_ui()
-        return 0, self.score, self.done, "successful placement"
+        return gained, self.score, self.done, "successful placement"
 
-    def calculate_round_score(self, idx):
-        this_round_score = 0
+    def apply_placement(self, idx):
+        """Nalicza punkty za jedno postawienie i zwraca przyrost. Klocek jest już na planszy."""
+        gained = placement_points(self.pieces[idx])
 
-        # Points for placing the piece (p * 10)
-        this_round_score += placement_points(self.pieces[idx])
-
-        # bonus point for simultaneous clears (k^2 * 10)
         rows, cols = self.board.check_full_lines()
-        k = len(rows) + len(cols)
-        if k > 0:
-            this_round_score += simultaneous_clear_points(k)
-        self.last_lines_cleared += k
-        self.board.clear_lines(rows, cols)
+        lines = len(rows) + len(cols)
+        self.last_lines_cleared = lines
 
-        # BONUS: sprawdź czy plansza jest całkowicie pusta po ruchu
-        if all(all(cell == 0 for cell in row) for row in self.board.grid):
-            this_round_score += 100  # bonus za wyczyszczenie całej planszy
+        # Klocek znika z tacki przed aktualizacją combo: licznik wygaśnięcia
+        # zależy od tego, ile klocków zostało w tacce (referencja: 3 + 0/1/2).
         self.pieces[idx] = None
         self.round_placement += 1
-        if self.round_placement == 3:
-            if self.last_lines_cleared > 0:
-                self.streak += 1
-            else:
-                self.streak = 0
-            # Bonus points for streaks (s^2 * 5)
-            if self.streak > 1:
-                this_round_score += streak_bonus(self.streak)
+        remaining = sum(1 for p in self.pieces if p is not None)
 
+        if lines > 0:
+            self.combo += 1
+            self.combo_counter = COMBO_COUNTER_BASE + remaining
+            gained += clear_points(self.combo, lines)
+        elif self.combo_counter <= 1:
+            self.combo = 0
+            self.combo_counter = COMBO_COUNTER_BASE
+        else:
+            self.combo_counter -= 1
+
+        self.board.clear_lines(rows, cols)
+
+        if not any(any(row) for row in self.board.grid):
+            gained += FULL_CLEAR_BONUS
+
+        if self.round_placement == 3:
             self.pieces = self.generator.next_pieces()
             self.round_placement = 0
-            self.last_lines_cleared = 0
 
-        self.score += this_round_score
-        return this_round_score
+        self.score += gained
+        return gained
 
     def _can_place_any(self):
-        for  idx, piece in enumerate(self.pieces):
+        for piece in self.pieces:
             if piece is None:
                 continue
             for y in range(Board.HEIGHT - len(piece.shape) + 1):
                 for x in range(Board.WIDTH - len(piece.shape[0]) + 1):
-                    temp_board = self.board.copy()
-                    if temp_board.can_place_piece(piece, x, y):
+                    if self.board.can_place_piece(piece, x, y):
                         return True
         return False
 
     def get_state(self):
         return {
             "board": [row[:] for row in self.board.grid],
-            "pieces": [self.pieces[0], self.pieces[1], self.pieces[2]],
+            "pieces": list(self.pieces),
             "score": self.score,
-            "streak": self.streak,
-            "placement_in_round": self.round_placement + 1
+            "combo": self.combo,
+            "placement_in_round": self.round_placement + 1,
         }

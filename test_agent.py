@@ -15,7 +15,7 @@ import torch.nn.functional as F
 
 from agent import Agent
 from game import Game
-from pieces import PIECE_POOL, PIECE_SHAPES_4X4
+from pieces import PIECE_POOL, PIECE_GRID, PIECE_SHAPES_PADDED
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -24,7 +24,7 @@ from pieces import PIECE_POOL, PIECE_SHAPES_4X4
 def make_synthetic_state(agent, game):
     """Tworzy syntetyczny stan zgodny ze strukturą get_state() dla danej gry."""
     grid4 = np.zeros((4, 8, 8), dtype=np.float32)
-    shapes = [np.zeros((4, 4), dtype=np.float32) for _ in range(3)]
+    shapes = [np.zeros((PIECE_GRID, PIECE_GRID), dtype=np.float32) for _ in range(3)]
     numeric = np.zeros(4, dtype=np.float32)
     meta = [-1, -1, -1]
     return grid4, shapes, numeric, meta
@@ -33,7 +33,7 @@ def make_synthetic_state(agent, game):
 def make_random_state(agent, game):
     """Zwraca losowy syntetyczny stan zgodny ze strukturą get_state()."""
     grid4 = np.random.rand(4, 8, 8).astype(np.float32)
-    shapes = [np.random.rand(4, 4).astype(np.float32) for _ in range(3)]
+    shapes = [np.random.rand(PIECE_GRID, PIECE_GRID).astype(np.float32) for _ in range(3)]
     numeric = np.random.rand(4).astype(np.float32)
     meta = [-1, -1, -1]
     return grid4, shapes, numeric, meta
@@ -43,7 +43,7 @@ def state_to_tensors(state, device):
     """Konwertuje stan (bez meta) na tensory gotowe do forward()."""
     grid4, shapes, numeric, _ = state
     grid_t = torch.tensor(grid4, dtype=torch.float32, device=device).unsqueeze(0)        # [1,4,8,8]
-    shapes_t = [torch.tensor(s, dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0)  # [1,1,4,4]
+    shapes_t = [torch.tensor(s, dtype=torch.float32, device=device).unsqueeze(0).unsqueeze(0)  # [1,1,PIECE_GRID,PIECE_GRID]
                 for s in shapes]
     numeric_t = torch.tensor(numeric, dtype=torch.float32, device=device).unsqueeze(0)   # [1,4]
     return grid_t, shapes_t, numeric_t

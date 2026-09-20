@@ -7,6 +7,8 @@ import torch.nn.functional as F
 import os
 import copy
 
+from pieces import PIECE_GRID
+
 
 class CustomNet(nn.Module):
     def __init__(self, num_numeric=4, output_dim=192):
@@ -28,7 +30,7 @@ class CustomNet(nn.Module):
         # MLP zamiast CNN — 4x4 to za mało dla konwolucji
         self.piece_mlp = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(16, 64),
+            nn.Linear(PIECE_GRID * PIECE_GRID, 64),
             nn.ReLU(),
             nn.Linear(64, 64),
             nn.ReLU()

@@ -1,32 +1,31 @@
 """
 Deterministic Piece Generator
+
+Losuje jak referencja z badania #2 (bbengine/src/env.h): najpierw 1/15 na typ
+kanoniczny, POTEM 1/n na orientację w obrębie typu (R-8). Trzy klocki losowane
+niezależnie — bez świadomości planszy i bez gwarancji grywalności tacki.
+
+Rozkład doboru w oryginale jest publicznie niezmierzony; to założenie modelowe
+autora referencji, nie pomiar — patrz docs/calibration-assumptions.md (Z-6).
 """
 import random
-from pieces import PIECE_POOL
+
+from pieces import PIECE_POOL, PIECE_TYPES
+
 
 class Generator:
     def __init__(self, seed=None):
-        self.seed = seed
-        self.rng = random.Random()
+        self.reset(seed)
 
     def reset(self, seed=None):
         self.seed = seed
-        self.rng = random.Random()
+        # R-9: seed był zapisywany, ale nigdy nieużyty. Bez tego benchmark na
+        # ustalonych seedach jest niewykonalny.
+        self.rng = random.Random(seed)
+
+    def _next_piece(self):
+        pose_indices = self.rng.choice(PIECE_TYPES)
+        return PIECE_POOL[self.rng.choice(pose_indices)]
 
     def next_pieces(self):
-        return [self.rng.choice(PIECE_POOL) for _ in range(3)]
-    
-    def generate_board(self, board, pieces):
-        board.grid = [[1 for _ in range(8)] for _ in range(8)]
-        for piece in pieces:
-            x = self.rng.randint(0, 8 - len(piece.shape[0]))
-            y = self.rng.randint(0, 8 - len(piece.shape))
-            for dy, row in enumerate(piece.shape):
-                for dx, cell in enumerate(row):
-                    if cell:
-                        board.grid[y + dy][x + dx] = 0
-        for y in range(8):
-            for x in range(8):
-                if self.rng.choice([0, 1, 2]) == 1: #33% chance to clear a cell
-                    board.grid[y][x] = 0
-        return board
+        return [self._next_piece() for _ in range(3)]
