@@ -87,6 +87,18 @@ Domyślne uprawnienia workflow w repo są już na minimum i mają takie zostać:
 | `default_workflow_permissions` | `read` |
 | `can_approve_pull_request_reviews` | `false` |
 
+Druga pozycja to w UI checkbox **„Allow GitHub Actions to create and approve pull
+requests"**, siedzący tuż pod Workflow permissions. Nazwa mówi o zatwierdzaniu, ale
+jedna opcja gasi **dwie** rzeczy: `GITHUB_TOKEN` nie może PR-a zatwierdzić **ani go
+otworzyć**.
+
+To jest otwarta sprawa dla [#16](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/16). Przepływ `task/<n>` → PR → merge przez epilog ([#7](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/7)) **nie ruszy**
+przy `false`. Checkbox zostaje wyłączony do czasu, aż #16 świadomie zdecyduje, że
+pętla potrzebuje PR-ów — i wtedy warto najpierw zapytać, po co jej PR-y, skoro epilog
+merguje bezwarunkowo, a benchmark jest nieblokujący ([#8](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/8)). Jeśli PR jest tylko powierzchnią
+audytu, znika razem z nim ten checkbox, `pull-requests: write` i przyszła migracja na
+GitHub App z [#5](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/5).
+
 Skoro domyślne to `read`, **każdy workflow musi jawnie zadeklarować `permissions:`**.
 Minimalne zestawy z [#5](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/5):
 
@@ -112,6 +124,10 @@ sprawdzić z poziomu sesji — stan poniżej jest deklaracją właściciela, nie
 |---|---|
 | Send write tokens to workflows from pull requests | **wyłączone** (repo jest publiczne) |
 | Require approval for all external contributors | **włączone** (przebiegi z forków) |
+
+Oba potwierdzone przez właściciela 2026-09-20 przy zamykaniu [#13](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/13). Jeśli kiedyś przestaną się
+zgadzać, nikt tego nie zauważy automatycznie — dlatego przegląd tych dwóch pozycji
+należy do raportu tygodniowego, gdy ten powstanie.
 
 Sekrety repo — w tym `CLAUDE_CODE_OAUTH_TOKEN` — i tak **nie są** przekazywane do
 przebiegów z forkowych PR-ów ([#5](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/5)).
