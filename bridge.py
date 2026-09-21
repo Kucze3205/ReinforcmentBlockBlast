@@ -70,6 +70,18 @@ def settled_state():
     return frames[-1], grid, tray
 
 
+def stable_state(tries=6):
+    """Czeka, aż dwa kolejne odczyty będą identyczne: czyszczenie linii i licznik wyniku są animowane."""
+    prev = None
+    for _ in range(tries):
+        img, grid, tray = settled_state()
+        key = json.dumps([grid, [s[0] if s else None for s in tray]])
+        if key == prev:
+            break
+        prev = key
+    return img, grid, tray
+
+
 def is_block(img):
     """Kolor klocka: nasycony i jasny. Tło, puste pola, duch podpowiedzi i dłoń tutorialu nie przechodzą."""
     return ((img.max(axis=-1) - img.min(axis=-1)) >= 100) & (img.max(axis=-1) >= 150)
@@ -206,8 +218,7 @@ def main(max_moves):
         expected = simulate(board, pieces[i], x, y)
         info, aim = drag(slots[i][1], pieces[i], x, y)
         Image.fromarray(aim.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_aim.png"))
-        time.sleep(1.0)
-        img, observed, slots = settled_state()
+        img, observed, slots = stable_state()
         ok = observed == expected
         grid = observed
         ok_streak = ok_streak + 1 if ok else 0

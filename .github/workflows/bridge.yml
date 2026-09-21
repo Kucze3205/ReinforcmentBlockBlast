@@ -34,7 +34,7 @@ jobs:
 
       - uses: reactivecircus/android-emulator-runner@v2
         env:
-          MOVES: ${{ inputs.moves || '20' }}
+          MOVES: ${{ inputs.moves || '30' }}
         with:
           api-level: 34
           target: google_apis_playstore
