@@ -29,8 +29,8 @@ BOARD_X, BOARD_Y, CELL = 17, 136, 35.6
 TRAY_Y0, TRAY_Y1, TRAY_CELL = 440, 585, 17.8
 SCORE_BOX = (60, 70, 260, 130)
 FRAMES = 3
-DRAG_GAIN = 1.5  # zmierzone: klocek przesuwa się ~1,5 px na 1 px palca
-MAX_AIM_STEPS = 6
+DRAG_GAIN = 1.5  # zmierzone: klocek przesuwa się 1,5 px na 1 px palca
+LIFT = 45
 
 
 def adb(*args):
@@ -136,47 +136,31 @@ def simulate(board, piece, x, y):
     return after.grid
 
 
-def lifted_topleft(frame, before):
-    """Lewy górny róg podniesionego klocka: piksele klocka, których nie było przed podniesieniem."""
-    ys, xs = np.nonzero((np.abs(frame - before).sum(axis=2) > 60) & is_block(frame))
-    return (float(xs.min()), float(ys.min())) if len(xs) else None
-
-
-def glide(frm, to, steps=8):
+def glide(frm, to, steps=10):
     for k in range(1, steps + 1):
         touch("MOVE", frm[0] + (to[0] - frm[0]) * k / steps, frm[1] + (to[1] - frm[1]) * k / steps)
 
 
-def drag(before, slot_center, x, y):
-    """Podnosi klocek i prowadzi go na (x, y) w pętli zamkniętej.
+def drag(slot_center, piece, x, y):
+    """Przeciąga klocek ze slotu tak, żeby jego lewy górny róg trafił w pole (x, y).
 
-    Gra wzmacnia ruch palca (klocek przesuwa się ~1,5x szybciej niż palec), więc
-    zamiast modelu: przesuń, zmierz, gdzie klocek jest, popraw. Upuszcza dopiero,
-    gdy błąd jest mniejszy niż ćwierć pola.
+    Model zmierzony na emulatorze: po podniesieniu klocek jest wyśrodkowany nad palcem,
+    dolną krawędzią LIFT px wyżej, a potem przesuwa się DRAG_GAIN razy szybciej niż palec.
+    Pomiar w trakcie ciągnięcia odpada: nad trafionym celem gra podświetla linie do
+    wyczyszczenia w kolorze klocka.
     """
-    target = (BOARD_X + x * CELL, BOARD_Y + y * CELL)
-    finger = slot_center
-    touch("DOWN", *finger)
-    trace = []
-    frame = before
-    for _ in range(MAX_AIM_STEPS):
-        time.sleep(0.25)
-        frame = screenshot()
-        pos = lifted_topleft(frame, before)
-        if pos is None:
-            break
-        err = (target[0] - pos[0], target[1] - pos[1])
-        trace.append({"finger": [round(finger[0], 1), round(finger[1], 1)], "piece": list(pos)})
-        if abs(err[0]) < CELL / 4 and abs(err[1]) < CELL / 4:
-            touch("UP", *finger)
-            return {"aimed": True, "trace": trace}, frame
-        nxt = (finger[0] + err[0] / DRAG_GAIN, finger[1] + err[1] / DRAG_GAIN)
-        # Palec poza ekranem albo przy dolnej krawędzi to gest systemowy, nie ruch w grze.
-        nxt = (min(max(nxt[0], 2), SCREEN[0] - 2), min(max(nxt[1], 2), SCREEN[1] - 40))
-        glide(finger, nxt)
-        finger = nxt
-    touch("UP", *finger)
-    return {"aimed": False, "trace": trace}, frame
+    sx, sy = slot_center
+    h, w = len(piece.shape), len(piece.shape[0])
+    center_x = BOARD_X + (x + w / 2) * CELL
+    bottom = BOARD_Y + (y + h) * CELL
+    fx = sx + (center_x - sx) / DRAG_GAIN
+    fy = sy + (bottom - (sy - LIFT)) / DRAG_GAIN
+    touch("DOWN", sx, sy)
+    glide((sx, sy), (fx, fy))
+    time.sleep(0.5)  # klocek dogania palec z opóźnieniem
+    aim = screenshot()
+    touch("UP", fx, fy)
+    return {"finger": [round(fx, 1), round(fy, 1)]}, aim
 
 
 def annotate(img, grid, path):
@@ -211,7 +195,7 @@ def main(max_moves):
         game = SimpleNamespace(board=board, pieces=pieces, combo=0)
         i, x, y = policy.act(game, moves)
         expected = simulate(board, pieces[i], x, y)
-        info, aim = drag(img, slots[i][1], x, y)
+        info, aim = drag(slots[i][1], pieces[i], x, y)
         Image.fromarray(aim.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_aim.png"))
         time.sleep(1.0)
         img, observed, slots = settled_state()
