@@ -28,9 +28,9 @@ SCREEN = (320, 640)
 BOARD_X, BOARD_Y, CELL = 17, 136, 35.6
 TRAY_Y0, TRAY_Y1, TRAY_CELL = 440, 585, 17.8
 SCORE_BOX = (60, 70, 260, 130)
-BOARD_BOTTOM = 425
 FRAMES = 3
-HOLD_Y = 600  # tu trzymamy palec, żeby zmierzyć, gdzie gra rysuje podniesiony klocek
+DRAG_GAIN = 1.5  # zmierzone: klocek przesuwa się ~1,5 px na 1 px palca
+MAX_AIM_STEPS = 6
 
 
 def adb(*args):
@@ -136,33 +136,47 @@ def simulate(board, piece, x, y):
     return after.grid
 
 
+def lifted_topleft(frame, before):
+    """Lewy górny róg podniesionego klocka: piksele klocka, których nie było przed podniesieniem."""
+    ys, xs = np.nonzero((np.abs(frame - before).sum(axis=2) > 60) & is_block(frame))
+    return (float(xs.min()), float(ys.min())) if len(xs) else None
+
+
+def glide(frm, to, steps=8):
+    for k in range(1, steps + 1):
+        touch("MOVE", frm[0] + (to[0] - frm[0]) * k / steps, frm[1] + (to[1] - frm[1]) * k / steps)
+
+
 def drag(before, slot_center, x, y):
-    """Podnosi klocek, mierzy, gdzie gra go rysuje względem palca, i upuszcza na (x, y)."""
-    sx, sy = slot_center
-    touch("DOWN", sx, sy)
-    for k in range(1, 6):
-        touch("MOVE", sx, sy + (HOLD_Y - sy) * k / 5)
-    time.sleep(0.3)
-    held = screenshot()
-    lifted = (np.abs(held - before).sum(axis=2) > 60) & is_block(held)
-    lifted[:BOARD_BOTTOM] = False
-    ys, xs = np.nonzero(lifted)
-    if len(xs) == 0:
-        touch("UP", sx, HOLD_Y)
-        return None, held, held
-    # Lewy górny róg podniesionego klocka względem palca, w px.
-    off_x, off_y = xs.min() - sx, ys.min() - HOLD_Y
-    tx, ty = cell_center(x, y)
-    fx, fy = tx - CELL / 2 - off_x, ty - CELL / 2 - off_y
-    # Palec poza ekranem albo przy dolnej krawędzi to gest systemowy, nie ruch w grze.
-    fx, fy = min(max(fx, 2), SCREEN[0] - 2), min(max(fy, 2), HOLD_Y)
-    for k in range(1, 11):
-        touch("MOVE", sx + (fx - sx) * k / 10, HOLD_Y + (fy - HOLD_Y) * k / 10)
-    time.sleep(0.2)
-    aim = screenshot()
-    touch("UP", fx, fy)
-    return {"lifted_bbox": [int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max())],
-            "offset": [float(off_x), float(off_y)], "finger": [float(fx), float(fy)]}, held, aim
+    """Podnosi klocek i prowadzi go na (x, y) w pętli zamkniętej.
+
+    Gra wzmacnia ruch palca (klocek przesuwa się ~1,5x szybciej niż palec), więc
+    zamiast modelu: przesuń, zmierz, gdzie klocek jest, popraw. Upuszcza dopiero,
+    gdy błąd jest mniejszy niż ćwierć pola.
+    """
+    target = (BOARD_X + x * CELL, BOARD_Y + y * CELL)
+    finger = slot_center
+    touch("DOWN", *finger)
+    trace = []
+    frame = before
+    for _ in range(MAX_AIM_STEPS):
+        time.sleep(0.25)
+        frame = screenshot()
+        pos = lifted_topleft(frame, before)
+        if pos is None:
+            break
+        err = (target[0] - pos[0], target[1] - pos[1])
+        trace.append({"finger": [round(finger[0], 1), round(finger[1], 1)], "piece": list(pos)})
+        if abs(err[0]) < CELL / 4 and abs(err[1]) < CELL / 4:
+            touch("UP", *finger)
+            return {"aimed": True, "trace": trace}, frame
+        nxt = (finger[0] + err[0] / DRAG_GAIN, finger[1] + err[1] / DRAG_GAIN)
+        # Palec poza ekranem albo przy dolnej krawędzi to gest systemowy, nie ruch w grze.
+        nxt = (min(max(nxt[0], 2), SCREEN[0] - 2), min(max(nxt[1], 2), SCREEN[1] - 40))
+        glide(finger, nxt)
+        finger = nxt
+    touch("UP", *finger)
+    return {"aimed": False, "trace": trace}, frame
 
 
 def annotate(img, grid, path):
@@ -197,8 +211,7 @@ def main(max_moves):
         game = SimpleNamespace(board=board, pieces=pieces, combo=0)
         i, x, y = policy.act(game, moves)
         expected = simulate(board, pieces[i], x, y)
-        info, held, aim = drag(img, slots[i][1], x, y)
-        Image.fromarray(held.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_held.png"))
+        info, aim = drag(img, slots[i][1], x, y)
         Image.fromarray(aim.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_aim.png"))
         time.sleep(1.0)
         img, observed, slots = settled_state()
