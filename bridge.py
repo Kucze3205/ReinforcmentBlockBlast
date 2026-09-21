@@ -28,9 +28,9 @@ SCREEN = (320, 640)
 BOARD_X, BOARD_Y, CELL = 17, 136, 35.6
 TRAY_Y0, TRAY_Y1, TRAY_CELL = 440, 585, 17.8
 SCORE_BOX = (60, 70, 260, 130)
-EMPTY = np.array([25, 28, 58])
-BACKGROUND = np.array([49, 65, 123])
-HOLD_Y = 620  # tu trzymamy palec, żeby zmierzyć, gdzie gra rysuje podniesiony klocek
+BOARD_BOTTOM = 425
+FRAMES = 3
+HOLD_Y = 600  # tu trzymamy palec, żeby zmierzyć, gdzie gra rysuje podniesiony klocek
 
 
 def adb(*args):
@@ -47,8 +47,27 @@ def screenshot():
     return img.astype(int)
 
 
-def not_background(img):
-    return np.abs(img - BACKGROUND).sum(axis=2) > 60
+def settled_state():
+    """Stan z kilku klatek: animacja tutorialu przesłania pola i tackę tylko chwilowo.
+
+    Pole planszy zajęte, jeśli klocek widać na którejkolwiek klatce (duch podpowiedzi
+    nigdy nie przechodzi is_block). Tacka: najczęstszy odczyt.
+    """
+    frames = []
+    for _ in range(FRAMES):
+        frames.append(screenshot())
+        time.sleep(0.25)
+    grids = [read_board(f) for f in frames]
+    grid = [[max(g[r][c] for g in grids) for c in range(8)] for r in range(8)]
+    trays = [read_tray(f) for f in frames]
+    keys = [json.dumps([s[0] if s else None for s in t]) for t in trays]
+    tray = trays[max(range(FRAMES), key=keys.count)]
+    return frames[-1], grid, tray
+
+
+def is_block(img):
+    """Kolor klocka: nasycony i jasny. Tło, puste pola, duch podpowiedzi i dłoń tutorialu nie przechodzą."""
+    return ((img.max(axis=-1) - img.min(axis=-1)) >= 100) & (img.max(axis=-1) >= 150)
 
 
 def read_board(img):
@@ -57,13 +76,13 @@ def read_board(img):
         for c in range(8):
             x, y = cell_center(c, r)
             patch = img[int(y) - 5:int(y) + 6, int(x) - 5:int(x) + 6].reshape(-1, 3).mean(axis=0)
-            grid[r][c] = int(np.abs(patch - EMPTY).sum() > 60)
+            grid[r][c] = int(is_block(patch))
     return grid
 
 
 def read_tray(img):
     """Trzy sloty: (kształt, środek w px) albo None, gdy slot pusty."""
-    mask = not_background(img[TRAY_Y0:TRAY_Y1])
+    mask = is_block(img[TRAY_Y0:TRAY_Y1])
     slots = []
     for s in range(3):
         x0, x1 = s * SCREEN[0] // 3, (s + 1) * SCREEN[0] // 3
@@ -76,8 +95,7 @@ def read_tray(img):
         w = max(1, round((xs.max() - xs.min() + 1) / TRAY_CELL))
         step_y = (ys.max() - ys.min() + 1) / h
         step_x = (xs.max() - xs.min() + 1) / w
-        shape = [[int(not_background(img[int(top + (i + .5) * step_y):int(top + (i + .5) * step_y) + 1,
-                                         int(left + (j + .5) * step_x):int(left + (j + .5) * step_x) + 1])[0, 0])
+        shape = [[int(is_block(img[int(top + (i + .5) * step_y), int(left + (j + .5) * step_x)]))
                   for j in range(w)] for i in range(h)]
         center = (left + (xs.max() - xs.min()) / 2, top + (ys.max() - ys.min()) / 2)
         slots.append((shape, center))
@@ -92,9 +110,11 @@ def read_score(img):
     path = os.path.join(OUT, "_score.png")
     Image.fromarray(bw).resize(((x1 - x0) * 3, (y1 - y0) * 3)).save(path)
     try:
-        text = subprocess.run(["tesseract", path, "stdout", "--psm", "7", "-c",
-                               "tessedit_char_whitelist=0123456789"],
-                              capture_output=True, text=True).stdout.strip()
+        run = subprocess.run(["tesseract", path, "stdout", "--psm", "7", "-c",
+                              "tessedit_char_whitelist=0123456789"], capture_output=True, text=True)
+        text = run.stdout.strip()
+        if not text:
+            print("OCR:", run.stderr.strip()[:200], flush=True)
         return int(text) if text else None
     except (OSError, ValueError):
         return None
@@ -124,8 +144,8 @@ def drag(before, slot_center, x, y):
         touch("MOVE", sx, sy + (HOLD_Y - sy) * k / 5)
     time.sleep(0.3)
     held = screenshot()
-    lifted = ((np.abs(held - before).sum(axis=2) > 60) & not_background(held)
-              & (np.abs(held - EMPTY).sum(axis=2) > 60))
+    lifted = (np.abs(held - before).sum(axis=2) > 60) & is_block(held)
+    lifted[:BOARD_BOTTOM] = False
     ys, xs = np.nonzero(lifted)
     if len(xs) == 0:
         touch("UP", sx, HOLD_Y)
@@ -134,6 +154,8 @@ def drag(before, slot_center, x, y):
     off_x, off_y = xs.min() - sx, ys.min() - HOLD_Y
     tx, ty = cell_center(x, y)
     fx, fy = tx - CELL / 2 - off_x, ty - CELL / 2 - off_y
+    # Palec poza ekranem albo przy dolnej krawędzi to gest systemowy, nie ruch w grze.
+    fx, fy = min(max(fx, 2), SCREEN[0] - 2), min(max(fy, 2), HOLD_Y)
     for k in range(1, 6):
         touch("MOVE", sx + (fx - sx) * k / 5, HOLD_Y + (fy - HOLD_Y) * k / 5)
     time.sleep(0.2)
@@ -148,7 +170,7 @@ def annotate(img, grid, path):
     for r in range(8):
         for c in range(8):
             x, y = cell_center(c, r)
-            d.ellipse([x - 4, y - 4, x + 4, y + 4], fill=(0, 255, 0) if grid[r][c] else (255, 0, 255))
+            d.ellipse([x - 16, y - 16, x - 8, y - 8], fill=(0, 255, 0) if grid[r][c] else (255, 0, 255))
     im.save(path)
 
 
@@ -156,11 +178,12 @@ def main(max_moves):
     os.makedirs(OUT, exist_ok=True)
     policy = GreedyPolicy()
     log = open(os.path.join(OUT, "moves.jsonl"), "w")
-    img = screenshot()
+    img, grid, slots = settled_state()
     ok_streak = best_streak = 0
     for n in range(max_moves):
-        grid, slots, score = read_board(img), read_tray(img), read_score(img)
-        annotate(img, grid, os.path.join(OUT, f"{n:03d}_state.png"))
+        score = read_score(img)
+        Image.fromarray(img.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_state.png"))
+        annotate(img, grid, os.path.join(OUT, f"{n:03d}_read.png"))
         board = Board()
         board.grid = [row[:] for row in grid]
         pieces = [Piece(s[0], f"slot{i}", -1) if s else None for i, s in enumerate(slots)]
@@ -175,17 +198,17 @@ def main(max_moves):
         expected = simulate(board, pieces[i], x, y)
         info, held = drag(img, slots[i][1], x, y)
         Image.fromarray(held.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_held.png"))
-        time.sleep(1.5)
-        img = screenshot()
-        observed = read_board(img)
+        time.sleep(1.0)
+        img, observed, slots = settled_state()
         ok = observed == expected
+        grid = observed
         ok_streak = ok_streak + 1 if ok else 0
         best_streak = max(best_streak, ok_streak)
         entry.update(move={"slot": i, "x": x, "y": y}, drag=info, expected=expected, observed=observed, ok=ok)
         log.write(json.dumps(entry) + "\n")
         log.flush()
         print(f"ruch {n}: slot {i} -> ({x},{y}) wynik {score} {'OK' if ok else 'ROZBIEŻNOŚĆ'}", flush=True)
-    annotate(img, read_board(img), os.path.join(OUT, "final.png"))
+    annotate(img, grid, os.path.join(OUT, "final.png"))
     print(f"najdłuższa seria zgodnych ruchów: {best_streak}")
     return best_streak
 

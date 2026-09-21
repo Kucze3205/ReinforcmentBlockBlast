@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Most (#18): instaluje grę, przechodzi ToS i tutorial, oddaje sterowanie bridge.py.
+# Most (#18): instaluje grę, akceptuje ToS, oddaje sterowanie bridge.py.
 set -u
 OUT=bridge-out
 PKG=com.block.juggle
@@ -18,8 +18,7 @@ sleep 25
 adb shell input tap 160 437   # Accept Terms of Use
 sleep 15
 adb exec-out screencap -p > "$OUT/boot_1_tutorial.png"
-adb shell input tap 265 603   # Skip tutorialu
-sleep 5
-adb exec-out screencap -p > "$OUT/boot_2_after_skip.png"
+
+
 
 python3 bridge.py "${MOVES:-30}"
