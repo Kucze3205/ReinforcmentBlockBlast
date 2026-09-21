@@ -26,11 +26,11 @@ from policies import GreedyPolicy
 OUT = "bridge-out"
 SCREEN = (320, 640)
 BOARD_X, BOARD_Y, CELL = 17, 136, 35.6
-TRAY_Y0, TRAY_Y1, TRAY_CELL = 440, 585, 17.8
+TRAY_Y0, TRAY_Y1, TRAY_CELL = 440, 585, 16
 SCORE_BOX = (60, 70, 260, 130)
 FRAMES = 3
 DRAG_GAIN = 1.5  # zmierzone: klocek przesuwa się 1,5 px na 1 px palca
-LIFT = 45
+LIFT = 80.6  # środek podniesionego klocka jest tyle px nad środkiem klocka na tacce
 
 
 def adb(*args):
@@ -144,17 +144,16 @@ def glide(frm, to, steps=10):
 def drag(slot_center, piece, x, y):
     """Przeciąga klocek ze slotu tak, żeby jego lewy górny róg trafił w pole (x, y).
 
-    Model zmierzony na emulatorze: po podniesieniu klocek jest wyśrodkowany nad palcem,
-    dolną krawędzią LIFT px wyżej, a potem przesuwa się DRAG_GAIN razy szybciej niż palec.
+    Model zmierzony na emulatorze: po podniesieniu środek klocka jest LIFT px nad palcem,
+    a potem klocek przesuwa się DRAG_GAIN razy szybciej niż palec.
     Pomiar w trakcie ciągnięcia odpada: nad trafionym celem gra podświetla linie do
     wyczyszczenia w kolorze klocka.
     """
     sx, sy = slot_center
     h, w = len(piece.shape), len(piece.shape[0])
-    center_x = BOARD_X + (x + w / 2) * CELL
-    bottom = BOARD_Y + (y + h) * CELL
-    fx = sx + (center_x - sx) / DRAG_GAIN
-    fy = sy + (bottom - (sy - LIFT)) / DRAG_GAIN
+    cx, cy = BOARD_X + (x + w / 2) * CELL, BOARD_Y + (y + h / 2) * CELL
+    fx = sx + (cx - sx) / DRAG_GAIN
+    fy = sy + (cy - (sy - LIFT)) / DRAG_GAIN
     touch("DOWN", sx, sy)
     glide((sx, sy), (fx, fy))
     time.sleep(0.5)  # klocek dogania palec z opóźnieniem
