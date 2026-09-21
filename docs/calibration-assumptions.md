@@ -29,6 +29,24 @@ Wszystko poniżej jest założeniem — różnią się tylko siłą przesłanek.
 
 Uporządkowane wg stosunku „ile zmienia" do „ile kosztuje pomiar".
 
+### Pomiar 1 z 3 (R10): 2026-09-21, Block Blast 10.7.5
+
+Pierwszy przebieg mostu ([#18](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/18),
+[run 35610307974](https://github.com/Kucze3205/ReinforcmentBlockBlast/actions/runs/35610307974),
+`bridge-out/moves.jsonl`). Skalibrowany wzór przewidział **każdy** z 18 przyrostów
+wyniku co do punktu, łącznie z 4 liniami w tutorialu (124 = 4 + 1·120) i wygaśnięciem
+combo dokładnie w ruchu, który wskazuje licznik.
+
+| Założenie | Wynik sesji 1 | Rozstrzygające ruchy |
+|---|---|---|
+| Z-1 | **10 za linię**, nie 80 | 1 linia przy combo 2/3/4 → bonus 20/30/40 |
+| Z-2 | **combo += 1** (źródło A), nie += ℓ | 2 linie przy combo 0 → bonus 20, nie 40 |
+| Z-3 | **licznik 3 + pozostałe w tacce** — przeżywa 3 postawienia przy pełnej tacce, ginie przy 4. bez czyszczenia | combo 4 wygasło w ruchu 12 |
+| Z-7 | **punkty za postawienie = liczba komórek** | każdy ruch bez czyszczenia |
+
+To jedna sesja. Z-9 wymaga jeszcze dwóch, w innych dniach — dopiero wtedy te
+wiersze przechodzą do „solidne".
+
 ### Z-1 — punkt bazowy: 10 za linię czy 80 za linię *(rozstrzyga najtaniej)*
 
 Symulator: `line_bonus(1) = 10`.
