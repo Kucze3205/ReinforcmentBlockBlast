@@ -13,12 +13,15 @@ adb shell settings put global package_verifier_enable 0
 adb install-multiple -r -g assets/*.apk 2>&1 | tee "$OUT/install.txt"
 grep -q Success "$OUT/install.txt" || { echo "INSTALL FAILED"; exit 1; }
 
-adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null
-sleep 25
-adb shell input tap 160 437   # Accept Terms of Use
-sleep 15
-adb exec-out screencap -p > "$OUT/boot_1_tutorial.png"
-
-
+# Play potrafi zabić grę aktualizacją pakietów także po 90 s — uruchamiamy, aż gra utrzyma pierwszy plan.
+for attempt in 1 2 3; do
+  adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null
+  sleep 25
+  adb shell input tap 160 437   # Accept Terms of Use (na planszy tutorialu nic nie robi)
+  sleep 15
+  adb shell dumpsys window | grep -q "mCurrentFocus.*$PKG" && break
+  echo "gra nie na pierwszym planie (próba $attempt)"
+done
+adb exec-out screencap -p > "$OUT/boot.png"
 
 python3 bridge.py "${MOVES:-30}"

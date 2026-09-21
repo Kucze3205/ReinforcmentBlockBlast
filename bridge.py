@@ -24,6 +24,7 @@ from pieces import Piece
 from policies import GreedyPolicy
 
 OUT = "bridge-out"
+PACKAGE = "com.block.juggle"
 SCREEN = (320, 640)
 BOARD_X, BOARD_Y, CELL = 17, 136, 35.6
 TRAY_Y0, TRAY_Y1, TRAY_CELL = 440, 585, 16
@@ -45,6 +46,10 @@ def screenshot():
     img = np.asarray(Image.open(io.BytesIO(adb("exec-out", "screencap", "-p"))).convert("RGB"))
     assert img.shape[1::-1] == SCREEN, f"ekran {img.shape[1::-1]}, oczekiwano {SCREEN}"
     return img.astype(int)
+
+
+def in_game():
+    return PACKAGE in adb("shell", "dumpsys", "window").decode(errors="replace").split("mCurrentFocus", 1)[-1][:200]
 
 
 def settled_state():
@@ -187,6 +192,12 @@ def main(max_moves):
         pieces = [Piece(s[0], f"slot{i}", -1) if s else None for i, s in enumerate(slots)]
         moves = legal_moves(board, pieces)
         entry = {"n": n, "board": grid, "tray": [s[0] if s else None for s in slots], "score": score}
+        if not in_game():
+            entry["end"] = "gra nie jest na pierwszym planie"
+            log.write(json.dumps(entry) + "
+")
+            print(entry["end"], flush=True)
+            break
         if not moves:
             entry["end"] = "brak legalnego ruchu wg odczytu"
             log.write(json.dumps(entry) + "\n")
