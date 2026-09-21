@@ -149,19 +149,20 @@ def drag(before, slot_center, x, y):
     ys, xs = np.nonzero(lifted)
     if len(xs) == 0:
         touch("UP", sx, HOLD_Y)
-        return None, held
+        return None, held, held
     # Lewy górny róg podniesionego klocka względem palca, w px.
     off_x, off_y = xs.min() - sx, ys.min() - HOLD_Y
     tx, ty = cell_center(x, y)
     fx, fy = tx - CELL / 2 - off_x, ty - CELL / 2 - off_y
     # Palec poza ekranem albo przy dolnej krawędzi to gest systemowy, nie ruch w grze.
     fx, fy = min(max(fx, 2), SCREEN[0] - 2), min(max(fy, 2), HOLD_Y)
-    for k in range(1, 6):
-        touch("MOVE", sx + (fx - sx) * k / 5, HOLD_Y + (fy - HOLD_Y) * k / 5)
+    for k in range(1, 11):
+        touch("MOVE", sx + (fx - sx) * k / 10, HOLD_Y + (fy - HOLD_Y) * k / 10)
     time.sleep(0.2)
+    aim = screenshot()
     touch("UP", fx, fy)
     return {"lifted_bbox": [int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max())],
-            "offset": [float(off_x), float(off_y)], "finger": [float(fx), float(fy)]}, held
+            "offset": [float(off_x), float(off_y)], "finger": [float(fx), float(fy)]}, held, aim
 
 
 def annotate(img, grid, path):
@@ -196,8 +197,9 @@ def main(max_moves):
         game = SimpleNamespace(board=board, pieces=pieces, combo=0)
         i, x, y = policy.act(game, moves)
         expected = simulate(board, pieces[i], x, y)
-        info, held = drag(img, slots[i][1], x, y)
+        info, held, aim = drag(img, slots[i][1], x, y)
         Image.fromarray(held.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_held.png"))
+        Image.fromarray(aim.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_aim.png"))
         time.sleep(1.0)
         img, observed, slots = settled_state()
         ok = observed == expected
