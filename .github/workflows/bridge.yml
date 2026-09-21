@@ -6,8 +6,6 @@ on:
       moves:
         description: Ile ruchów wykonać
         default: "30"
-  push:
-    branches: [wayfinder/18-bridge]
 
 jobs:
   bridge:

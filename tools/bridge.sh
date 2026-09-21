@@ -24,4 +24,9 @@ for attempt in 1 2 3; do
 done
 adb exec-out screencap -p > "$OUT/boot.png"
 
+adb shell dumpsys package "$PKG" | grep -m1 versionName | tee "$OUT/version.txt"
+
 python3 bridge.py "${MOVES:-30}"
+status=$?
+adb logcat -d > "$OUT/logcat.txt"   # gra potrafi zniknąć w trakcie partii — ślad do diagnozy
+exit $status
