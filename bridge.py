@@ -194,8 +194,7 @@ def main(max_moves):
         entry = {"n": n, "board": grid, "tray": [s[0] if s else None for s in slots], "score": score}
         if not in_game():
             entry["end"] = "gra nie jest na pierwszym planie"
-            log.write(json.dumps(entry) + "
-")
+            log.write(json.dumps(entry) + "\n")
             print(entry["end"], flush=True)
             break
         if not moves:
