@@ -127,21 +127,42 @@ Zdarzenie na tyle rzadkie, że nie ma priorytetu.
 
 ---
 
-## Z-9 — ryzyko, które unieważnia wszystkie pomiary naraz
+## Z-9 — ryzyko, które unieważniało wszystkie pomiary naraz *(rozbrojone)*
 
 Autor źródła A ostrzega, że punktacja realnej apki **nie jest stacjonarna**:
 różne mnożniki między bliskimi wersjami, różne reżimy punktacji po restarcie gry,
 zmiany widoczne nawet w obrębie jednej partii. Mechanizm nieznany; możliwa
 konfiguracja serwerowa albo testy A/B.
 
-**Jeżeli to prawda, kalibracja pod „stałe oryginału" traci sens w obecnej formie,
-bo stałych nie ma.**
+[#20](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/20) rozbroiło to ryzyko
+**przez usunięcie zależności, nie przez pomiar stałych apki.**
 
-**Wymaganie blokujące dla mostu (R10 z [#2](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/2)):**
-powtórzyć pomiary bazowe Z-1, Z-2, Z-3, Z-7 w **trzech sesjach w trzech różnych dniach
-na tej samej wersji apki**. Rozjazd liczb = punktacja konfigurowana serwerowo.
-Most musi logować wersję apki i sprzęgać „ruch → przyrost wyniku" w jednym rekordzie
-na postawienie, inaczej pomiary z różnych dni będą niespójne bez wyjaśnienia.
+**Punktacja symulatora jest zamrożona** na pomiarze z 2026-09-21, wersja apki 10.7.5:
+Z-1, Z-2, Z-3 i Z-7 potwierdzone co do punktu w 18 ruchach z rzędu ([#18](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/18)).
+Most loguje całą trajektorię partii, więc **wynik partii na oryginale liczy nasz wzór
+z logu**, a nie licznik apki. Licznik apki jest już tylko detektorem zmiany reguł.
+Próg „realna partia ≥1M" z [#9](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/9)
+zostaje — zmienia się wyłącznie sposób jego odczytu.
+
+**Wymóg R10 (powtórzyć pomiary bazowe w trzech sesjach w trzech różnych dniach)
+jest skasowany.** Zastępuje go monitoring, który dzieje się sam: most porównuje
+przyrost wyniku z przewidywaniem przy **każdym** ruchu, tak jak dziś porównuje planszę,
+i raportuje rozbieżności. Rozbieżność liczy się tylko przy `ok = true` na planszy,
+inaczej to błąd odczytu, nie zmiana reguł.
+
+| co się stało | co robi pętla |
+|---|---|
+| pojedyncza rozbieżność w sesji | wpis do logu, nic więcej |
+| systematyczna: ≥2 w sesji albo ten sam wzorzec w dwóch sesjach | orchestrator dostaje pracę rekalibracyjną |
+
+Partii się **nie przerywa**: miara jest nasza, więc rozjazd licznika nie unieważnia
+partii weryfikacyjnej. Most wciąż loguje wersję apki, bo bez niej rozbieżności
+z różnych dni byłyby nie do wyjaśnienia.
+
+**Co z tego wynika dla reszty tego dokumentu:** Z-4 i Z-8 przestają mieć wpływ na cel —
+dotyczą wyłącznie zgodności z apką. **Z-5 i Z-6 stają się najważniejsze**, bo pula klocków
+i rozkład losowania decydują, w jaką grę bot naprawdę gra, i żaden wybór wzoru punktacji
+tego nie naprawi. Mierzy je [#30](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/30).
 
 ---
 
