@@ -26,6 +26,13 @@ _Avoid_: gałąź robocza, feature branch
 
 ### Jednostki pracy
 
+**Cykl**:
+Odcinek pracy pętli od jednego issue `rola:orchestrator` do następnego: jedna
+mapa zadań, sesje, które ją wykonują, i issue złączeniowe, które budzi kolejnego
+orchestratora. Jednostka, w której liczy się postęp i w której powstaje jeden
+wpis do dziennika.
+_Avoid_: obrót, runda, iteracja pętli
+
 **Sesja**:
 Jedno uruchomienie agenta Claude Code, wyzwolone przez issue z etykietą
 `rola:*`, kończące się raportem w komentarzu i zamknięciem issue.
@@ -44,3 +51,34 @@ gałąź zadania i wypycha odblokowanych dependentów. Nie jest agentem.
 Para skill + profil uprawnień, wybierana etykietą `rola:<nazwa>`. Zatrudnienie
 nowej roli nie wymaga edycji workflow.
 _Avoid_: tryb, persona, typ agenta
+
+### Pamięć i okna
+
+**Dziennik pętli**:
+`docs/journal/cykl-NNNN.md`, jeden plik na cykl, pisany przez orchestratora.
+Pamięć pętli: jedyne, co przeżywa koniec sesji, i jedyne wejście orchestratora
+startującego na zimno. Indeks, nie magazyn — niesie sedno i link do raportu,
+nigdy przepisaną treść.
+_Avoid_: log, historia, notatki
+
+**Stan**:
+Ostatnia sekcja wpisu do dziennika, przepisywana i kompresowana z poprzedniego
+cyklu. Czyni najnowszy plik samowystarczalnym, więc orchestrator nie czyta
+historii. Jedyny fragment dziennika z limitem długości.
+
+**Raport tygodniowy**:
+`RAPORT.md` w korzeniu repo. Okno właściciela: proza, nadpisywana, historia w
+`git log`. Nie myli się z raportem sesji, którym jest komentarz przy issue.
+_Avoid_: raport (bez przymiotnika, gdy w pobliżu jest raport sesji)
+
+**Awaria**:
+Stan spoczynku pętli: orchestrator wyczerpał wszystkie próby i praca nie ruszy
+bez ręki człowieka. Otwarte issue z etykietą `awaria` ucisza dozorcę, więc
+pętla nie kopie w próżnię i nie pali limitu. Jedyny stan, w którym brak
+przebiegów nie jest zatorem.
+_Avoid_: błąd, awaria sesji, crash
+
+**Dozorca**:
+Sztywny skrypt na cronie, bez agenta, spoza łańcucha pętli. Wykrywa zator i
+kopie, zanim zawoła. Milczy, dopóki `awaria` jest otwarta.
+_Avoid_: watchdog, monitor, strażnik
