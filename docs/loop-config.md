@@ -131,3 +131,50 @@ należy do raportu tygodniowego, gdy ten powstanie.
 
 Sekrety repo — w tym `CLAUDE_CODE_OAUTH_TOKEN` — i tak **nie są** przekazywane do
 przebiegów z forkowych PR-ów ([#5](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/5)).
+
+---
+
+## Gałąź pętli
+
+**Gałąź pętli to gałąź domyślna repozytorium. Dziś `main`.** Nie są to dwa
+pojęcia, które trzeba trzymać w zgodzie — to jedno pojęcie. Wymuszają to dwa
+udokumentowane ograniczenia GitHuba, z których żadne nie ma obejścia:
+
+| Ograniczenie | Skutek |
+|---|---|
+| *„Workflow runs cannot restore caches created for child branches or sibling branches"* — run czyta cache z własnej gałęzi **albo z domyślnej** | Stan emulatora, który wg [#3](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/3) jedzie przez `actions/cache`, nie przechodzi między gałęziami siostrzanymi |
+| Workflow na zdarzeniu `issues` odpala się **wyłącznie z pliku na gałęzi domyślnej**; `workflow_dispatch` jest na tej samej liście widoczny dopiero stamtąd | Ludzka ścieżka wejścia `issues: [labeled]` z [#5](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/5) nie działa, dopóki workflowy leżą poza gałęzią domyślną |
+
+### Nazwa nie jest wpisywana na sztywno
+
+Workflow ustala gałąź pętli przez `github.event.repository.default_branch`,
+nigdy przez literał `main`.
+
+Powód jest jeden i wystarczający: **pętla nie może edytować `.github/workflows/`**
+(akcja twardo tego zabrania). Nazwa wpisana na sztywno byłaby jedyną rzeczą, której
+pętla nie umie naprawić, umieszczoną w jedynym miejscu, którego nie umie tknąć.
+Przy odczycie z API zmiana nazwy gałęzi pętli to przestawienie gałęzi domyślnej
+w ustawieniach repo — bez dotykania jednego pliku workflow.
+
+### Stan emulatora: dwie warstwy cache'u
+
+Sesja pracuje na `task/<n>` ([#7](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/7)), więc **zapisuje** cache wyłącznie w zasięgu własnej
+gałęzi — ale **czyta** także z gałęzi domyślnej. Stąd podział:
+
+| Warstwa | Zasięg | Co niesie | Żywotność |
+|---|---|---|---|
+| Baza | gałąź domyślna | obraz systemu AVD + zainstalowany APK | między sesjami |
+| Partia | `task/<n>` | `userdata-qemu.img.qcow2` bieżącej partii | między ogniwami **jednej** sesji |
+
+Świeża sesja weryfikacyjna zaczyna partię od zera i to jest w porządku:
+[#9](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/9) wymaga jednej partii ≥1M w obrębie jednego łańcucha ogniw, nie ciągłości
+między sesjami.
+
+**Merge na gałąź pętli w trakcie sesji weryfikacyjnej nie unieważnia jej cache'u.**
+Wpis cache'u jest związany z kluczem i gałęzią, nie z commitem, a sesja siedzi na
+własnym `task/<n>`, którego merge na gałąź domyślną nie dotyka. Pytanie z
+[#24](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/24) zamknięte przecząco.
+
+Klucze muszą być nowe przy każdym zapisie (`avd-<warstwa>-${{ github.run_id }}`)
+i odczytywane przez `restore-keys`, bo wpis o danym kluczu jest niemutowalny
+([#3](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/3) §5.3).
