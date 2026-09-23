@@ -65,6 +65,21 @@ def game_over(img):
     return img[0:40].reshape(-1, 3).mean(axis=0)[1] < BG_GREEN - 30
 
 
+def next_game(wait=6, tries=3):
+    """Czeka na ekran końca partii i zaczyna następną. None, gdy się nie udało.
+
+    Partia kończy się dwojako: ekranem „Can you Top that?" albo naszym odczytem
+    „nie ma legalnego ruchu", który wyprzedza ekran o kilka sekund. Oba prowadzą
+    tutaj, bo oba znaczą to samo — i oba kończyły przebieg przed czasem, zanim
+    most nauczył się grać dalej.
+    """
+    for _ in range(wait):
+        if game_over(stable_state()[0]):
+            return restart_game(tries)
+        time.sleep(3)
+    return None
+
+
 def restart_game(tries=3):
     """Klika ▶ i czeka na czytelną planszę nowej partii. None, gdy nie wróciła."""
     for _ in range(tries):
@@ -254,9 +269,9 @@ def main(max_moves):
             print(json.dumps(entry), file=log)
             log.flush()
             print(f"{entry['end']} (partia {games}, ruch {n})", flush=True)
-            if entry["end"] != "koniec partii":
+            if entry["end"] not in ("koniec partii", "brak legalnego ruchu wg odczytu"):
                 break
-            fresh = restart_game()
+            fresh = next_game()
             if fresh is None:
                 print("nowa partia nie wystartowała", flush=True)
                 break
