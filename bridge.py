@@ -35,6 +35,7 @@ SCREEN = (320, 640)
 BOARD_X, BOARD_Y, CELL = 17, 136, 35.6
 TRAY_Y0, TRAY_Y1, TRAY_CELL = 440, 585, 16
 SCORE_BOX = (60, 70, 260, 130)
+CONTRAST = 45  # o tyle kolor musi odstawać od tła tej klatki, żeby był klockiem (#34)
 FRAMES = 3
 SHOTS = 20  # zrzuty tylko z początku biegu: długi przebieg zrobiłby setki MB artefaktu
 STUCK = 3   # tyle wpisów bez ruchu z rzędu kończy przebieg: most, który nie gra, nie żyje (#32)
@@ -67,9 +68,15 @@ def game_over(img):
     drugiego wariantu nie da się oddzielić od planszy kolorem tła i to on zatrzymywał
     przebiegi 35842812364 i 35852299298. Przycisk jest wspólny i rozdziela je z zapasem:
     w grze to miejsce ma rozrzut kanałów ~80 przy jasności ~90, na ekranie końca 5 przy 232.
+
+    Trzeci warunek — że przycisk odstaje od tła paska — dokłada motyw brązowy (#34):
+    jego pusty pasek ma rozrzut 33 przy jasności 173, więc mieści się pod progiem
+    ▶ o 3 i 7 jednostek. Motyw jaśniejszy przekroczy oba i każda klatka w grze będzie
+    „ekranem końca". W grze to miejsce **jest** tłem paska, na ekranie końca nim nie jest.
     """
     p = img[REPLAY[1], REPLAY[0] - 5:REPLAY[0] + 6].mean(axis=0)
-    return p.max() - p.min() < 30 and p.mean() > 180
+    return (p.max() - p.min() < 30 and p.mean() > 180
+            and bool(stands_out(p, bg_color(img[TRAY_Y0:TRAY_Y1]))))
 
 
 def next_game(wait=6, tries=3):
@@ -162,8 +169,12 @@ def resume_state():
 def settled_state():
     """Stan z kilku klatek: animacja tutorialu przesłania pola i tackę tylko chwilowo.
 
-    Pole planszy zajęte, jeśli klocek widać na którejkolwiek klatce (duch podpowiedzi
-    nigdy nie przechodzi is_block). Tacka: najczęstszy odczyt.
+    Pole planszy zajęte, jeśli klocek widać na którejkolwiek klatce. Tacka: najczęstszy odczyt.
+
+    Cena odczytu niezależnego od motywu (#34): duch podpowiedzi i dłoń tutorialu też
+    odstają od tła, więc ruch 0 świeżej instalacji czyta 6 pól za dużo. Ruch 0 i tak
+    jest rozbieżny — tutorial wymusza własne postawienie — a `grid` bierze się co ruch
+    z ekranu na nowo, więc błąd nie przeżywa jednego ruchu.
     """
     frames = []
     for _ in range(FRAMES):
@@ -196,24 +207,40 @@ def stable_state(tries=6):
     return img, grid, tray, score
 
 
-def is_block(img):
-    """Kolor klocka: nasycony i jasny. Tło, puste pola, duch podpowiedzi i dłoń tutorialu nie przechodzą."""
-    return ((img.max(axis=-1) - img.min(axis=-1)) >= 100) & (img.max(axis=-1) >= 150)
+def bg_color(region):
+    """Tło obszaru: jego najczęstszy kolor — puste pole na planszy, tło strony na tacce.
+
+    Czytane z każdej klatki od nowa, bo gra zmienia motyw graficzny **w trakcie partii**.
+    Stała nie wystarczy: klocek motywu brązowego ma nasycenie 72, a tło motywu
+    niebieskiego 74, więc próg, który przepuszcza pierwszy, przepuszcza i drugie (#34).
+    """
+    q = (region // 8 * 8).reshape(-1, 3)
+    vals, counts = np.unique(q, axis=0, return_counts=True)
+    return vals[counts.argmax()]
+
+
+def stands_out(px, bg):
+    """Czy kolor odstaje od tła. Jedyny test „to nie jest tło" w całym odczycie ekranu."""
+    d = np.asarray(px) - bg
+    return (d * d).sum(axis=-1) >= CONTRAST ** 2
 
 
 def read_board(img):
+    bg = bg_color(img[BOARD_Y:int(BOARD_Y + 8 * CELL), BOARD_X:int(BOARD_X + 8 * CELL)])
     grid = [[0] * 8 for _ in range(8)]
     for r in range(8):
         for c in range(8):
             x, y = cell_center(c, r)
             patch = img[int(y) - 5:int(y) + 6, int(x) - 5:int(x) + 6].reshape(-1, 3).mean(axis=0)
-            grid[r][c] = int(is_block(patch))
+            grid[r][c] = int(stands_out(patch, bg))
     return grid
 
 
 def read_tray(img):
     """Trzy sloty: (kształt, środek w px) albo None, gdy slot pusty."""
-    mask = is_block(img[TRAY_Y0:TRAY_Y1])
+    strip = img[TRAY_Y0:TRAY_Y1]
+    bg = bg_color(strip)
+    mask = stands_out(strip, bg)
     slots = []
     for s in range(3):
         x0, x1 = s * SCREEN[0] // 3, (s + 1) * SCREEN[0] // 3
@@ -226,7 +253,7 @@ def read_tray(img):
         w = max(1, round((xs.max() - xs.min() + 1) / TRAY_CELL))
         step_y = (ys.max() - ys.min() + 1) / h
         step_x = (xs.max() - xs.min() + 1) / w
-        shape = [[int(is_block(img[int(top + (i + .5) * step_y), int(left + (j + .5) * step_x)]))
+        shape = [[int(stands_out(img[int(top + (i + .5) * step_y), int(left + (j + .5) * step_x)], bg))
                   for j in range(w)] for i in range(h)]
         center = (left + (xs.max() - xs.min()) / 2, top + (ys.max() - ys.min()) / 2)
         slots.append((shape, center))
