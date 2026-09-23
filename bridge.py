@@ -31,6 +31,7 @@ OUT = "bridge-out"
 PACKAGE = "com.block.juggle"
 GAME_ACTIVITY = "org.cocos2dx.javascript.AppActivity"  # reklama ma własną aktywność w TYM SAMYM pakiecie
 AD_CLOSE = (285, 34)  # X na pełnoekranowej reklamie (com.hs.adx.hella.activity.FullScreenActivity)
+RATING_CLOSE = (275, 192)  # X w oknie oceny gry, rysowanym nad ekranem końca partii (#35)
 SCREEN = (320, 640)
 BOARD_X, BOARD_Y, CELL = 17, 136, 35.6
 TRAY_Y0, TRAY_Y1, TRAY_CELL = 440, 585, 16
@@ -96,14 +97,52 @@ def next_game(wait=6, tries=3):
     return None
 
 
-def playable(state):
-    """Ekran, na którym da się zagrać: nie ekran końca i co najmniej jeden czytelny klocek.
+def readable_tray(shapes):
+    """Tacka czyta się jak klocki: jest co czytać i **każdy** odczyt mógłby być klockiem.
 
-    Warunek „wszystkie sloty wiarygodne" przechodził **pusto** przy pustej tacce, więc
-    martwy ekran uchodził za zdrową partię: w przebiegu 35852299298 most stał na takim
-    ekranie 2 h 50 min, raportując przy każdej próbie, że partia przeżyła (#32).
+    Oba warunki są zmierzone, nie założone. Pusta tacka przechodziła „wszystkie
+    wiarygodne" pusto, więc martwy ekran uchodził za zdrową partię i most stał na nim
+    2 h 50 min (przebieg 35852299298, #32); w 384 ruchach przebiegu 35887593719 pusta
+    tacka nie wypadła ani razu, więc odrzucenie jej nic nie kosztuje. „Którykolwiek
+    wiarygodny" przepuszczał z kolei okno oceny gry, bo czyta się ono jako trzy bloby,
+    z których dwa mieszczą się w 5x5 (#35).
     """
-    return not game_over(state[0]) and any(s and plausible(s[0]) for s in state[2])
+    read = [s for s in shapes if s]
+    return bool(read) and all(plausible(s) for s in read)
+
+
+def playable(state):
+    """Ekran, na którym da się zagrać: nie ekran końca i czytelna tacka."""
+    return not game_over(state[0]) and readable_tray([s[0] if s else None for s in state[2]])
+
+
+def close_rating(tries=3):
+    """Zdejmuje okno oceny gry i wraca do gry. None, gdy nie zeszło.
+
+    „Rating — give us 5 stars" gra rysuje **nad** ekranem końca partii, we własnej
+    aktywności planszy, więc `in_game()` go nie widzi, a przygaszony pod nim ▶ (rozrzut
+    3 przy jasności 67) każe `game_over()` słusznie zwrócić False. Zostaje jeden objaw:
+    tacka czyta się jako bloby okna zamiast klocków — i to on sprowadza nas tutaj. Tak
+    stanął przebieg 35887593719 po 384 ruchach (#35).
+
+    Trzecie okno nad planszą i trzecia współrzędna na sztywno: reklama (#32), motyw
+    (#34), ocena. Decyzja z #35: łatamy po jednym oknie. Reguła ogólna „znajdź ✕"
+    daje się napisać — ✕ reklamy i ✕ oceny to białe bloby o wypełnieniu 0,41–0,44 —
+    ale zębatka ustawień w grze ma 0,31, więc rozdziela je dopiero para strojonych
+    progów. Taki próg zawiódł już raz i #34 musiało go usunąć.
+
+    Po zejściu okna ekran jest ekranem końca partii, więc dalej prowadzi ta sama droga
+    co po przegranej.
+    """
+    for _ in range(tries):
+        adb("shell", "input", "tap", str(RATING_CLOSE[0]), str(RATING_CLOSE[1]))
+        time.sleep(3)
+        state = stable_state()
+        if playable(state):
+            return state
+        if game_over(state[0]):
+            return restart_game()
+    return None
 
 
 def restart_game(tries=3):
@@ -341,7 +380,7 @@ def main(max_moves):
             entry["end"] = "gra nie jest na pierwszym planie"
         elif game_over(img):
             entry["end"] = "koniec partii"
-        elif any(sh is not None and not plausible(sh) for sh in shapes):
+        elif not readable_tray(shapes):
             entry["end"] = "odczyt tacki niewiarygodny"
         game.board.grid = [row[:] for row in grid]
         game.pieces = [Piece(sh, f"slot{k}", -1) if sh else None for k, sh in enumerate(shapes)]
@@ -354,10 +393,10 @@ def main(max_moves):
             entry["focus"] = current_focus()
             Image.fromarray(img.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_end.png"))
             if entry["end"] == "gra nie jest na pierwszym planie":
-                # Jedyny koniec, po którym pytamy, czy przeżyła *partia*: proces zabija
-                # aktualizacja GMS, nie przegrana. Plansza zgodna z którymkolwiek stanem
-                # sprzed śmierci znaczy, że gra ją odtworzyła — a więc łańcuch 1M z #9
-                # przeżywa awarię, zamiast zaczynać od zera.
+                # Proces zabija aktualizacja GMS, nie przegrana, więc pytamy, czy
+                # przeżyła *partia*. Plansza zgodna z którymkolwiek stanem sprzed śmierci
+                # znaczy, że gra ją odtworzyła — a więc łańcuch 1M z #9 przeżywa awarię,
+                # zamiast zaczynać od zera.
                 fresh = resume_state()
                 entry["wznowienie"] = ("plansza nie wróciła" if fresh is None
                                        else "partia przeżyła" if fresh[1] in refs
@@ -366,7 +405,14 @@ def main(max_moves):
             elif entry["end"] in ("koniec partii", "brak legalnego ruchu wg odczytu"):
                 fresh = next_game()
             else:
-                fresh = None
+                # Odczyt, który grą nie jest, znaczy dziś jedno: coś stoi nad planszą.
+                # Werdykt liczony jak po zabiciu procesu, bo pytanie jest to samo —
+                # czy pod oknem została ta partia, czy trzeba zerować combo (#35).
+                fresh = close_rating()
+                entry["wznowienie"] = ("okno nie zeszło" if fresh is None
+                                       else "partia przeżyła" if fresh[1] in refs
+                                       else "partia przepadła")
+                revivals += fresh is not None
             print(json.dumps(entry), file=log)
             log.flush()
             print(f"{entry['end']} (partia {games}, ruch {n}) na oknie {entry['focus']}"
@@ -420,7 +466,7 @@ def main(max_moves):
             print(f"celowe zabicie gry po ruchu {n} (#32)", flush=True)
     annotate(img, grid, os.path.join(OUT, "final.png"))
     print(f"rozegranych partii: {games + 1}")
-    print(f"odzyskań planszy (reklama albo zabity proces): {revivals}")
+    print(f"odzyskań planszy (okno nad planszą albo zabity proces): {revivals}")
     print(f"najdłuższa seria zgodnych ruchów: {best_streak}")
     print(f"rozbieżności punktowe: {score_bad}, ruchy bez odczytu wyniku: {score_blind}")
     return best_streak
