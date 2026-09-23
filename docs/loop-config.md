@@ -10,9 +10,16 @@ spoza tej listy, jest błędem — nie okazją do dopisania nowej nazwy bez decy
 
 ## Sekrety
 
-| Nazwa | Przeznaczenie |
-|---|---|
-| `CLAUDE_CODE_OAUTH_TOKEN` | Jedyne poświadczenie generowane ręcznie. Uwierzytelnia sesje Claude Code subskrypcją właściciela. Powstaje z `claude setup-token`, ważny rok. |
+| Nazwa | Wygasa | Przeznaczenie |
+|---|---|---|
+| `CLAUDE_CODE_OAUTH_TOKEN` | ~2027-09-20 | Jedyne poświadczenie generowane ręcznie. Uwierzytelnia sesje Claude Code subskrypcją właściciela. Powstaje z `claude setup-token`, ważny rok. Bez niego **nie ruszy nic**. |
+| `ASSETS_READ_TOKEN` | ~2026-10-21 | Odczyt splitów APK Block Blasta z prywatnego release'u ([#14](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/14)). Bez niego nie ruszy **verifier**; reszta pętli pracuje dalej. |
+
+**Kolumna „Wygasa" jest notatką dla właściciela. Pętla jej nigdy nie czyta**
+([#26](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/26)). Poświadczenia sprawdza się pomiarem w chwili użycia, nie przewidywaniem
+z kalendarza — patrz „Sonda poświadczenia" niżej. Daty są przybliżone, bo token
+`setup-token` nie niesie w sobie daty wygaśnięcia, panel konta go nie listuje,
+a sekret Actions nie ma pola `expires_at`; liczą się od dnia założenia sekretu.
 
 Do samowyzwalania pętli **nie ma sekretu** — wystarcza wbudowany `GITHUB_TOKEN`
 w parze z `workflow_dispatch` ([#5](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/5)). Żadnego PAT-a, żadnego klucza GitHub App.
@@ -75,6 +82,7 @@ nigdy sesja sama sobie ([#7](https://github.com/Kucze3205/ReinforcmentBlockBlast
 | Etykieta | Znaczenie |
 |---|---|
 | `conflict` | Merge nieudany. Issue zostaje **otwarte** i odpala się ponownie ze świeżego HEAD. Konflikt nie jest porażką zadania ([#7](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/7)). |
+| `awaria` | Pętla stoi i czeka na człowieka. Ucisza dozorcę ([#25](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/25)). Stawia ją orchestrator albo — gdy ten nie jest w stanie wstać — **dozorca** ([#26](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/26)). |
 
 ---
 
@@ -131,6 +139,45 @@ należy do raportu tygodniowego, gdy ten powstanie.
 
 Sekrety repo — w tym `CLAUDE_CODE_OAUTH_TOKEN` — i tak **nie są** przekazywane do
 przebiegów z forkowych PR-ów ([#5](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/5)).
+
+---
+
+## Sonda poświadczenia
+
+Ustalone w [#26](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/26). Wygasłe poświadczenie jest jedyną awarią, która **wygląda jak
+zdrowie**: sesje startują i padają po ~3 s z `total_cost_usd: 0`, więc przebiegi
+powstają, niezmiennik żywotności z [#10](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/10) jest spełniony i dozorca milczy w
+nieskończoność. Limitu subskrypcji to **nie pali** — kosztuje wyłącznie ciszę.
+
+Zamiast kalendarza — pomiar w chwili użycia:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}' https://api.anthropic.com/v1/models   -H "Authorization: Bearer $CLAUDE_CODE_OAUTH_TOKEN"   -H "anthropic-version: 2023-06-01"   -H "anthropic-beta: oauth-2025-04-20"
+# 200 żyje · 401 martwy · 403 odwołany
+```
+
+| Gdzie | Po co |
+|---|---|
+| preflight w workflow sesji | 401/403 kończy job, zanim wstanie agent — zero sesji-zombie |
+| dozorca | przy martwym poświadczeniu workflow sesji może nie wstać wcale |
+
+Nagłówek `anthropic-beta: oauth-2025-04-20` jest ten sam, którego używa CLI.
+Sonda nie zjada limitu subskrypcji. **`/api/oauth/validate` odpada** — token
+z `setup-token` ma scope `user:inference` i dostaje tam 403 także wtedy, gdy jest
+zdrowy.
+
+### Reakcja
+
+| Co padło | Skutek |
+|---|---|
+| poświadczenie, bez którego **nie ruszy nic** | `awaria` + dozorca kończy czerwono → mail do właściciela |
+| poświadczenie, bez którego **nie ruszy jedna rola** | sam mail; pętla pracuje dalej |
+
+Mail jest darmowy i nie wymaga nowego poświadczenia: powiadomienia o czerwonych
+przebiegach idą do tego, kto przebieg wywołał, a przebieg z `schedule` mailuje do
+**autora pliku workflow**. Sesje wywołuje bot, więc mailuje wyłącznie dozorca —
+i tylko dlatego, że kończy czerwono celowo. To uchyla zapis z [#10](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/10), że kanału push
+nie ma.
 
 ---
 

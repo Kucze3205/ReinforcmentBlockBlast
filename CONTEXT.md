@@ -43,6 +43,12 @@ Istnieje, bo job w Actions ginie po 6 h, a limit subskrypcji może uciąć prac�
 wcześniej — dlatego każde ogniwo zapisuje stan przed końcem.
 _Avoid_: etap, krok, iteracja
 
+**Przebieg**:
+Jedno uruchomienie workflow w GitHub Actions — wiersz z zielonym albo czerwonym
+kółkiem w zakładce Actions. Jedna sesja to jeden przebieg albo łańcuch ogniw,
+czyli wielu przebiegów.
+_Avoid_: run, job, uruchomienie
+
 **Epilog**:
 Krok workflow wykonywany zawsze, także po śmierci agenta. Dowozi raport, scala
 gałąź zadania i wypycha odblokowanych dependentów. Nie jest agentem.
@@ -72,11 +78,23 @@ historii. Jedyny fragment dziennika z limitem długości.
 _Avoid_: raport (bez przymiotnika, gdy w pobliżu jest raport sesji)
 
 **Awaria**:
-Stan spoczynku pętli: orchestrator wyczerpał wszystkie próby i praca nie ruszy
-bez ręki człowieka. Otwarte issue z etykietą `awaria` ucisza dozorcę, więc
-pętla nie kopie w próżnię i nie pali limitu. Jedyny stan, w którym brak
-przebiegów nie jest zatorem.
+Stan spoczynku pętli: praca nie ruszy bez ręki człowieka. Otwarte issue z
+etykietą `awaria` ucisza dozorcę, więc pętla nie kopie w próżnię. Jedyny stan,
+w którym brak przebiegów nie jest zatorem. Ogłasza ją orchestrator, który
+wyczerpał próby, **albo dozorca** — ten drugi wtedy, gdy orchestrator nie jest
+w stanie wstać (#26). Zatrzymuje pętlę wyłącznie wtedy, gdy nie ruszy **nic**;
+to, co gatuje jedną rolę, idzie samym mailem.
 _Avoid_: błąd, awaria sesji, crash
+
+**Zator**:
+Pętla stoi: nie chodzi żaden przebieg i nic nie czeka na termin, choć praca
+została. Nie to samo co awaria — zator pętla leczy sama, kopnięciem.
+_Avoid_: zawieszenie, deadlock, blokada
+
+**Kopnięcie**:
+Odpalenie workflow przez dozorcę, żeby ruszyć stojącą pracę. Dozorca kopie,
+zanim zawoła — samo wykrycie zatoru jest bezwartościowe, skoro nikt nie patrzy.
+_Avoid_: retry, restart, ponowienie
 
 **Dozorca**:
 Sztywny skrypt na cronie, bez agenta, spoza łańcucha pętli. Wykrywa zator i
