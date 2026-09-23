@@ -29,6 +29,8 @@ from policies import GreedyPolicy
 
 OUT = "bridge-out"
 PACKAGE = "com.block.juggle"
+GAME_ACTIVITY = "org.cocos2dx.javascript.AppActivity"  # reklama ma własną aktywność w TYM SAMYM pakiecie
+AD_CLOSE = (285, 34)  # X na pełnoekranowej reklamie (com.hs.adx.hella.activity.FullScreenActivity)
 SCREEN = (320, 640)
 BOARD_X, BOARD_Y, CELL = 17, 136, 35.6
 TRAY_Y0, TRAY_Y1, TRAY_CELL = 440, 585, 16
@@ -79,6 +81,8 @@ def next_game(wait=6, tries=3):
     most nauczył się grać dalej.
     """
     for _ in range(wait):
+        if not in_game() and not recover():  # reklama po przegranej przesłania ekran końca
+            return None
         if game_over(stable_state()[0]):
             return restart_game(tries)
         time.sleep(3)
@@ -114,27 +118,45 @@ def current_focus():
 
 
 def in_game():
-    return PACKAGE in current_focus()
+    """Na wierzchu jest **plansza**, a nie cokolwiek z pakietu gry.
+
+    Sprawdzanie samego pakietu przepuszczało pełnoekranową reklamę, bo ta ma własną
+    aktywność w pakiecie gry — i to ona, nie awaria, zatrzymała przebieg 35876461162
+    po 135 ruchach, zgłoszona jako „brak legalnego ruchu" (#32).
+    """
+    return GAME_ACTIVITY in current_focus()
 
 
-def relaunch(tries=3):
-    """Podnosi grę po tym, jak system zabił jej proces (#32). None, gdy nie wróciła.
+def recover(tries=3):
+    """Przywraca planszę: zamyka reklamę albo podnosi zabity proces. True, gdy wróciła.
 
-    Gry nie zabija ona sama, tylko aktualizacja GMS, więc proces wraca zwykłym startem.
-    Czy wraca też *partia*, rozstrzyga porównanie planszy w `main` — tutaj tylko czekamy
-    na czytelny ekran, bo po zimnym starcie gra potrafi wejść w ekran końca partii.
+    Dwie różne przeszkody dają jeden objaw — planszy nie ma — i rozróżnia je nazwa okna
+    na wierzchu. Reklamę zamyka X w rogu, a gdy SDK trzyma go gdzie indziej, klawisz
+    wstecz; martwy proces wraca zwykłym startem.
     """
     for _ in range(tries):
-        adb("shell", "monkey", "-p", PACKAGE, "-c", "android.intent.category.LAUNCHER", "1")
-        time.sleep(20)
-        if not in_game():
-            continue
-        state = stable_state()
-        if game_over(state[0]):
-            return restart_game()
-        if playable(state):
-            return state
-    return None
+        if PACKAGE in current_focus():
+            adb("shell", "input", "tap", str(AD_CLOSE[0]), str(AD_CLOSE[1]))
+            time.sleep(3)
+            if not in_game():
+                adb("shell", "input", "keyevent", "KEYCODE_BACK")
+                time.sleep(3)
+        else:
+            adb("shell", "monkey", "-p", PACKAGE, "-c", "android.intent.category.LAUNCHER", "1")
+            time.sleep(20)
+        if in_game():
+            return True
+    return False
+
+
+def resume_state():
+    """Grywalny stan po odzyskaniu planszy: trwająca partia albo nowa po ekranie końca."""
+    if not recover():
+        return None
+    state = stable_state()
+    if game_over(state[0]):
+        return restart_game()
+    return state if playable(state) else None
 
 
 def settled_state():
@@ -309,8 +331,8 @@ def main(max_moves):
                 # aktualizacja GMS, nie przegrana. Plansza zgodna z którymkolwiek stanem
                 # sprzed śmierci znaczy, że gra ją odtworzyła — a więc łańcuch 1M z #9
                 # przeżywa awarię, zamiast zaczynać od zera.
-                fresh = relaunch()
-                entry["wznowienie"] = ("gra nie wróciła" if fresh is None
+                fresh = resume_state()
+                entry["wznowienie"] = ("plansza nie wróciła" if fresh is None
                                        else "partia przeżyła" if fresh[1] in refs
                                        else "partia przepadła")
                 revivals += fresh is not None
@@ -371,7 +393,7 @@ def main(max_moves):
             print(f"celowe zabicie gry po ruchu {n} (#32)", flush=True)
     annotate(img, grid, os.path.join(OUT, "final.png"))
     print(f"rozegranych partii: {games + 1}")
-    print(f"wskrzeszeń gry po zabiciu procesu: {revivals}")
+    print(f"odzyskań planszy (reklama albo zabity proces): {revivals}")
     print(f"najdłuższa seria zgodnych ruchów: {best_streak}")
     print(f"rozbieżności punktowe: {score_bad}, ruchy bez odczytu wyniku: {score_blind}")
     return best_streak
