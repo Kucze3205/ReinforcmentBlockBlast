@@ -58,15 +58,14 @@ def trays(rows):
     return out
 
 
-def check_scoring(rows):
-    """Przewidywany przyrost punktów vs odczytany z ekranu. Zwraca (zgodne, rozbieżne, ślepe).
+def replay(rows):
+    """Ruchy przebiegu przeliczone symulatorem: (wpis, przyrost wg symulatora, gra po ruchu, wynik przed, po).
 
     Jeden plik może nieść kilka partii (most gra dalej po przegranej), a combo nie
     przechodzi przez koniec partii — stąd reset symulatora na granicy.
     """
     game = Game()
     partia = 0
-    ok = bad = blind = 0
     for row, nxt in zip(rows, rows[1:] + [{}]):
         if "move" not in row:
             continue
@@ -75,8 +74,13 @@ def check_scoring(rows):
             partia = row["partia"]
         m = row["move"]
         gain, _ = advance(game, row["board"], row["tray"], m["slot"], m["x"], m["y"])
-        before = row.get("score")
-        after = row.get("score_after", nxt.get("score"))
+        yield row, gain, game, row.get("score"), row.get("score_after", nxt.get("score"))
+
+
+def check_scoring(rows):
+    """Przewidywany przyrost punktów vs odczytany z ekranu. Zwraca (zgodne, rozbieżne, ślepe)."""
+    ok = bad = blind = 0
+    for row, gain, game, before, after in replay(rows):
         if before is None or after is None or after < before:
             blind += 1  # wynik nie maleje: spadek to błąd OCR, nie rozbieżność punktacji
         elif after - before == gain:
@@ -86,6 +90,47 @@ def check_scoring(rows):
             print(f"  ruch {row['n']}: ekran +{after - before}, symulator +{gain} "
                   f"(combo {game.combo}, linie {game.last_lines_cleared})")
     return ok, bad, blind
+
+
+def ladder(rows):
+    """#33: B(ℓ) odczytane z apki, per combo. Zwraca ({(ℓ, combo): {B: ile}}, nieczyste).
+
+    Przyrost ekranu to komórki klocka + combo · B(ℓ). Odczyt jest czysty, gdy reszta
+    po odjęciu komórek dzieli się przez combo — animacja licznika przerwana w połowie
+    daje resztę, której combo nie dzieli, i taki odczyt nie mówi nic o B.
+    Combo i ℓ bierzemy z symulatora po ruchu: to on liczy je z zalogowanej trajektorii.
+    """
+    table = collections.defaultdict(collections.Counter)
+    dirty = 0
+    for row, gain, game, before, after in replay(rows):
+        lines = game.last_lines_cleared
+        if not lines or before is None or after is None or after < before:
+            continue
+        cells = sum(map(sum, row["tray"][row["move"]["slot"]]))
+        extra = after - before - cells
+        if extra > 0 and extra % game.combo == 0:
+            table[(lines, game.combo)][extra // game.combo] += 1
+        else:
+            dirty += 1
+    return table, dirty
+
+
+def print_ladder(rows):
+    table, dirty = ladder(rows)
+    print(f"\n== Drabinka B(ℓ) wg combo ({dirty} odczytów nieczystych)")
+    for lines in sorted({l for l, _ in table}):
+        print(f"   ℓ = {lines}:")
+        runs = []  # kolejne combo o tym samym B zlewamy w schodek
+        for combo in sorted(c for l, c in table if l == lines):
+            counts = table[(lines, combo)]
+            b = "/".join(f"{v}" + (f"(x{n})" if len(counts) > 1 else "") for v, n in sorted(counts.items()))
+            n = sum(counts.values())
+            if runs and runs[-1][2] == b:
+                runs[-1][1], runs[-1][3] = combo, runs[-1][3] + n
+            else:
+                runs.append([combo, combo, b, n])
+        for lo, hi, b, n in runs:
+            print(f"     combo {lo:>3}–{hi:<3} B = {b}  ({n} czystych)")
 
 
 def lifetimes(rows):
@@ -134,6 +179,7 @@ def main(paths):
         print("   długość partii: " + ", ".join(f"{p}: {c} ruchów" for p, c in sorted(moves.items())))
         for n, end, rev in ends:
             print(f"   ruch {n}: {end}" + (f" -> {rev}" if rev else ""))
+        print_ladder(run)
         rows += run
 
     samples = trays(rows)

@@ -188,16 +188,21 @@ def settled_state():
     return frames[-1], grid, tray
 
 
-def stable_state(tries=6):
+def stable_state(gain=0):
     """Czeka, aż dwa kolejne odczyty będą identyczne: plansza, tacka i wynik.
 
     Wynik wchodzi do warunku, bo licznik w grze **dolicza się animacją** po dużym
     czyszczeniu. Odczyt zrobiony za wcześnie pokazuje stan w połowie naliczania i
     porównanie z symulatorem wypada fałszywie na czerwono — tak wyglądały obie
     rozbieżności z przebiegu 35610307974 (#30).
+
+    Animacja trwa proporcjonalnie do przyrostu: powyżej combo 16 jedno czyszczenie
+    to 400–600 punktów i stałe 6 prób kończyło się w połowie przewijania (#33).
+    Stąd limit prób rośnie z oczekiwanym `gain`; stabilny odczyt i tak przerywa pętlę,
+    więc hojny limit kosztuje tylko wtedy, gdy ekran naprawdę się nie uspokaja.
     """
     prev = None
-    for _ in range(tries):
+    for _ in range(6 + gain // 10):
         img, grid, tray = settled_state()
         score = read_score(img)
         key = json.dumps([grid, [s[0] if s else None for s in tray], score])
@@ -389,7 +394,7 @@ def main(max_moves):
         info, aim = drag(slots[i][1], piece, x, y)
         if n < SHOTS:
             Image.fromarray(aim.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_aim.png"))
-        img, observed, slots, after = stable_state()
+        img, observed, slots, after = stable_state(gain)
         ok = observed == expected
         grid = observed
         ok_streak = ok_streak + 1 if ok else 0
