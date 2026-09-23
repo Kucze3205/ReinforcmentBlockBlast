@@ -37,6 +37,7 @@ FRAMES = 3
 SHOTS = 20  # zrzuty tylko z początku biegu: długi przebieg zrobiłby setki MB artefaktu
 BG_GREEN = 80  # kanał zielony tła planszy; ekran końca partii jest fioletowy i ma ~17
 REPLAY = (160, 461)  # przycisk ▶ na ekranie „Can you Top that?"
+KILL_AT = int(os.environ.get("KILL_AT", "0"))  # celowe zabicie gry po tym ruchu; 0 = nigdy (#32)
 DRAG_GAIN = 1.5  # zmierzone: klocek przesuwa się 1,5 px na 1 px palca
 LIFT = 80.6  # środek podniesionego klocka jest tyle px nad środkiem klocka na tacce
 
@@ -93,6 +94,26 @@ def restart_game(tries=3):
 
 def in_game():
     return PACKAGE in adb("shell", "dumpsys", "window").decode(errors="replace").split("mCurrentFocus", 1)[-1][:200]
+
+
+def relaunch(tries=3):
+    """Podnosi grę po tym, jak system zabił jej proces (#32). None, gdy nie wróciła.
+
+    Gry nie zabija ona sama, tylko aktualizacja GMS, więc proces wraca zwykłym startem.
+    Czy wraca też *partia*, rozstrzyga porównanie planszy w `main` — tutaj tylko czekamy
+    na czytelny ekran, bo po zimnym starcie gra potrafi wejść w ekran końca partii.
+    """
+    for _ in range(tries):
+        adb("shell", "monkey", "-p", PACKAGE, "-c", "android.intent.category.LAUNCHER", "1")
+        time.sleep(20)
+        if not in_game():
+            continue
+        state = stable_state()
+        if game_over(state[0]):
+            return restart_game()
+        if all(s is None or plausible(s[0]) for s in state[2]):
+            return state
+    return None
 
 
 def settled_state():
@@ -196,15 +217,6 @@ def legal_moves(board, pieces):
             for y in range(8) for x in range(8) if board.can_place_piece(p, x, y)]
 
 
-def cell_center(c, r):
-    return BOARD_X + (c + .5) * CELL, BOARD_Y + (r + .5) * CELL
-
-
-def legal_moves(board, pieces):
-    return [(i, x, y) for i, p in enumerate(pieces) if p is not None
-            for y in range(8) for x in range(8) if board.can_place_piece(p, x, y)]
-
-
 def glide(frm, to, steps=10):
     for k in range(1, steps + 1):
         touch("MOVE", frm[0] + (to[0] - frm[0]) * k / steps, frm[1] + (to[1] - frm[1]) * k / steps)
@@ -247,7 +259,8 @@ def main(max_moves):
     log = open(os.path.join(OUT, "moves.jsonl"), "w")
     game = Game()  # niesie combo i licznik wygaśnięcia między ruchami; planszę i tackę bierze z ekranu
     img, grid, slots, score = stable_state()
-    ok_streak = best_streak = score_bad = score_blind = games = 0
+    refs = [grid]  # plansze, po których poznamy, że partia przeżyła zabicie procesu (#32)
+    ok_streak = best_streak = score_bad = score_blind = games = revivals = 0
     for n in range(max_moves):
         if n < SHOTS:
             Image.fromarray(img.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_state.png"))
@@ -266,18 +279,31 @@ def main(max_moves):
         if not moves and "end" not in entry:
             entry["end"] = "brak legalnego ruchu wg odczytu"
         if "end" in entry:
+            if entry["end"] == "gra nie jest na pierwszym planie":
+                # Jedyny koniec, po którym pytamy, czy przeżyła *partia*: proces zabija
+                # aktualizacja GMS, nie przegrana. Plansza zgodna z którymkolwiek stanem
+                # sprzed śmierci znaczy, że gra ją odtworzyła — a więc łańcuch 1M z #9
+                # przeżywa awarię, zamiast zaczynać od zera.
+                fresh = relaunch()
+                entry["wznowienie"] = ("gra nie wróciła" if fresh is None
+                                       else "partia przeżyła" if fresh[1] in refs
+                                       else "partia przepadła")
+                revivals += fresh is not None
+            elif entry["end"] in ("koniec partii", "brak legalnego ruchu wg odczytu"):
+                fresh = next_game()
+            else:
+                fresh = None
             print(json.dumps(entry), file=log)
             log.flush()
-            print(f"{entry['end']} (partia {games}, ruch {n})", flush=True)
-            if entry["end"] not in ("koniec partii", "brak legalnego ruchu wg odczytu"):
-                break
-            fresh = next_game()
+            print(f"{entry['end']} (partia {games}, ruch {n})"
+                  + (f" -> {entry['wznowienie']}" if "wznowienie" in entry else ""), flush=True)
             if fresh is None:
-                print("nowa partia nie wystartowała", flush=True)
                 break
             img, grid, slots, score = fresh
-            game = Game()  # nowa partia zaczyna z zerowym combo
-            games += 1
+            if entry.get("wznowienie") != "partia przeżyła":
+                game = Game()  # nowa partia zaczyna z zerowym combo
+                games += 1
+            refs = [grid]
             continue
         i, x, y = policy.act(game, moves)
         piece = game.pieces[i]
@@ -306,8 +332,16 @@ def main(max_moves):
         print(f"ruch {n}: slot {i} -> ({x},{y}) wynik {score} "
               f"plansza {mark[ok]} punkty {mark[score_ok]} (+{gain})", flush=True)
         score = after
+        refs = [entry["board"], expected, observed]
+        if n + 1 == KILL_AT:
+            # Czekanie na aktualizację GMS to loteria (2 przebiegi z 6). Zabicie procesu
+            # ręcznie daje tę samą śmierć — „app died, no saved state" — na zawołanie,
+            # więc wznowienie da się zmierzyć jednym przebiegiem zamiast serią.
+            adb("shell", "am", "force-stop", PACKAGE)
+            print(f"celowe zabicie gry po ruchu {n} (#32)", flush=True)
     annotate(img, grid, os.path.join(OUT, "final.png"))
     print(f"rozegranych partii: {games + 1}")
+    print(f"wskrzeszeń gry po zabiciu procesu: {revivals}")
     print(f"najdłuższa seria zgodnych ruchów: {best_streak}")
     print(f"rozbieżności punktowe: {score_bad}, ruchy bez odczytu wyniku: {score_blind}")
     return best_streak
