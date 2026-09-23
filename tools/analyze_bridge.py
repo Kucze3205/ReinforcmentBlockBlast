@@ -88,6 +88,18 @@ def check_scoring(rows):
     return ok, bad, blind
 
 
+def lifetimes(rows):
+    """#32: ile ruchów żyje partia i co ją kończy.
+
+    Partię kończy przegrana albo śmierć procesu. Przy śmierci wpis niesie werdykt
+    `wznowienie` — jedyne miejsce, które mówi, czy gra odtworzyła planszę, czy
+    zaczęła od zera, a od tego zależy wykonalność łańcucha 1M z #9.
+    """
+    moves = collections.Counter(r.get("partia", 0) for r in rows if "move" in r)
+    ends = [(r["n"], r["end"], r.get("wznowienie", "")) for r in rows if "end" in r]
+    return moves, ends
+
+
 def census(samples):
     """Z-5: ile unikalnych kształtów, które spoza puli symulatora."""
     counts = collections.Counter()
@@ -118,6 +130,10 @@ def main(paths):
         print(f"\n== {path}: {len(run)} wpisów, koniec: {run[-1].get('end', 'wyczerpany limit ruchów')}")
         ok, bad, blind = check_scoring(run)
         print(f"   punktacja: {ok} zgodnych, {bad} rozbieżnych, {blind} bez odczytu wyniku")
+        moves, ends = lifetimes(run)
+        print("   długość partii: " + ", ".join(f"{p}: {c} ruchów" for p, c in sorted(moves.items())))
+        for n, end, rev in ends:
+            print(f"   ruch {n}: {end}" + (f" -> {rev}" if rev else ""))
         rows += run
 
     samples = trays(rows)
