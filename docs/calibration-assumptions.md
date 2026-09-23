@@ -72,6 +72,45 @@ Sprzeczność między źródłami: 10 punktów za linię vs 10 za każdą **usun
 **Pomiar:** postawić klocek czyszczący dokładnie **jedną** linię przy combo = 0
 i odczytać przyrost wyniku. `10` albo `80` zamyka sprawę jednym ruchem.
 
+**Zmierzone: 10 — ale tylko do combo 5.** Patrz Z-10.
+
+### Z-10 — `line_bonus` nie jest stałą, rośnie schodkami wraz z combo *(nowe, otwarte)*
+
+Symulator: `line_bonus(1) = 10` zawsze, niezależnie od combo.
+Apka: **10 przy combo 1–5, 15 przy 6–10, 20 przy 11–16.**
+
+| combo | B(1) w apce | czystych odczytów |
+|---|---|---|
+| 1–5 | 10 | 33 |
+| 6–10 | 15 | 13 |
+| 11–16 | 20 | 10 |
+| powyżej 16 | **niezmierzone** | — |
+
+Zmierzone na przebiegach [35841098505](https://github.com/Kucze3205/ReinforcmentBlockBlast/actions/runs/35841098505)
+i [35842812364](https://github.com/Kucze3205/ReinforcmentBlockBlast/actions/runs/35842812364).
+Wewnątrz schodka nie ma ani jednego wyjątku; obie granice (5→6 i 10→11) mają
+pomiary po obu stronach. Combo mnoży ten bonus tak jak dotąd (R-2) — schodek
+zmienia **bazę**, nie mnożnik.
+
+Dlaczego nikt tego nie widział wcześniej: **żaden przebieg mostu przed [#30](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/30)
+nie przekroczył combo 4**, a pierwszy schodek zaczyna się przy 6. Cała zgodność
+„co do punktu" z [#18](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/18)
+była prawdziwa — i cała mieściła się w pierwszym schodku.
+
+**Czego nie wiemy i dlaczego pomiar stoi:** gdzie kończy się trzeci schodek.
+Reguła „co 5 combo o 5 więcej" przewiduje 25 przy combo 16, a zmierzone jest
+czyste 20 — więc trzeci schodek jest szerszy albo ostatni. Powyżej combo 16
+licznik w grze **animuje się dłużej, niż most czeka**: pojedyncze czyszczenie
+daje tam 400–600 punktów, odczyty przestają być całkowitymi wielokrotnościami
+combo i pomiar traci sens. Domknięcie wymaga czekania na ustabilizowanie licznika
+proporcjonalnego do przyrostu, nie stałej liczby prób.
+
+**Dlaczego to ma znaczenie mimo zamrożonej punktacji ([#20](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/20)):**
+wysokie combo to reżim, w którym żyje silny bot, a nagroda agenta **jest przyrostem
+wyniku** ([#23](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/23)).
+Symulator zaniża tam grę nawet dwukrotnie, więc uczy bota, że długie serie czyszczeń
+są warte mniej, niż są naprawdę.
+
 ### Z-2 — o ile rośnie combo po czyszczeniu
 
 Symulator: `combo += 1` niezależnie od liczby wyczyszczonych linii (źródło A).
@@ -129,6 +168,13 @@ to wynik negatywny ([#2](https://github.com/Kucze3205/ReinforcmentBlockBlast/iss
 **Pomiar:** most loguje każdą tackę. Po kilku tysiącach tacek zbiór unikalnych
 kształtów jest zamknięty z dużą pewnością.
 
+**Stan po 414 dobraniach ([#30](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/30)):
+pula się broni.** Widziane 39 z 41 poz, **zero kształtów spoza puli**. Dwie
+niewidziane to `diag2-1` i `diag3-0` — a ich bliźniacze orientacje (`diag2-0`,
+`diag3-1`) pojawiły się, więc brak nie jest brakiem typu. Wyjaśnia go Z-6:
+przekątne są po prostu bardzo rzadkie, nie nieobecne. Wariant „34 kształty"
+z BlockBlastPlay nie ma poparcia w pomiarze.
+
 ### Z-6 — rozkład doboru klocków
 
 Symulator: niezależnie, 1/15 na typ kanoniczny, potem 1/n na orientację.
@@ -142,6 +188,43 @@ sprawdzanie, czy tacka da się rozegrać.
 **Pomiar:** ta sama seria tacek co w Z-5, ale analizowana warunkowo względem
 zapełnienia planszy. Jeśli rozkład zależy od stanu planszy, **generator symulatora
 trzeba przepisać na warunkowy**, a nie tylko przestroić.
+
+**Zmierzone: 1/15 na typ jest obalone** ([#30](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/30),
+414 dobrań z 6 przebiegów). χ² = 166,5 przy df = 14, p ≈ 3·10⁻²⁵ — to nie jest
+wynik na granicy.
+
+| typ | apka | symulator |
+|---|---|---|
+| L | 14,0% | 6,7% |
+| beam2 | 13,8% | 6,7% |
+| beam4 | 12,1% | 6,7% |
+| beam3 | 11,6% | 6,7% |
+| beam5 | 7,2% | 6,7% |
+| S | 7,0% | 6,7% |
+| square2 | 6,3% | 6,7% |
+| rect23 | 5,8% | 6,7% |
+| T | 5,1% | 6,7% |
+| square3 | 4,8% | 6,7% |
+| corner5 | 4,6% | 6,7% |
+| corner3 | 4,3% | 6,7% |
+| 1x1 | 1,7% | 6,7% |
+| diag2 | 1,4% | 6,7% |
+| **diag3** | **0,2%** | 6,7% |
+
+Kierunek jest jednoznaczny: apka **oszczędza graczowi przekątnych**, które
+zostawiają dziury nie do zapełnienia. Symulator daje je w 13,3% dobrań, apka
+w 1,6% — osiem razy częściej, i to jest najlepsze dotychczasowe wyjaśnienie tego,
+że **nasza gra jest trudniejsza od prawdziwej**: ta sama zachłanna przeżywa na
+oryginale 57, 78 i 132 postawienia, a w symulatorze średnio 34,9 (mediana 32).
+Trzy partie niezależnie: p ≈ 1·10⁻⁵.
+
+**Czego pomiar jeszcze nie rozstrzyga — i dlaczego generator zostaje nietknięty:**
+to rozkład **brzegowy**, zmierzony przy planszach, jakie produkuje zachłanna.
+Pytanie „czy apka podgląda planszę przy losowaniu" jest wciąż otwarte, a jeśli
+podgląda, wagi brzegowe są złym modelem i przestrojenie trzeba by powtórzyć.
+Rzadkie typy mają zresztą po 1–7 obserwacji. Przestrojenie generatora zrywa
+porównywalność całego benchmarku ([#8](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/8)),
+więc robi się je **raz**, właściwym modelem — decyzja właściciela z 2026-09-23.
 
 ### Z-7 — czy w ogóle są punkty za samo postawienie
 
