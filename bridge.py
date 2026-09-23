@@ -36,8 +36,7 @@ SCORE_BOX = (60, 70, 260, 130)
 FRAMES = 3
 SHOTS = 20  # zrzuty tylko z początku biegu: długi przebieg zrobiłby setki MB artefaktu
 STUCK = 3   # tyle wpisów bez ruchu z rzędu kończy przebieg: most, który nie gra, nie żyje (#32)
-BG_GREEN = 80  # kanał zielony tła planszy; ekran końca partii jest fioletowy i ma ~17
-REPLAY = (160, 461)  # przycisk ▶ na ekranie „Can you Top that?"
+REPLAY = (160, 461)  # przycisk ▶ — wspólny dla obu wariantów ekranu końca, więc i wyróżnik (#32)
 KILL_AT = int(os.environ.get("KILL_AT", "0"))  # celowe zabicie gry po tym ruchu; 0 = nigdy (#32)
 DRAG_GAIN = 1.5  # zmierzone: klocek przesuwa się 1,5 px na 1 px palca
 LIFT = 80.6  # środek podniesionego klocka jest tyle px nad środkiem klocka na tacce
@@ -58,13 +57,17 @@ def screenshot():
 
 
 def game_over(img):
-    """Ekran końca partii („Can you Top that?") zamiast planszy.
+    """Ekran końca partii, rozpoznany po białym ▶ — czyli po przycisku, w który i tak klikamy.
 
-    Gra zostaje na pierwszym planie, więc `in_game()` tego nie widzi, a tacki nie ma
-    — bez tego most kończył przebieg na przegranej, marnując resztę budżetu ruchów.
-    Rozpoznanie po tle: plansza jest niebieska, ekran końca fioletowy.
+    Gra zostaje na pierwszym planie, więc `in_game()` tego nie widzi, a tacki nie ma.
+    Rozpoznanie po tle nie działa, bo ekran ma **dwa warianty**: fioletowy „Can you Top
+    that?" (zielony kanał 17) i niebieski „Your Best is Next" (64), a plansza ma 80 —
+    drugiego wariantu nie da się oddzielić od planszy kolorem tła i to on zatrzymywał
+    przebiegi 35842812364 i 35852299298. Przycisk jest wspólny i rozdziela je z zapasem:
+    w grze to miejsce ma rozrzut kanałów ~80 przy jasności ~90, na ekranie końca 5 przy 232.
     """
-    return img[0:40].reshape(-1, 3).mean(axis=0)[1] < BG_GREEN - 30
+    p = img[REPLAY[1], REPLAY[0] - 5:REPLAY[0] + 6].mean(axis=0)
+    return p.max() - p.min() < 30 and p.mean() > 180
 
 
 def next_game(wait=6, tries=3):
