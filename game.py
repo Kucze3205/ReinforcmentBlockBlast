@@ -8,12 +8,7 @@ przez licznik, a nie natychmiast (R-4). `score` kumuluje się przez całą parti
 from board import Board
 from generator import Generator
 from pieces import Piece
-from scoring import (
-    COMBO_COUNTER_BASE,
-    FULL_CLEAR_BONUS,
-    clear_points,
-    placement_points,
-)
+from scoring import COMBO_COUNTER_BASE, clear_points, placement_points
 
 
 class Game:
@@ -86,9 +81,6 @@ class Game:
             self.combo_counter -= 1
 
         self.board.clear_lines(rows, cols)
-
-        if not any(any(row) for row in self.board.grid):
-            gained += FULL_CLEAR_BONUS
 
         if self.round_placement == 3:
             self.pieces = self.generator.next_pieces()

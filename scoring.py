@@ -6,13 +6,14 @@ niezależnych reimplementacjach:
 
     punkty = liczba_komorek_klocka + combo_po_inkrementacji * B(l)
     B(l)   = 0 dla l=0,  10 dla l=1,  10*l*(l-1) dla l>=2
-    + FULL_CLEAR_BONUS za opróżnienie planszy
 
 Combo jest MNOŻNIKIEM całego bonusu za czyszczenie, nie dodatkiem (R-2).
-Nic z tego nie jest pomiarem na oryginale — patrz docs/calibration-assumptions.md.
-"""
 
-FULL_CLEAR_BONUS = 300
+Za opróżnienie planszy nie ma nic. Oba źródła referencyjne dawały 300, farma SEO
+360 — a pomiar na oryginale (Z-4, #30) pokazał zero na dwóch niezależnych pełnych
+czyszczeniach. Dlatego nie ma tu stałej do przestrojenia: bonus nie istnieje.
+Reszta wzoru zgadza się z apką co do cyfry, skumulowana przez cały przebieg.
+"""
 
 # Ile postawień bez czyszczenia przeżywa combo, gdy tacka jest pusta/1/2 klocki.
 COMBO_COUNTER_BASE = 3

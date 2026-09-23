@@ -47,6 +47,22 @@ combo dokładnie w ruchu, który wskazuje licznik.
 To jedna sesja. Z-9 wymaga jeszcze dwóch, w innych dniach — dopiero wtedy te
 wiersze przechodzą do „solidne".
 
+### Przeliczenie maszynowe tych samych logów: 2026-09-23 ([#30](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/30))
+
+Sesja 1 porównywała przyrosty ręcznie. `tools/analyze_bridge.py` robi to teraz
+z logu, ruch po ruchu, niosąc combo między ruchami — i na dwóch przebiegach
+(35610307974, 35609533868) **skumulowany wynik symulatora zgadza się z licznikiem
+apki co do jedności w 32 z 37 porównań**.
+
+Wszystkie pięć wyjątków to ta sama rzecz: licznik w grze **dolicza się animacją**,
+więc odczyt zrobiony za wcześnie zaniża wynik, a różnica wraca do zera przy
+następnym ruchu. Żaden nie jest trwały. Stąd dwa zabezpieczenia w moście: wynik
+wchodzi do warunku stabilizacji klatki, a spadek wyniku odrzucamy jako błąd OCR
+(w Block Blaście wynik nie maleje).
+
+**Wniosek: cała reszta wzoru jest zgodna z apką. Jedyne, co się rozjeżdżało, to
+bonus za pustą planszę — patrz Z-4.**
+
 ### Z-1 — punkt bazowy: 10 za linię czy 80 za linię *(rozstrzyga najtaniej)*
 
 Symulator: `line_bonus(1) = 10`.
@@ -80,12 +96,26 @@ opisują mechanikę z licznikiem.
 **Pomiar:** wyczyścić linię, potem postawić 1, 2 i 3 klocki bez czyszczenia,
 za każdym razem czyszcząc ponownie i odczytując mnożnik.
 
-### Z-4 — bonus za pustą planszę: 300 czy 360
+### Z-4 — bonus za pustą planszę: ~~300 czy 360~~ **zmierzone: zera nie ma** *(zamknięte)*
 
-Symulator: `FULL_CLEAR_BONUS = 300` (oba źródła referencyjne). Farma SEO podaje 360.
+Odpowiedź, której nie przewidywało żadne źródło: **0**. Oba źródła referencyjne
+dawały 300, farma SEO 360, a apka nie płaci nic.
 
-**Pomiar:** opróżnić planszę i odczytać przyrost. Rzadkie zdarzenie, więc pomiar
-będzie kosztowny — ale wpływ na wynik jest mały, więc może poczekać.
+Rozstrzygnęły dwa pełne czyszczenia w przebiegu 35610307974 (ruchy 0 i 2). Przy
+`FULL_CLEAR_BONUS = 300` skumulowany wynik symulatora wyprzedzał licznik apki
+dokładnie o 300 na każde czyszczenie — najpierw o 300, potem o 600, i tak do końca
+przebiegu. Przy zerze offset jest zerowy na każdym ustabilizowanym ruchu.
+
+Pomiar okazał się darmowy: zdarzenie uchodziło za rzadkie, ale tutorial zaczyna
+partię od planszy, którą pierwszy ruch czyści do końca, więc **każdy przebieg mostu
+od świeżej instalacji dostaje je za darmo**.
+
+Stałej nie ma już w kodzie ani gałęzi, która ją dodawała — zero nie jest wartością
+do przestrojenia, tylko brakiem mechaniki. Linia bazowa zachłannej na 100 seedach
+spadła o 1,6% (760,88 → 748,39), przeżycie o 0,2% — poniżej progu ±10% z
+[#8](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/8), więc szereg
+punktowy nie jest zerwany. Część spadku to zmiana wyborów zachłannej, która
+przestała gonić pełne czyszczenie.
 
 ### Z-5 — zbiór klocków: 41 poz *(największa niewiadoma)*
 

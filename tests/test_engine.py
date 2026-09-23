@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from game import Game
 from generator import Generator
 from pieces import CANONICAL_TYPES, EXPECTED_POSES, PIECE_POOL, PIECE_TYPES
-from scoring import FULL_CLEAR_BONUS, clear_points, line_bonus, placement_points
+from scoring import clear_points, line_bonus, placement_points
 
 ONE_BY_ONE = PIECE_POOL[0]
 
@@ -95,12 +95,13 @@ class TestComboMechanics(unittest.TestCase):
         place_1x1(self.game, 2, 5)
         self.assertEqual(self.game.combo, 0, "combo powinno zginąć przy trzecim postawieniu")
 
-    def test_full_clear_bonus(self):
-        # R-5: 300, nie 100.
+    def test_full_clear_bez_bonusu(self):
+        # Z-4 zmierzone na oryginale (#30): za opróżnienie planszy nie ma nic.
+        # Źródła referencyjne dawały 300, więc test pilnuje, by bonus nie wrócił.
         row_full_except(self.game, 7)
         gained = place_1x1(self.game, 7, 0)
-        # 1 komórka + combo 1 x B(1) + pusta plansza
-        self.assertEqual(gained, 1 + 10 + FULL_CLEAR_BONUS)
+        # 1 komórka + combo 1 x B(1), i nic za pustą planszę
+        self.assertEqual(gained, 1 + 10)
 
 
 class TestScoreAccumulates(unittest.TestCase):

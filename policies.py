@@ -7,7 +7,7 @@ co polityka umie, a nie jak wypada w trakcie nauki (#8).
 import random
 
 from board import Board
-from scoring import FULL_CLEAR_BONUS, clear_points, placement_points
+from scoring import clear_points, placement_points
 
 
 class RandomPolicy:
@@ -70,7 +70,4 @@ def _immediate_gain(game, action):
     lines = len(rows) + len(cols)
     if lines > 0:
         gain += clear_points(game.combo + 1, lines)
-        board.clear_lines(rows, cols)
-        if not any(any(row) for row in board.grid):
-            gain += FULL_CLEAR_BONUS
     return gain
