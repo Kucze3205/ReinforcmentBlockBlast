@@ -35,6 +35,7 @@ TRAY_Y0, TRAY_Y1, TRAY_CELL = 440, 585, 16
 SCORE_BOX = (60, 70, 260, 130)
 FRAMES = 3
 SHOTS = 20  # zrzuty tylko z początku biegu: długi przebieg zrobiłby setki MB artefaktu
+STUCK = 3   # tyle wpisów bez ruchu z rzędu kończy przebieg: most, który nie gra, nie żyje (#32)
 BG_GREEN = 80  # kanał zielony tła planszy; ekran końca partii jest fioletowy i ma ~17
 REPLAY = (160, 461)  # przycisk ▶ na ekranie „Can you Top that?"
 KILL_AT = int(os.environ.get("KILL_AT", "0"))  # celowe zabicie gry po tym ruchu; 0 = nigdy (#32)
@@ -81,19 +82,36 @@ def next_game(wait=6, tries=3):
     return None
 
 
+def playable(state):
+    """Ekran, na którym da się zagrać: nie ekran końca i co najmniej jeden czytelny klocek.
+
+    Warunek „wszystkie sloty wiarygodne" przechodził **pusto** przy pustej tacce, więc
+    martwy ekran uchodził za zdrową partię: w przebiegu 35852299298 most stał na takim
+    ekranie 2 h 50 min, raportując przy każdej próbie, że partia przeżyła (#32).
+    """
+    return not game_over(state[0]) and any(s and plausible(s[0]) for s in state[2])
+
+
 def restart_game(tries=3):
     """Klika ▶ i czeka na czytelną planszę nowej partii. None, gdy nie wróciła."""
     for _ in range(tries):
         adb("shell", "input", "tap", str(REPLAY[0]), str(REPLAY[1]))
         time.sleep(5)
         state = stable_state()
-        if not game_over(state[0]) and all(s is None or plausible(s[0]) for s in state[2]):
+        if playable(state):
             return state
     return None
 
 
+def current_focus():
+    """Okno na wierzchu. Przy zatrzymaniu to ono nazywa sprawcę — grę przesłania coś,
+    co ma własny pakiet, a bez tej nazwy zostaje zgadywanie (#32)."""
+    out = adb("shell", "dumpsys", "window").decode(errors="replace")
+    return out.split("mCurrentFocus", 1)[-1][:200].splitlines()[0].strip() if "mCurrentFocus" in out else ""
+
+
 def in_game():
-    return PACKAGE in adb("shell", "dumpsys", "window").decode(errors="replace").split("mCurrentFocus", 1)[-1][:200]
+    return PACKAGE in current_focus()
 
 
 def relaunch(tries=3):
@@ -111,7 +129,7 @@ def relaunch(tries=3):
         state = stable_state()
         if game_over(state[0]):
             return restart_game()
-        if all(s is None or plausible(s[0]) for s in state[2]):
+        if playable(state):
             return state
     return None
 
@@ -260,7 +278,7 @@ def main(max_moves):
     game = Game()  # niesie combo i licznik wygaśnięcia między ruchami; planszę i tackę bierze z ekranu
     img, grid, slots, score = stable_state()
     refs = [grid]  # plansze, po których poznamy, że partia przeżyła zabicie procesu (#32)
-    ok_streak = best_streak = score_bad = score_blind = games = revivals = 0
+    ok_streak = best_streak = score_bad = score_blind = games = revivals = idle = 0
     for n in range(max_moves):
         if n < SHOTS:
             Image.fromarray(img.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_state.png"))
@@ -279,6 +297,10 @@ def main(max_moves):
         if not moves and "end" not in entry:
             entry["end"] = "brak legalnego ruchu wg odczytu"
         if "end" in entry:
+            # Zrzut i nazwa okna na wierzchu — zdjęte PRZED próbą ratunku, bo to ona
+            # zaciera sprawcę. Bez nich stanie mostu diagnozuje się kolejnym przebiegiem (#32).
+            entry["focus"] = current_focus()
+            Image.fromarray(img.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_end.png"))
             if entry["end"] == "gra nie jest na pierwszym planie":
                 # Jedyny koniec, po którym pytamy, czy przeżyła *partia*: proces zabija
                 # aktualizacja GMS, nie przegrana. Plansza zgodna z którymkolwiek stanem
@@ -295,9 +317,13 @@ def main(max_moves):
                 fresh = None
             print(json.dumps(entry), file=log)
             log.flush()
-            print(f"{entry['end']} (partia {games}, ruch {n})"
+            print(f"{entry['end']} (partia {games}, ruch {n}) na oknie {entry['focus']}"
                   + (f" -> {entry['wznowienie']}" if "wznowienie" in entry else ""), flush=True)
             if fresh is None:
+                break
+            idle += 1
+            if idle >= STUCK:
+                print(f"{STUCK} wpisy bez ruchu z rzędu — przebieg stoi, kończę", flush=True)
                 break
             img, grid, slots, score = fresh
             if entry.get("wznowienie") != "partia przeżyła":
@@ -332,6 +358,7 @@ def main(max_moves):
         print(f"ruch {n}: slot {i} -> ({x},{y}) wynik {score} "
               f"plansza {mark[ok]} punkty {mark[score_ok]} (+{gain})", flush=True)
         score = after
+        idle = 0
         refs = [entry["board"], expected, observed]
         if n + 1 == KILL_AT:
             # Czekanie na aktualizację GMS to loteria (2 przebiegi z 6). Zabicie procesu
