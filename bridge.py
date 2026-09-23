@@ -35,6 +35,8 @@ TRAY_Y0, TRAY_Y1, TRAY_CELL = 440, 585, 16
 SCORE_BOX = (60, 70, 260, 130)
 FRAMES = 3
 SHOTS = 20  # zrzuty tylko z początku biegu: długi przebieg zrobiłby setki MB artefaktu
+BG_GREEN = 80  # kanał zielony tła planszy; ekran końca partii jest fioletowy i ma ~17
+REPLAY = (160, 461)  # przycisk ▶ na ekranie „Can you Top that?"
 DRAG_GAIN = 1.5  # zmierzone: klocek przesuwa się 1,5 px na 1 px palca
 LIFT = 80.6  # środek podniesionego klocka jest tyle px nad środkiem klocka na tacce
 
@@ -51,6 +53,27 @@ def screenshot():
     img = np.asarray(Image.open(io.BytesIO(adb("exec-out", "screencap", "-p"))).convert("RGB"))
     assert img.shape[1::-1] == SCREEN, f"ekran {img.shape[1::-1]}, oczekiwano {SCREEN}"
     return img.astype(int)
+
+
+def game_over(img):
+    """Ekran końca partii („Can you Top that?") zamiast planszy.
+
+    Gra zostaje na pierwszym planie, więc `in_game()` tego nie widzi, a tacki nie ma
+    — bez tego most kończył przebieg na przegranej, marnując resztę budżetu ruchów.
+    Rozpoznanie po tle: plansza jest niebieska, ekran końca fioletowy.
+    """
+    return img[0:40].reshape(-1, 3).mean(axis=0)[1] < BG_GREEN - 30
+
+
+def restart_game(tries=3):
+    """Klika ▶ i czeka na czytelną planszę nowej partii. None, gdy nie wróciła."""
+    for _ in range(tries):
+        adb("shell", "input", "tap", str(REPLAY[0]), str(REPLAY[1]))
+        time.sleep(5)
+        state = stable_state()
+        if not game_over(state[0]) and all(s is None or plausible(s[0]) for s in state[2]):
+            return state
+    return None
 
 
 def in_game():
@@ -209,15 +232,17 @@ def main(max_moves):
     log = open(os.path.join(OUT, "moves.jsonl"), "w")
     game = Game()  # niesie combo i licznik wygaśnięcia między ruchami; planszę i tackę bierze z ekranu
     img, grid, slots, score = stable_state()
-    ok_streak = best_streak = score_bad = score_blind = 0
+    ok_streak = best_streak = score_bad = score_blind = games = 0
     for n in range(max_moves):
         if n < SHOTS:
             Image.fromarray(img.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_state.png"))
             annotate(img, grid, os.path.join(OUT, f"{n:03d}_read.png"))
         shapes = [s[0] if s else None for s in slots]
-        entry = {"n": n, "board": grid, "tray": shapes, "score": score}
+        entry = {"n": n, "partia": games, "board": grid, "tray": shapes, "score": score}
         if not in_game():
             entry["end"] = "gra nie jest na pierwszym planie"
+        elif game_over(img):
+            entry["end"] = "koniec partii"
         elif any(sh is not None and not plausible(sh) for sh in shapes):
             entry["end"] = "odczyt tacki niewiarygodny"
         game.board.grid = [row[:] for row in grid]
@@ -227,8 +252,18 @@ def main(max_moves):
             entry["end"] = "brak legalnego ruchu wg odczytu"
         if "end" in entry:
             print(json.dumps(entry), file=log)
-            print(entry["end"], flush=True)
-            break
+            log.flush()
+            print(f"{entry['end']} (partia {games}, ruch {n})", flush=True)
+            if entry["end"] != "koniec partii":
+                break
+            fresh = restart_game()
+            if fresh is None:
+                print("nowa partia nie wystartowała", flush=True)
+                break
+            img, grid, slots, score = fresh
+            game = Game()  # nowa partia zaczyna z zerowym combo
+            games += 1
+            continue
         i, x, y = policy.act(game, moves)
         piece = game.pieces[i]
         gain, expected = advance(game, grid, shapes, i, x, y)
@@ -257,6 +292,7 @@ def main(max_moves):
               f"plansza {mark[ok]} punkty {mark[score_ok]} (+{gain})", flush=True)
         score = after
     annotate(img, grid, os.path.join(OUT, "final.png"))
+    print(f"rozegranych partii: {games + 1}")
     print(f"najdłuższa seria zgodnych ruchów: {best_streak}")
     print(f"rozbieżności punktowe: {score_bad}, ruchy bez odczytu wyniku: {score_blind}")
     return best_streak

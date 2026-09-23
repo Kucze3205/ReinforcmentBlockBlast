@@ -59,12 +59,20 @@ def trays(rows):
 
 
 def check_scoring(rows):
-    """Przewidywany przyrost punktów vs odczytany z ekranu. Zwraca (zgodne, rozbieżne, ślepe)."""
+    """Przewidywany przyrost punktów vs odczytany z ekranu. Zwraca (zgodne, rozbieżne, ślepe).
+
+    Jeden plik może nieść kilka partii (most gra dalej po przegranej), a combo nie
+    przechodzi przez koniec partii — stąd reset symulatora na granicy.
+    """
     game = Game()
+    partia = 0
     ok = bad = blind = 0
     for row, nxt in zip(rows, rows[1:] + [{}]):
         if "move" not in row:
             continue
+        if row.get("partia", 0) != partia:
+            game = Game()  # nowa partia zaczyna z zerowym combo i zerowym licznikiem
+            partia = row["partia"]
         m = row["move"]
         gain, _ = advance(game, row["board"], row["tray"], m["slot"], m["x"], m["y"])
         before = row.get("score")
