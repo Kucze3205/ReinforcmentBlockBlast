@@ -5,6 +5,10 @@ OUT=bridge-out
 PKG=com.block.juggle
 mkdir -p "$OUT"
 
+# Sklep Play aktualizuje GMS także w trakcie partii i zabija grę (#32). APK wgrywamy
+# sideloadem, więc w tym przebiegu sklep jest zbędny — gasimy go, zanim cokolwiek pobierze.
+adb shell pm disable-user --user 0 com.android.vending 2>&1 | tee "$OUT/play-off.txt"
+
 # Po pierwszym starcie obraz Play aktualizuje pakiety i zabija procesy — czekamy, aż ucichnie (#14).
 sleep 90
 adb shell settings put global verifier_verify_adb_installs 0
