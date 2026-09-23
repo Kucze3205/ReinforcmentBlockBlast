@@ -5,12 +5,12 @@ on:
     inputs:
       moves:
         description: Ile ruchów wykonać
-        default: "30"
+        default: "30"   # pomiar generatora (#30) chce setek; 30 to smoke test
 
 jobs:
   bridge:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
 

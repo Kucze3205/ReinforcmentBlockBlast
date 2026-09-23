@@ -7,6 +7,7 @@ przez licznik, a nie natychmiast (R-4). `score` kumuluje się przez całą parti
 """
 from board import Board
 from generator import Generator
+from pieces import Piece
 from scoring import (
     COMBO_COUNTER_BASE,
     FULL_CLEAR_BONUS,
@@ -114,3 +115,17 @@ class Game:
             "combo": self.combo,
             "placement_in_round": self.round_placement + 1,
         }
+
+
+def advance(game, grid, shapes, i, x, y):
+    """Przesuwa symulator o jeden ruch odczytany z ekranu; zwraca (przyrost punktów, plansza po ruchu).
+
+    Plansza i tacka jadą z ekranu, ale combo i licznik jego wygaśnięcia zostają w `game`
+    — bo gra ich nie pokazuje. Ta sama droga liczy przewidywanie w moście i w analizie
+    zalogowanych przebiegów, więc most nie może zgadzać się z sobą, a rozjechać z narzędziem.
+    """
+    game.board.grid = [row[:] for row in grid]
+    game.pieces = [Piece(sh, f"slot{k}", -1) if sh else None for k, sh in enumerate(shapes)]
+    piece = game.pieces[i]
+    game.board.place_piece(piece, x, y)
+    return game.apply_placement(i), [row[:] for row in game.board.grid]

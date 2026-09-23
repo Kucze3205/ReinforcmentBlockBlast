@@ -96,3 +96,16 @@ def pad_to_grid(shape, size=PIECE_GRID):
 
 PIECE_SHAPES = [(p.shape, p.name) for p in PIECE_POOL]
 PIECE_SHAPES_PADDED = [(pad_to_grid(p.shape), p.name) for p in PIECE_POOL]
+
+
+def plausible(shape):
+    """Czy odczyt slotu może być klockiem: mieści się w 5x5 i ma 1..9 komórek.
+
+    Nie sprawdza przynależności do puli — pula symulatora jest hipotezą (Z-5),
+    a kształt spoza niej jest wynikiem pomiaru, nie błędem odczytu. Łapie
+    natomiast odczyt z ekranu, który grą nie jest: gdy gra znika z pierwszego
+    planu, segmentacja zwraca blob 7x5 albo 8x5.
+    """
+    h, w = len(shape), len(shape[0])
+    cells = sum(sum(row) for row in shape)
+    return h <= 5 and w <= 5 and 1 <= cells <= 9

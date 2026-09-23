@@ -6,6 +6,11 @@ czytany z pikseli, ruch wybiera polityka zachłanna z benchmarku, wykonanie prze
 `adb shell input motionevent`. Każdy ruch trafia do bridge-out/moves.jsonl
 (stan, trójka, ruch, wynik — wejście z #9 dla dopasowania symulatora).
 
+Most weryfikuje symulator dwiema ścieżkami naraz (#30): plansza po ruchu musi
+zgadzać się z przewidywaniem, a przyrost wyniku — z tym, co naliczy `Game`.
+Rozbieżność punktowa idzie do logu, a licznik rozbieżności do podsumowania;
+regułę „pojedyncza do logu, systematyczna odpala rekalibrację" niesie #20.
+
 Geometria zmierzona na zrzutach z sondy #14 — aktualizacja gry może ją zepsuć.
 """
 import io
@@ -14,13 +19,12 @@ import os
 import subprocess
 import sys
 import time
-from types import SimpleNamespace
 
 import numpy as np
 from PIL import Image, ImageDraw
 
-from board import Board
-from pieces import Piece
+from game import Game, advance
+from pieces import Piece, plausible
 from policies import GreedyPolicy
 
 OUT = "bridge-out"
@@ -30,6 +34,7 @@ BOARD_X, BOARD_Y, CELL = 17, 136, 35.6
 TRAY_Y0, TRAY_Y1, TRAY_CELL = 440, 585, 16
 SCORE_BOX = (60, 70, 260, 130)
 FRAMES = 3
+SHOTS = 20  # zrzuty tylko z początku biegu: długi przebieg zrobiłby setki MB artefaktu
 DRAG_GAIN = 1.5  # zmierzone: klocek przesuwa się 1,5 px na 1 px palca
 LIFT = 80.6  # środek podniesionego klocka jest tyle px nad środkiem klocka na tacce
 
@@ -71,15 +76,22 @@ def settled_state():
 
 
 def stable_state(tries=6):
-    """Czeka, aż dwa kolejne odczyty będą identyczne: czyszczenie linii i licznik wyniku są animowane."""
+    """Czeka, aż dwa kolejne odczyty będą identyczne: plansza, tacka i wynik.
+
+    Wynik wchodzi do warunku, bo licznik w grze **dolicza się animacją** po dużym
+    czyszczeniu. Odczyt zrobiony za wcześnie pokazuje stan w połowie naliczania i
+    porównanie z symulatorem wypada fałszywie na czerwono — tak wyglądały obie
+    rozbieżności z przebiegu 35610307974 (#30).
+    """
     prev = None
     for _ in range(tries):
         img, grid, tray = settled_state()
-        key = json.dumps([grid, [s[0] if s else None for s in tray]])
+        score = read_score(img)
+        key = json.dumps([grid, [s[0] if s else None for s in tray], score])
         if key == prev:
             break
         prev = key
-    return img, grid, tray
+    return img, grid, tray, score
 
 
 def is_block(img):
@@ -146,11 +158,13 @@ def legal_moves(board, pieces):
             for y in range(8) for x in range(8) if board.can_place_piece(p, x, y)]
 
 
-def simulate(board, piece, x, y):
-    after = board.copy()
-    after.place_piece(piece, x, y)
-    after.clear_lines(*after.check_full_lines())
-    return after.grid
+def cell_center(c, r):
+    return BOARD_X + (c + .5) * CELL, BOARD_Y + (r + .5) * CELL
+
+
+def legal_moves(board, pieces):
+    return [(i, x, y) for i, p in enumerate(pieces) if p is not None
+            for y in range(8) for x in range(8) if board.can_place_piece(p, x, y)]
 
 
 def glide(frm, to, steps=10):
@@ -193,42 +207,58 @@ def main(max_moves):
     os.makedirs(OUT, exist_ok=True)
     policy = GreedyPolicy()
     log = open(os.path.join(OUT, "moves.jsonl"), "w")
-    img, grid, slots = settled_state()
-    ok_streak = best_streak = 0
+    game = Game()  # niesie combo i licznik wygaśnięcia między ruchami; planszę i tackę bierze z ekranu
+    img, grid, slots, score = stable_state()
+    ok_streak = best_streak = score_bad = score_blind = 0
     for n in range(max_moves):
-        score = read_score(img)
-        Image.fromarray(img.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_state.png"))
-        annotate(img, grid, os.path.join(OUT, f"{n:03d}_read.png"))
-        board = Board()
-        board.grid = [row[:] for row in grid]
-        pieces = [Piece(s[0], f"slot{i}", -1) if s else None for i, s in enumerate(slots)]
-        moves = legal_moves(board, pieces)
-        entry = {"n": n, "board": grid, "tray": [s[0] if s else None for s in slots], "score": score}
+        if n < SHOTS:
+            Image.fromarray(img.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_state.png"))
+            annotate(img, grid, os.path.join(OUT, f"{n:03d}_read.png"))
+        shapes = [s[0] if s else None for s in slots]
+        entry = {"n": n, "board": grid, "tray": shapes, "score": score}
         if not in_game():
             entry["end"] = "gra nie jest na pierwszym planie"
-            log.write(json.dumps(entry) + "\n")
+        elif any(sh is not None and not plausible(sh) for sh in shapes):
+            entry["end"] = "odczyt tacki niewiarygodny"
+        game.board.grid = [row[:] for row in grid]
+        game.pieces = [Piece(sh, f"slot{k}", -1) if sh else None for k, sh in enumerate(shapes)]
+        moves = legal_moves(game.board, game.pieces)
+        if not moves and "end" not in entry:
+            entry["end"] = "brak legalnego ruchu wg odczytu"
+        if "end" in entry:
+            print(json.dumps(entry), file=log)
             print(entry["end"], flush=True)
             break
-        if not moves:
-            entry["end"] = "brak legalnego ruchu wg odczytu"
-            log.write(json.dumps(entry) + "\n")
-            break
-        game = SimpleNamespace(board=board, pieces=pieces, combo=0)
         i, x, y = policy.act(game, moves)
-        expected = simulate(board, pieces[i], x, y)
-        info, aim = drag(slots[i][1], pieces[i], x, y)
-        Image.fromarray(aim.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_aim.png"))
-        img, observed, slots = stable_state()
+        piece = game.pieces[i]
+        gain, expected = advance(game, grid, shapes, i, x, y)
+        info, aim = drag(slots[i][1], piece, x, y)
+        if n < SHOTS:
+            Image.fromarray(aim.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_aim.png"))
+        img, observed, slots, after = stable_state()
         ok = observed == expected
         grid = observed
         ok_streak = ok_streak + 1 if ok else 0
         best_streak = max(best_streak, ok_streak)
-        entry.update(move={"slot": i, "x": x, "y": y}, drag=info, expected=expected, observed=observed, ok=ok)
-        log.write(json.dumps(entry) + "\n")
+        # Wynik w Block Blaście nigdy nie maleje, więc spadek jest błędem OCR, nie
+        # rozbieżnością punktacji. Bez tego filtra przebieg 35609533868 zgłosił przyrost -82.
+        if score is None or after is None or after < score:
+            score_ok = None
+            score_blind += 1
+        else:
+            score_ok = after - score == gain
+            score_bad += not score_ok
+        entry.update(move={"slot": i, "x": x, "y": y}, drag=info, expected=expected, observed=observed,
+                     ok=ok, combo=game.combo, score_after=after, gain_expected=gain, score_ok=score_ok)
+        print(json.dumps(entry), file=log)
         log.flush()
-        print(f"ruch {n}: slot {i} -> ({x},{y}) wynik {score} {'OK' if ok else 'ROZBIEŻNOŚĆ'}", flush=True)
+        mark = {True: "OK", False: "ROZBIEŻNOŚĆ", None: "?"}
+        print(f"ruch {n}: slot {i} -> ({x},{y}) wynik {score} "
+              f"plansza {mark[ok]} punkty {mark[score_ok]} (+{gain})", flush=True)
+        score = after
     annotate(img, grid, os.path.join(OUT, "final.png"))
     print(f"najdłuższa seria zgodnych ruchów: {best_streak}")
+    print(f"rozbieżności punktowe: {score_bad}, ruchy bez odczytu wyniku: {score_blind}")
     return best_streak
 
 
