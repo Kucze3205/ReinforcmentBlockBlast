@@ -168,12 +168,13 @@ to wynik negatywny ([#2](https://github.com/Kucze3205/ReinforcmentBlockBlast/iss
 **Pomiar:** most loguje każdą tackę. Po kilku tysiącach tacek zbiór unikalnych
 kształtów jest zamknięty z dużą pewnością.
 
-**Stan po 414 dobraniach ([#30](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/30)):
-pula się broni.** Widziane 39 z 41 poz, **zero kształtów spoza puli**. Dwie
-niewidziane to `diag2-1` i `diag3-0` — a ich bliźniacze orientacje (`diag2-0`,
-`diag3-1`) pojawiły się, więc brak nie jest brakiem typu. Wyjaśnia go Z-6:
-przekątne są po prostu bardzo rzadkie, nie nieobecne. Wariant „34 kształty"
-z BlockBlastPlay nie ma poparcia w pomiarze.
+**Zamknięte po 1431 dobraniach ([#30](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/30),
+7 przebiegów): pula to dokładnie te 41 poz.** Widziane **41 z 41**, zero kształtów
+spoza puli. Wariant „34 kształty" z BlockBlastPlay nie ma poparcia w pomiarze.
+
+Dwie poprzednio niewidziane pozy (`diag2-1`, `diag3-0`) dosypały się same, gdy
+przebiegi przestały się urywać — przekątne są rzadkie, nie nieobecne, a dlaczego
+rzadkie, mówi Z-6.
 
 ### Z-6 — rozkład doboru klocków
 
@@ -189,42 +190,80 @@ sprawdzanie, czy tacka da się rozegrać.
 zapełnienia planszy. Jeśli rozkład zależy od stanu planszy, **generator symulatora
 trzeba przepisać na warunkowy**, a nie tylko przestroić.
 
-**Zmierzone: 1/15 na typ jest obalone** ([#30](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/30),
-414 dobrań z 6 przebiegów). χ² = 166,5 przy df = 14, p ≈ 3·10⁻²⁵ — to nie jest
-wynik na granicy.
+**Zmierzone na 1431 dobraniach z 7 przebiegów ([#30](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/30)).
+Symulator myli się co do generatora na trzy niezależne sposoby.**
 
-| typ | apka | symulator |
+Pomiar liczy **tacki**, nie dobrania — trzy klocki jednej tacki nie są niezależne
+(patrz niżej), więc przedziały liczone po dobraniach byłyby dwa razy za wąskie.
+Odczyt tacki jest potwierdzony niezależnie: różnica plansz przed i po ruchu bez
+czyszczenia **jest** postawionym klockiem, i zgadza się z odczytem slotu w **799 na
+799** sprawdzalnych ruchach. Pomiar mierzy grę, nie własną usterkę — zarzut realny,
+bo [#34](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/34) pokazało, że
+odczyt potrafi się mylić cicho.
+
+**(1) 1/15 na typ jest obalone.** χ² = 386,8 przy df = 14.
+
+| typ | apka | 95% (bootstrap po tackach) | symulator |
+|---|---|---|---|
+| L | 13,3% | 11,5–15,2% | 6,7% |
+| beam4 | 12,5% | 10,8–14,3% | 6,7% |
+| beam2 | 9,5% | 7,8–11,2% | 6,7% |
+| rect23 | 9,3% | 7,7–11,0% | 6,7% |
+| T | 7,8% | 6,3–9,4% | 6,7% |
+| S | 7,3% | 5,9–8,9% | 6,7% |
+| beam5 | 6,8% | 5,6–8,2% | 6,7% |
+| corner3 | 6,8% | 5,5–8,2% | 6,7% |
+| beam3 | 6,7% | 5,4–8,0% | 6,7% |
+| square2 | 6,2% | 5,0–7,5% | 6,7% |
+| corner5 | 4,1% | 3,0–5,2% | 6,7% |
+| square3 | 4,1% | 3,0–5,2% | 6,7% |
+| diag2 | 2,4% | 1,7–3,4% | 6,7% |
+| 1x1 | 2,2% | 1,5–2,9% | 6,7% |
+| **diag3** | **0,8%** | 0,3–1,4% | 6,7% |
+
+Kierunek się utrzymał: apka **oszczędza graczowi przekątnych**, które zostawiają
+dziury nie do zapełnienia — 3,2% dobrań wobec 13,3% w symulatorze. To najlepsze
+wyjaśnienie tego, że **nasza gra jest trudniejsza od prawdziwej**: ta sama zachłanna
+przeżywa na oryginale 57, 78 i 132 postawienia, a w symulatorze średnio 34,9.
+
+Same wagi z 414 dobrań były jednak za surowe, by na nich przestrajać: beam2 spadło
+z 13,8% do 9,5%, beam3 z 11,6% do 6,7%, rect23 urosło z 5,8% do 9,3%. Rzadkie typy
+mają dziś 12–35 obserwacji zamiast 1–7.
+
+**(2) Tacka nie jest trzema niezależnymi losowaniami.** Tacek z powtórzonym typem
+jest **35,0%** wobec 23,8% przy trzech niezależnych losowaniach *z tego samego
+rozkładu brzegowego* (p = 0,0002); tacek z trzema tymi samymi typami — **18 wobec 4**.
+To nie są wagi typów, tylko struktura tacki: wag nie da się dobrać tak, żeby
+niezależne losowanie zaczęło się powtarzać.
+
+**(3) Apka podgląda planszę.** χ² typ × zapełnienie = 134,7 wobec 89,2 przy losowym
+parowaniu **całych tacek** z planszami w oknie 8 kolejnych tacek tej samej partii
+(p = 0,0033). Okno jest konieczne: zapełnienie i rozkład dryfują razem z numerem
+ruchu, więc parowanie globalne pokazałoby związek, którego nie ma.
+
+Kierunek jest taki, jak w grywalnych klonach — **litość przy ciasnej planszy**:
+
+| zapełnienie | klocki 1–2 komórkowe | diag3 |
 |---|---|---|
-| L | 14,0% | 6,7% |
-| beam2 | 13,8% | 6,7% |
-| beam4 | 12,1% | 6,7% |
-| beam3 | 11,6% | 6,7% |
-| beam5 | 7,2% | 6,7% |
-| S | 7,0% | 6,7% |
-| square2 | 6,3% | 6,7% |
-| rect23 | 5,8% | 6,7% |
-| T | 5,1% | 6,7% |
-| square3 | 4,8% | 6,7% |
-| corner5 | 4,6% | 6,7% |
-| corner3 | 4,3% | 6,7% |
-| 1x1 | 1,7% | 6,7% |
-| diag2 | 1,4% | 6,7% |
-| **diag3** | **0,2%** | 6,7% |
+| 0–7 | 18,3% | **5,0%** |
+| 8–15 | 9,7% | 0,0% |
+| 16–23 | 11,5% | 0,7% |
+| 24–31 | **21,4%** | 0,6% |
+| 32–39 | 17,3% | 0,0% |
 
-Kierunek jest jednoznaczny: apka **oszczędza graczowi przekątnych**, które
-zostawiają dziury nie do zapełnienia. Symulator daje je w 13,3% dobrań, apka
-w 1,6% — osiem razy częściej, i to jest najlepsze dotychczasowe wyjaśnienie tego,
-że **nasza gra jest trudniejsza od prawdziwej**: ta sama zachłanna przeżywa na
-oryginale 57, 78 i 132 postawienia, a w symulatorze średnio 34,9 (mediana 32).
-Trzy partie niezależnie: p ≈ 1·10⁻⁵.
+Przekątne nie są zakazane, tylko **wydawane, gdy są nieszkodliwe** — tuż po pełnym
+czyszczeniu. Drobnicę (`1x1`, `diag2`) apka dosypuje, gdy plansza się zapełnia.
 
-**Czego pomiar jeszcze nie rozstrzyga — i dlaczego generator zostaje nietknięty:**
-to rozkład **brzegowy**, zmierzony przy planszach, jakie produkuje zachłanna.
-Pytanie „czy apka podgląda planszę przy losowaniu" jest wciąż otwarte, a jeśli
-podgląda, wagi brzegowe są złym modelem i przestrojenie trzeba by powtórzyć.
-Rzadkie typy mają zresztą po 1–7 obserwacji. Przestrojenie generatora zrywa
+**Gwarancji grywalności tacki tą drogą zmierzyć się nie da** i nie warto próbować:
+przy planszach, jakie produkuje zachłanna, *losowe* parowanie tacki z planszą daje
+0,05 niegrywalnej tacki na 477. Test nie ma mocy nie dlatego, że próbka jest mała,
+tylko dlatego, że zachłanna nigdy nie zbliża się do przegranej. Odpowiada na to
+sterowanie, które celowo zapycha planszę — nie dłuższy przebieg.
+
+**Wniosek dla symulatora: generator trzeba przepisać, nie przestroić.** Model musi
+losować **tackę**, nie trzy klocki, i patrzeć na planszę. Przestrojenie zrywa
 porównywalność całego benchmarku ([#8](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/8)),
-więc robi się je **raz**, właściwym modelem — decyzja właściciela z 2026-09-23.
+więc robi się je **raz** — decyzja właściciela z 2026-09-23.
 
 ### Z-7 — czy w ogóle są punkty za samo postawienie
 

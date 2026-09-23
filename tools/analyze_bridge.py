@@ -12,8 +12,11 @@ Trzy rzeczy naraz:
   więc stary log da się sprawdzić kodem, którego w chwili jego powstania nie było.
 * **Z-5 — pula.** Zlicza unikalne kształty tacek i mówi, które z nich nie należą
   do 41 poz symulatora. Kształt spoza puli jest wynikiem, nie usterką.
-* **Z-6 — rozkład.** Rozkłada dobór na kubełki zapełnienia planszy. Jeśli rozkład
-  zależy od stanu planszy, generator symulatora trzeba przepisać na warunkowy.
+* **Z-6 — rozkład.** Dwa testy, bo dwa założenia symulatora padają osobno: czy
+  tacka to trzy **niezależne** losowania i czy rozkład zależy od **planszy**.
+  Oba odpowiadają permutacją, nie wzorem — próbka jest mała i skorelowana.
+* **Odczyt.** Każdy pomiar wyżej opiera się na tym, że most czyta tackę dobrze.
+  `read_errors` sprawdza to różnicą plansz, czyli poza kodem odczytu.
 
 Pomiar liczy **tacki**, nie sloty: gra dobiera trójkę naraz i dopiero po jej
 opróżnieniu losuje następną, więc trzy kolejne wpisy logu niosą tę samą trójkę.
@@ -21,6 +24,7 @@ opróżnieniu losuje następną, więc trzy kolejne wpisy logu niosą tę samą 
 import collections
 import json
 import os
+import random
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -109,18 +113,112 @@ def census(samples):
     return counts, unknown
 
 
-def by_fill(samples, buckets=(0, 8, 16, 24, 32, 64)):
-    """Z-6: rozkład typów klocków w kubełkach zapełnienia planszy.
+def read_errors(rows):
+    """Swiadek odczytu tacki: co gra dolozyla do planszy wobec tego, co most przeczytal.
 
-    Gdyby dobór był ślepy na planszę, każdy kubełek dałby ten sam rozkład.
+    Gdy ruch nie wyczyscil zadnej linii, roznica plansz przed i po jest dokladnie
+    postawionym klockiem — a plansze most weryfikuje osobno (pole `ok`). To jedyne
+    miejsce, w ktorym pomiar generatora daje sie obronic przed zarzutem, ze mierzy
+    wlasna usterke odczytu, a nie gre (#34 pokazalo, ze taki zarzut jest realny).
     """
+    hits = misses = 0
+    for row in rows:
+        if "move" not in row or "observed" not in row:
+            continue
+        before, after = row["board"], row["observed"]
+        added = [(y, x) for y in range(8) for x in range(8) if after[y][x] and not before[y][x]]
+        cleared = any(before[y][x] and not after[y][x] for y in range(8) for x in range(8))
+        read = row["tray"][row["move"]["slot"]]
+        if cleared or not added or not read:
+            continue  # linia znikla: roznica plansz nie jest juz samym klockiem
+        y0 = min(y for y, _ in added)
+        x0 = min(x for _, x in added)
+        h = max(y for y, _ in added) - y0 + 1
+        w = max(x for _, x in added) - x0 + 1
+        truth = [[0] * w for _ in range(h)]
+        for y, x in added:
+            truth[y - y0][x - x0] = 1
+        hits += truth == read
+        misses += truth != read
+    return hits, misses
+
+
+def _pairs(counts):
+    """Ile par identycznych elementow w trojce."""
+    return sum(v * (v - 1) // 2 for v in counts.values())
+
+
+def tray_repeats(samples, reps=4000, seed=7):
+    """Czy tacka to trzy niezalezne losowania.
+
+    Symulator losuje trzy klocki niezaleznie. Test zestawia obserwowany udzial tacek
+    z powtorzonym typem z tym, co daje losowanie niezalezne **z tego samego rozkladu
+    brzegowego** — wiec mierzy wylacznie strukture tacki, nie wagi typow.
+    """
+    trays_types = [tuple(POOL[json.dumps(s)].type_index for s in tray) for _, tray in samples
+                   if all(json.dumps(s) in POOL for s in tray)]
+    n = len(trays_types)
+    obs = sum(1 for t in trays_types if _pairs(collections.Counter(t)))
+    obs3 = sum(1 for t in trays_types if len(set(t)) == 1)
+    urn = [t for tray in trays_types for t in tray]
+    rng = random.Random(seed)
+    null = null3 = ge = 0
+    for _ in range(reps):
+        d = d3 = 0
+        for _ in range(n):
+            s = (rng.choice(urn), rng.choice(urn), rng.choice(urn))
+            d += bool(_pairs(collections.Counter(s)))
+            d3 += len(set(s)) == 1
+        null += d
+        null3 += d3
+        ge += d >= obs
+    return n, obs, obs3, null / reps, null3 / reps, (ge + 1) / (reps + 1)
+
+
+def _chi2_fill(fills, trays_types, buckets=8):
     table = collections.defaultdict(collections.Counter)
-    for fill, tray in samples:
-        lo = max(b for b in buckets if b <= fill)
-        for shape in tray:
-            piece = POOL.get(json.dumps(shape))
-            table[lo][TYPE_NAME.get(piece.type_index, "?") if piece else "spoza puli"] += 1
-    return table
+    for fill, types in zip(fills, trays_types):
+        table[min(fill // buckets, 4)].update(types)
+    grand = collections.Counter()
+    for c in table.values():
+        grand.update(c)
+    total = sum(grand.values())
+    chi = 0.0
+    for t in range(len(PIECE_TYPES)):
+        for c in table.values():
+            e = grand[t] * sum(c.values()) / total
+            if e:
+                chi += (c[t] - e) ** 2 / e
+    return chi, table, grand
+
+
+def board_dependence(samples, window=8, reps=3000, seed=5):
+    """Z-6, wlasciwe pytanie: czy apka podglada plansze, losujac tacke.
+
+    Statystyka to chi2 typ x zapelnienie, a rozklad zerowy powstaje przez losowe
+    parowanie **calych tacek** z plansami — dzieki temu test nie zalamuje sie na
+    korelacji wewnatrz tacki, ktora mierzy `tray_repeats`.
+
+    Parowanie miesza tylko tacki z okna `window` kolejnych dobran tej samej partii.
+    Bez tego ograniczenia zapelnienie i dryf rozkladu w czasie daloby zwiazek, ktorego
+    nie ma: obie wielkosci rosna z numerem ruchu.
+    """
+    keep = [(f, tray) for f, tray in samples if all(json.dumps(s) in POOL for s in tray)]
+    fills = [f for f, _ in keep]
+    trays_types = [tuple(POOL[json.dumps(s)].type_index for s in tray) for _, tray in keep]
+    obs, table, grand = _chi2_fill(fills, trays_types)
+    rng = random.Random(seed)
+    perm = list(trays_types)
+    null = ge = 0.0
+    for _ in range(reps):
+        for lo in range(0, len(perm), window):
+            block = trays_types[lo:lo + window]
+            rng.shuffle(block)
+            perm[lo:lo + window] = block
+        v, _, _ = _chi2_fill(fills, perm)
+        null += v
+        ge += v >= obs
+    return obs, null / reps, (ge + 1) / (reps + 1), table, grand
 
 
 def main(paths):
@@ -146,15 +244,25 @@ def main(paths):
         for shape, n in sorted(unknown.items(), key=lambda kv: -kv[1]):
             print(f"     {n:4d}x {shape}")
 
-    print("\n== Z-6: rozkład typów wg zapełnienia planszy")
-    table = by_fill(samples)
-    names = sorted({n for c in table.values() for n in c})
-    print("   zapełnienie | n   | " + " ".join(f"{n[:7]:>7}" for n in names))
+    hits, misses = read_errors(rows)
+    print(f"   odczyt tacki potwierdzony planszą: {hits} zgodnych, {misses} błędnych")
+
+    n, obs, obs3, null, null3, p = tray_repeats(samples)
+    print(f"\n== Z-6a: tacka jako całość, {n} tacek")
+    print(f"   z powtórzonym typem: {obs} ({100 * obs / n:.1f}%) wobec {null:.1f} ({100 * null / n:.1f}%) "
+          f"przy trzech niezależnych losowaniach z tego samego rozkładu — p = {p:.4f}")
+    print(f"   trzy te same typy: {obs3} wobec {null3:.1f}")
+
+    chi, null_chi, p_fill, table, grand = board_dependence(samples)
+    print("\n== Z-6b: czy apka podgląda planszę")
+    print(f"   chi2 typ x zapełnienie = {chi:.1f} wobec {null_chi:.1f} przy losowym parowaniu "
+          f"tacka<->plansza w oknie 8 tacek — p = {p_fill:.4f}")
+    names = [TYPE_NAME[t] for t in range(len(PIECE_TYPES))]
+    print("   zapełnienie | n   | " + " ".join(f"{x[:7]:>7}" for x in names))
     for lo in sorted(table):
         total = sum(table[lo].values())
-        share = " ".join(f"{100 * table[lo][n] / total:6.1f}%" for n in names)
-        print(f"   {lo:>10}+ | {total:<3} | {share}")
-
+        share = " ".join(f"{100 * table[lo][t] / total:6.1f}%" for t in range(len(PIECE_TYPES)))
+        print(f"   {8 * lo:>7}-{8 * lo + 7:<3} | {total:<3} | {share}")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
