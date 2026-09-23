@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from game import Game
 from generator import Generator
-from pieces import CANONICAL_TYPES, EXPECTED_POSES, PIECE_POOL, PIECE_TYPES
+from pieces import CANONICAL_TYPES, EXPECTED_POSES, PIECE_POOL, PIECE_TYPES, plausible
 from scoring import clear_points, line_bonus, placement_points
 
 ONE_BY_ONE = PIECE_POOL[0]
@@ -204,6 +204,25 @@ class TestBenchmarkPrerequisites(unittest.TestCase):
         state = agent.get_state(game)
         agent.get_action(state[:3], epsilon=0.0)
         self.assertEqual(agent.epsilon, 0.0)
+
+
+class TestOdczytTacki(unittest.TestCase):
+    """Filtr wiarygodności odczytu ze slotu tacki (#30).
+
+    Pomiar puli klocków (Z-5) polega na tym, że kształt spoza puli jest wynikiem.
+    Filtr, który odrzucałby prawdziwe klocki, ukryłby właśnie ten wynik — a filtr,
+    który przepuszcza śmieci, zaleje pomiar kształtami, których gra nigdy nie dała.
+    """
+
+    def test_przepuszcza_kazda_poz_z_puli(self):
+        for piece in PIECE_POOL:
+            self.assertTrue(plausible(piece.shape), f"odrzucony prawdziwy klocek {piece.name}")
+
+    def test_odrzuca_odczyt_launchera(self):
+        # Dosłowny odczyt z przebiegu 35610307974, ruch 19: gra zniknęła z pierwszego
+        # planu, segmentacja przeczytała pulpit. Bez tego filtra wchodził do puli.
+        blob = [[0, 0, 0, 0, 0, 0, 1], [0, 0, 0, 1, 0, 0, 1]]
+        self.assertFalse(plausible(blob))
 
 
 if __name__ == "__main__":
