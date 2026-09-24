@@ -25,7 +25,7 @@ from PIL import Image, ImageDraw
 
 from game import Game, advance
 from pieces import Piece, plausible
-from policies import GreedyPolicy
+from policies import FillPolicy, GreedyPolicy
 
 OUT = "bridge-out"
 PACKAGE = "com.block.juggle"
@@ -364,7 +364,7 @@ def annotate(img, grid, path):
 
 def main(max_moves):
     os.makedirs(OUT, exist_ok=True)
-    policy = GreedyPolicy()
+    policy = FillPolicy() if os.environ.get("POLICY") == "fill" else GreedyPolicy()  # fill = #37
     log = open(os.path.join(OUT, "moves.jsonl"), "w")
     game = Game()  # niesie combo i licznik wygaśnięcia między ruchami; planszę i tackę bierze z ekranu
     img, grid, slots, score = stable_state()

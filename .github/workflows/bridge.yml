@@ -9,6 +9,9 @@ on:
       kill_at:
         description: Ruch, po którym celowo zabić grę (0 = nigdy) — pomiar wznowienia (#32)
         default: "0"
+      policy:
+        description: greedy albo fill (zapychanie planszy, #37)
+        default: greedy
 
 jobs:
   bridge:
@@ -36,6 +39,7 @@ jobs:
       - uses: reactivecircus/android-emulator-runner@v2
         env:
           MOVES: ${{ inputs.moves || '30' }}
+          POLICY: ${{ inputs.policy || 'greedy' }}
           KILL_AT: ${{ inputs.kill_at || '0' }}
         with:
           api-level: 34
