@@ -2,7 +2,7 @@
 
 **2026-09-24 · cykl 1**
 
-**Czeka na ciebie:** [otwarte awarie](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues?q=is%3Aissue+is%3Aopen+label%3Aawaria) — dziś pusto, pętla nie potrzebuje twojej ręki.
+**Czeka na ciebie:** [otwarte awarie](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues?q=is%3Aissue+is%3Aopen+label%3Aawaria) — **jedna, #47, i pętla przy niej stoi.**
 
 ## Gdzie jesteśmy
 
@@ -16,7 +16,18 @@ podnosić.
 
 ## Co się wydarzyło
 
-To był pierwszy cykl pętli i z twojego biletu #42 wynikało wprost, że ma być biegiem na sucho:
+**Bieg na sucho zdał w najbardziej użyteczny z możliwych sposobów: znalazł usterkę, która
+zatrzymuje pętlę na pierwszym cyklu, i zatrzymał ją, zanim spaliła limit.**
+
+Zamek, który pętla zakłada na issue przed startem sesji (#22), uniemożliwia jej własnemu
+epilogowi opublikowanie raportu — bot dostaje `HTTP 403: issue is locked`. Bez raportu nie
+ma zamknięcia issue, bez zamknięcia nie ma odblokowania następnych zadań, więc cykl nigdy
+się nie domyka. To nie jest regresja: w repo nie ma ani jednego opublikowanego raportu sesji,
+bo ten mechanizm dziś przejechał po raz pierwszy. Naprawa leży w `.github/loop/loop.py`, czyli
+w jedynym miejscu, którego pętla z założenia nie może tknąć — dlatego czeka na ciebie jako #47,
+z gotowym opisem, co dokładnie zmienić i co potem puścić od nowa.
+
+Poza tym: to był pierwszy cykl pętli i z twojego biletu #42 wynikało wprost, że ma być biegiem na sucho:
 sprawdzamy, czy maszyneria się domyka, nie czy bot się poprawia. Zlecone są trzy tanie zadania
 i jedno issue złączeniowe, które obudzi cykl 2 — #43 (researcher: co wiadomo spoza repo o karze
 terminalnej i o nagradzaniu przeżycia), #44 (implementer: przebieg testów i naprawa tego, co
