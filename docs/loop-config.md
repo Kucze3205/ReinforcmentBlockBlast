@@ -229,6 +229,15 @@ Kolejność: dozór (`AUTOPILOT`, `GOAL_REACHED`) → **bramka `awaria`** (otwar
 wznowienie zaparkowanych → zobowiązania → kopnięcie (3 bezskuteczne = `awaria`).
 Zero otwartych issues to zator: dozorca zakłada issue `rola:orchestrator` ze sztywnego szablonu.
 
+### Licznik strat na okno
+
+Piąty licznik, ale **nie dozorcy, tylko orchestratora** ([#36](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/36), [#39](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/39)): most stanął na nieznanym
+oknie, a jego `NNN_end.png` czeka w artefakcie. Klucz = `okno:` z raportu verifiera. Bez nowego
+magazynu — licznik to pole `strata_okna: N` w `## Cel` kolejnych issues naprawczych tego
+okna. **2** straty z rzędu = koniec łatania: jednorazowy pomiar klawisza „wstecz"
+(`rola:verifier`), a gdy zawiedzie, etykieta `awaria`. Dozorca go nie liczy — dla niego
+to zwykły przebieg z zaległym zadaniem.
+
 ### Sonda poświadczenia
 
 ```bash

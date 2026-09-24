@@ -36,7 +36,7 @@ i implementer budują dalej. Najpierw przeczytaj `.claude/skills/PROTOKOL-SESJI.
 ## Zatrzymanie na nieznanym oknie
 
 Most zatrzymał się na oknie, którego nie zna → to zwykłe zadanie, nie awaria. Zapisz w
-raporcie **nazwę okna** (klucz do licznika strat), dołącz zrzut końcowy (`NNN_end.png`)
+raporcie, jako skalar YAML `okno: <nazwa>`, **nazwę okna** (klucz do licznika strat), dołącz zrzut końcowy (`NNN_end.png`)
 i odnośnik do artefaktu. **Nie zgaduj współrzędnych ✕** — zrobi to implementer na zrzucie.
 Jedyny wyjątek: zadanie zleca jednorazowy pomiar klawisza „wstecz" na materiale z tego
 zatrzymania.

@@ -198,6 +198,24 @@ Cel = średnia ≥ 10 mln na stałych 300 seedach w symulatorze (definicja bench
   `GOAL_REACHED` w repo **i** przypięty issue, napisz raport końcowy (`RAPORT.md`) i nie
   startuj więcej sesji. Wznowienie należy do człowieka (kasuje plik).
 
+## Zatrzymanie mostu na nieznanym oknie (#36)
+
+To **zwykłe zadanie**, nie awaria. Raport verifiera niesie skalar `okno: <nazwa>` i zrzut
+`NNN_end.png` w artefakcie. Sam współrzędnych nie odczytujesz.
+
+**Licznik strat na okno** nie ma magazynu: to łańcuch issues. Każde issue naprawcze ma w
+`## Cel` linię `strata_okna: N`, a implementer powtarza `okno:` w raporcie.
+
+| Zatrzymanie na oknie W | Robisz |
+|---|---|
+| pierwsze (brak zamkniętego issue naprawczego dla W) | `rola:implementer`, `strata_okna: 1`, nazwa okna i link do artefaktu ze zrzutem |
+| kolejne po naprawie `done` dla W | `strata_okna: N+1` z ostatniego issue naprawczego |
+| `strata_okna` = **2** | koniec łatania: `rola:verifier`, jednorazowy pomiar klawisza „wstecz" na materiale z tego zatrzymania |
+| „wstecz" zawiódł | `awaria` (patrz niżej) |
+
+„Z rzędu" znaczy: licznik zeruje się, gdy późniejszy przebieg mostu minął W bez zatrzymania.
+Zapisz w dzienniku, czy tak było.
+
 ## Awaria
 
 `awaria` jest **ostatecznością**. Najpierw wyczerp wszystkie sposoby: przeformułuj zadanie,
