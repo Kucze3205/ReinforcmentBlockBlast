@@ -1,0 +1,43 @@
+{
+  "sha": "022d410c565316c3edf4225151eb625d1a5af7fd",
+  "dirty": false,
+  "issue": 38,
+  "status": "ok",
+  "blocked_reason": null,
+  "config": {
+    "n_seeds": 300,
+    "move_cap": 2000,
+    "epsilon": 0.0,
+    "torch_seed": 0,
+    "threshold_pct": 10.0,
+    "fixed_seed_file": "bench/seeds_fixed.json",
+    "rotated_seed_salt": 2654435761
+  },
+  "source_hashes": {
+    "scoring.py": "31bd0b7dad74b0be",
+    "pieces.py": "e6647a52ac266624",
+    "generator.py": "307d7885f2dccaa7"
+  },
+  "arms": {
+    "candidate": {
+      "policy": "greedy",
+      "fixed": {
+        "mean": 3104.74,
+        "median": 1619.5,
+        "p10": 319.7,
+        "survival_mean": 57.3,
+        "capped_pct": 0.0
+      },
+      "rotated": {
+        "mean": 2721.18,
+        "median": 1624.5,
+        "p10": 340.3,
+        "survival_mean": 55.2,
+        "capped_pct": 0.0
+      },
+      "overfit_gap_pct": 12.35
+    }
+  },
+  "deltas": {},
+  "duration_s": 12.2
+}
