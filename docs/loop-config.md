@@ -188,7 +188,7 @@ pracuje w osobnym checkoutcie zadania (`work/`) — agent nie zmienia kodu, któ
 
 | Plik | Wyzwalacz | Robi |
 |---|---|---|
-| `dispatch.yml` | `workflow_dispatch(issue)`; `issues: labeled` = `ready` | Jedyne publiczne wejście: dozór, walidacja, zamek (`gh issue lock`, [#22](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/22)), deduplikacja, start `session.yml`. |
+| `dispatch.yml` | `workflow_dispatch(issue)`; `issues: labeled` = `ready` | Jedyne publiczne wejście: dozór, walidacja, deduplikacja, start `session.yml`. |
 | `session.yml` | `workflow_dispatch(issue)` | `prep` (dozór, sonda, rola → profil, model, budżet) → jeden z trzech kształtów: `plain`, `emulator`, `bench`. Każdy kończy krokiem **Epilog** (`if: always()`). |
 | `watchdog.yml` | cron co 30 min | Bramka `awaria`, sonda, cztery liczniki, kopnięcia. Czerwony przebieg = mail. |
 

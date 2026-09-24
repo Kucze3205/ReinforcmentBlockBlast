@@ -1,5 +1,5 @@
 # Sesja pętli (#16). Wejście zawsze jedno: numer issue. Rola, model i budżet z etykiet + .claude/profiles.yml.
-# Nie wołaj wprost — wejście publiczne to dispatch.yml (zamek, walidacja, deduplikacja).
+# Nie wołaj wprost — wejście publiczne to dispatch.yml (walidacja, deduplikacja).
 #
 # Kod pętli (.github/loop/) biegnie z checkoutu gałęzi domyślnej (`loop/`), agent pracuje w osobnym
 # checkoutcie zadania (`work/`): agent nie może zmienić kodu, który go pilnuje.

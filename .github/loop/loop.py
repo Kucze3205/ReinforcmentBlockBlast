@@ -303,7 +303,7 @@ def session_runs():
 
 
 def launch(n):
-    """Jedyny sposób na start sesji: walidacja, zamek (#22), deduplikacja, dispatch."""
+    """Jedyny sposób na start sesji: walidacja, deduplikacja, dispatch. Bez zamka: obcych odsiewa trusted() (#22)."""
     if not guard_ok():
         return False
     i = issue(n)
@@ -314,7 +314,6 @@ def launch(n):
     if any(r["displayTitle"] == "session #%s" % n and r["status"] in ("queued", "in_progress", "waiting")
            for r in session_runs()):
         return False
-    gh("issue", "lock", str(n), check=False)
     gh("workflow", "run", "session.yml", "-f", "issue=%s" % n)
     print("launch #%s" % n)
     return True
@@ -508,7 +507,6 @@ def finalize(n, work):
 
 def launch_again(n):
     # konflikt nie jest porażką zadania (#7): to samo issue, ponownie
-    gh("issue", "unlock", str(n), check=False)
     launch(n)
 
 
