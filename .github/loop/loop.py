@@ -98,7 +98,9 @@ def is_unblocked(n):
 
 def autopilot_on():
     """Żywy odczyt zmiennej; gdy API go nie da, wartość z kontekstu przebiegu. Fail-safe: tylko dosłowne `on`."""
-    live = gh("api", "repos/%s/actions/variables/AUTOPILOT" % REPO, "--jq", ".value", check=False).strip()
+    r = subprocess.run(["gh", "api", "repos/%s/actions/variables/AUTOPILOT" % REPO, "--jq", ".value"],
+                       capture_output=True, text=True)
+    live = r.stdout.strip() if r.returncode == 0 else ""   # GITHUB_TOKEN nie czyta zmiennych: gh drukuje wtedy JSON błędu na stdout
     return (live or os.environ.get("VARS_AUTOPILOT", "")) == "on"
 
 
