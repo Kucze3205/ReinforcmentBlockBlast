@@ -1,0 +1,25 @@
+name: rl-measure
+on:
+  push:
+    branches: [wayfinder/40-rl-measure]
+    paths: [tools/rl_measure.py, .github/workflows/rl-measure.yml]
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: |
+          nproc; free -g | head -2
+          pip install numpy torch --index-url https://download.pytorch.org/whl/cpu
+          sudo apt-get install -y -q python3-tk >/dev/null || true
+          python -c "import tkinter" || echo "NO TKINTER"
+      - run: python tools/rl_measure.py --train-seconds 1500 --eval-every 300 --out rl-out/result.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rl-out
+          path: rl-out/
