@@ -226,6 +226,25 @@ Rzadkie typy mają zresztą po 1–7 obserwacji. Przestrojenie generatora zrywa
 porównywalność całego benchmarku ([#8](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/8)),
 więc robi się je **raz**, właściwym modelem — decyzja właściciela z 2026-09-23.
 
+**Grywalność tacki — zmierzone** ([#37](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/37)).
+Polityka `fill` zapychała planszę (śr. 36 z 64 pól, maks. 49), dwa przebiegi po
+200 ruchów, 399 z 400 ruchów zgodnych z odczytem, **żadnej przegranej partii**.
+Gra dobrała 67 tacek. Przy ślepym losowaniu na tych samych planszach:
+
+| poziom | obserwowane | oczekiwane (symulator / kształty z biegu) | P(≤ obs) |
+|---|---|---|---|
+| żywa: nic się nie mieści | **0** | 3,5 / 6,5 | 0,03 / 0,001 |
+| cała: nie wejdą wszystkie trzy | **0** | 21,3 / 27,3 | 6·10⁻¹⁰ / 1·10⁻¹² |
+
+**Apka gwarantuje, że tacka da się postawić w całości** (silniejsza gwarancja,
+która obejmuje żywą). Trzeci składnik rozbieżności z #30, obok wag i tacki jako
+jednostki losowania: generator musi mieć **filtr grywalności** — odrzucać albo
+przelosowywać tacki, których trzech klocków nie da się postawić po kolei
+(`playability.all_fit`). Zastrzeżenia: plansze sięgały 49 pól, nie wiemy, jak
+apka zachowuje się przy 55+; mechanizm (przelosowanie czy ważenie) pozostaje
+nierozstrzygnięty — odróżnia je tylko rozkład typów przy dużym zapełnieniu.
+Odtworzenie: `POLICY=fill` w moście, `python tools/analyze_fill.py moves.jsonl`.
+
 ### Z-7 — czy w ogóle są punkty za samo postawienie
 
 Symulator: tak, `liczba komórek klocka` (źródło A). Źródło B nie nalicza ich wcale.
