@@ -226,6 +226,15 @@ Rzadkie typy mają zresztą po 1–7 obserwacji. Przestrojenie generatora zrywa
 porównywalność całego benchmarku ([#8](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/8)),
 więc robi się je **raz**, właściwym modelem — decyzja właściciela z 2026-09-23.
 
+**Model wybrany i wdrożony ([#38](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/38)).**
+744 unikalne tacki z logów (`tools/analyze_generator.py`). Trzy modele: ślepe wagi (A),
+wagi + filtr grywalności (B), wagi na kubełek zapełnienia (C). AIC: A 15900,8 · **B 15727,1** · C 15818,5.
+Filtr sam tłumaczy zależność od planszy, więc C (56 parametrów) przegrywa z B (14) o ~90.
+Filtr nie tłumaczy nadwyżki tacek z powtórzonym typem (obs. 37,0% vs 23,1% w B; trzy te same 29 vs 6),
+więc dochodzi jeden parametr: klocek po pierwszym kopiuje poprzedni z p = 0,09 (→ 36–38%, trzy te same ~21).
+`generator.py`: WAGI + POWTORZENIE + przelosowanie do skutku (sufit 200 prób). Pozostaje nierozstrzygnięte,
+czy apka przelosowuje czy waży, oraz czy poza w obrębie typu jest równa.
+
 **Grywalność tacki — zmierzone** ([#37](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/37)).
 Polityka `fill` zapychała planszę (śr. 36 z 64 pól, maks. 49), dwa przebiegi po
 200 ruchów, 399 z 400 ruchów zgodnych z odczytem, **żadnej przegranej partii**.

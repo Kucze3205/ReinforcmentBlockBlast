@@ -26,7 +26,7 @@ class Game:
         self.round_placement = 0
         self.placements = 0          # przeżycie: liczba udanych postawień w partii
         self.last_lines_cleared = 0  # linie wyczyszczone ostatnim postawieniem
-        self.pieces = self.generator.next_pieces()
+        self.pieces = self.generator.next_pieces(self.board.grid)
         self.done = False
 
     def available_actions(self):
@@ -83,7 +83,7 @@ class Game:
         self.board.clear_lines(rows, cols)
 
         if self.round_placement == 3:
-            self.pieces = self.generator.next_pieces()
+            self.pieces = self.generator.next_pieces(self.board.grid)
             self.round_placement = 0
 
         self.score += gained

@@ -26,7 +26,7 @@ from game import Game
 from policies import GreedyPolicy, ModelPolicy, RandomPolicy
 
 CONFIG_PATH = "bench/config.json"
-HASHED_SOURCES = ["scoring.py", "pieces.py"]
+HASHED_SOURCES = ["scoring.py", "pieces.py", "generator.py"]
 
 STATUS_OK = "ok"
 STATUS_BLOCKED = "blocked"

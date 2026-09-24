@@ -6,14 +6,16 @@ sprawdza liczbę, jest przywiązany do konkretnej rozbieżności (R-1..R-10), ż
 regresja wskazywała, co dokładnie się rozjechało.
 """
 import os
+import random
 import sys
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from game import Game
-from generator import Generator
+from generator import Generator, WAGI
 from pieces import Piece, CANONICAL_TYPES, EXPECTED_POSES, PIECE_POOL, PIECE_TYPES, plausible
+from playability import all_fit, to_mask
 from scoring import clear_points, combo_unit, line_bonus, placement_points
 
 ONE_BY_ONE = PIECE_POOL[0]
@@ -204,16 +206,45 @@ class TestPiecePool(unittest.TestCase):
         }
         self.assertEqual(actual, expected)
 
-    def test_sampling_is_uniform_over_types_not_poses(self):
-        # R-8: typ 3x3 (1 orientacja) musi wypadać ~8x częściej niż konkretna poza L.
+    def test_poses_are_uniform_within_a_type(self):
+        # R-8: typ losowany wagą, poza w obrębie typu równo — typ 3x3 (1 poza) wypada
+        # tyle razy częściej niż jedna poza L (8 póz), ile mówi stosunek wag razy 8.
         gen = Generator(1234)
         counts = {}
-        for _ in range(20000):
+        for _ in range(40000):
             piece = gen._next_piece()
             counts[piece.name] = counts.get(piece.name, 0) + 1
-        square3 = counts.get("square3", 0)
-        l_pose = counts.get("L-0", 0)
-        self.assertGreater(square3 / max(l_pose, 1), 5.0)
+        expected = WAGI["square3"] / (WAGI["L"] / 8)
+        self.assertAlmostEqual(counts["square3"] / counts["L-0"], expected, delta=0.25 * expected)
+
+
+class TestGeneratorTacki(unittest.TestCase):
+    """#38: jednostką losowania jest tacka, z filtrem grywalności."""
+
+    def test_wagi_sumuja_sie_do_jednosci(self):
+        self.assertAlmostEqual(sum(WAGI.values()), 1.0, delta=0.01)
+
+    def test_tacka_z_planszy_zawsze_da_sie_postawic(self):
+        rng = random.Random(3)
+        for _ in range(60):
+            grid = [[int(rng.random() < 0.45) for _ in range(8)] for _ in range(8)]
+            gen = Generator(rng.randrange(10**6))
+            tray = gen.next_pieces(grid)
+            if all_fit(to_mask(grid), [p.shape for p in tray]):
+                continue
+            # jeśli się nie da, to znaczy że plansza nie przyjmuje żadnej tacki w 200 próbach
+            for _ in range(200):
+                self.assertFalse(all_fit(to_mask(grid), [p.shape for p in gen._draw_tray()]))
+
+    def test_generator_konczy_na_pelnej_planszy(self):
+        full = [[1] * 8 for _ in range(8)]
+        self.assertEqual(len(Generator(1).next_pieces(full)), 3)
+
+    def test_tacki_maja_nadwyzke_powtorzonych_typow(self):
+        gen = Generator(7)
+        trays = [gen.next_pieces() for _ in range(6000)]
+        repeated = sum(len({p.type_index for p in t}) < 3 for t in trays) / len(trays)
+        self.assertGreater(repeated, 0.31)  # niezależne losowanie z tych wag daje ~24%
 
 
 class TestBenchmarkPrerequisites(unittest.TestCase):

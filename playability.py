@@ -15,7 +15,7 @@ import random
 from functools import lru_cache
 from itertools import permutations
 
-from generator import Generator
+from pieces import PIECE_POOL, PIECE_TYPES
 
 FULL = (1 << 64) - 1
 ROWS = [0xFF << (8 * r) for r in range(8)]
@@ -78,9 +78,10 @@ def all_fit(mask, shapes):
 
 
 def sample_trays(n, seed=0):
-    """Stała próbka ślepych tacek z generatora symulatora: wspólna dla wszystkich ocen."""
-    gen = Generator(seed)
-    return [[p.shape for p in gen.next_pieces()] for _ in range(n)]
+    """Stała próbka ślepych tacek (1/15 na typ, niezależnie): wspólna dla wszystkich ocen."""
+    rng = random.Random(seed)
+    draw = lambda: PIECE_POOL[rng.choice(PIECE_TYPES[rng.randrange(len(PIECE_TYPES))])].shape
+    return [[draw() for _ in range(3)] for _ in range(n)]
 
 
 def p_dead(mask, trays, whole=False):
