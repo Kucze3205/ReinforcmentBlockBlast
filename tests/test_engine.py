@@ -13,8 +13,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from game import Game
 from generator import Generator
-from pieces import CANONICAL_TYPES, EXPECTED_POSES, PIECE_POOL, PIECE_TYPES, plausible
-from scoring import clear_points, line_bonus, placement_points
+from pieces import Piece, CANONICAL_TYPES, EXPECTED_POSES, PIECE_POOL, PIECE_TYPES, plausible
+from scoring import clear_points, combo_unit, line_bonus, placement_points
 
 ONE_BY_ONE = PIECE_POOL[0]
 
@@ -65,6 +65,14 @@ class TestScoringFormula(unittest.TestCase):
         self.assertEqual(clear_points(3, 2), 60)
         self.assertEqual(clear_points(0, 2), 0)
 
+    def test_ladder_has_three_steps_and_no_fourth(self):
+        # #33: 10 (combo 1-5), 15 (6-10), 20 od 11 - trzyma do combo 39 zmierzonego w apce.
+        self.assertEqual([combo_unit(c) for c in (1, 5, 6, 10, 11, 16, 17, 39, 100)],
+                         [10, 10, 15, 15, 20, 20, 20, 20, 20])
+        self.assertEqual(clear_points(30, 1), 30 * 20)     # przebieg 35879525460, ruch 126
+        self.assertEqual(clear_points(21, 2), 21 * 40)     # ruch 111: 843 = 3 komorki + 840
+        self.assertEqual(clear_points(4, 4), 4 * 10 * 12)  # cztery linie od combo 0: 480
+
 
 class TestComboMechanics(unittest.TestCase):
     def setUp(self):
@@ -81,6 +89,21 @@ class TestComboMechanics(unittest.TestCase):
         gained = place_1x1(self.game, 7, 0)
         self.assertEqual(self.game.combo, 2)
         self.assertEqual(gained, 1 + 2 * 10)
+
+    def test_combo_rises_by_lines_cleared_not_by_one(self):
+        # #33: dwie linie w jednym ruchu to +2 combo (zmierzone w apce: 46 -> 66 przy ruchu 131).
+        game = self.game
+        game.board.grid = [[0] * 8 for _ in range(8)]
+        for col in range(1, 8):
+            game.board.grid[0][col] = 1
+            game.board.grid[1][col] = 1
+        game.board.grid[7][7] = 1  # filler: plansza nie moze zostac pusta
+        game.pieces = [Piece([[1], [1]], "v2", 0), None, None]
+        game.round_placement = 2
+        game.board.place_piece(game.pieces[0], 0, 0)
+        gained = game.apply_placement(0)
+        self.assertEqual(game.combo, 2)
+        self.assertEqual(gained, 2 + 2 * 20)
 
     def test_combo_survives_two_placements_then_dies(self):
         # R-4: combo wygasa przez licznik, nie natychmiast.

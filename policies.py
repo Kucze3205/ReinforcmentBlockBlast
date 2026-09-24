@@ -69,7 +69,7 @@ def _immediate_gain(game, action):
     rows, cols = board.check_full_lines()
     lines = len(rows) + len(cols)
     if lines > 0:
-        gain += clear_points(game.combo + 1, lines)
+        gain += clear_points(game.combo + lines, lines)
     return gain
 
 

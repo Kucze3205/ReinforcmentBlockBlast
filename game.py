@@ -2,7 +2,7 @@
 Block Blast Game Engine
 
 Skalibrowany pod wzór referencyjny z badania #2. Punktacja jest naliczana
-po KAŻDYM postawieniu (R-3), combo mnoży bonus za czyszczenie (R-2) i wygasa
+po KAŻDYM postawieniu (R-3), combo mnoży bonus za czyszczenie (R-2), rośnie o liczbę linii (#33) i wygasa
 przez licznik, a nie natychmiast (R-4). `score` kumuluje się przez całą partię.
 """
 from board import Board
@@ -71,7 +71,7 @@ class Game:
         remaining = sum(1 for p in self.pieces if p is not None)
 
         if lines > 0:
-            self.combo += 1
+            self.combo += lines  # #33: combo rosnie o liczbe czyszczonych linii
             self.combo_counter = COMBO_COUNTER_BASE + remaining
             gained += clear_points(self.combo, lines)
         elif self.combo_counter <= 1:
