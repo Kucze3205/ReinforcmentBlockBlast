@@ -169,8 +169,8 @@ Po utworzeniu issues (potrzebują numerów) wiążesz krawędzie natywnym „blo
 
 ### 7. Rozpocznij issues
 
-Dispatchujesz `workflow_dispatch` **z nazwy** każdą sesję, którą uruchamiasz — wyłącznie
-issues z `blocked_by = 0`. Pozostałe rusza `unblock.yml` po zamknięciu blokera.
+Dispatchujesz **z nazwy** każdą sesję, którą uruchamiasz: `gh workflow run dispatch.yml -f issue=N`
+(zamek, walidacja i deduplikacja siedzą w workflow) — wyłącznie issues z `blocked_by = 0`. Pozostałe rusza epilog sesji po zamknięciu blokera.
 **Sufit jednoczesnych sesji: 12** (konto ma 20 jobów; reszta to epilogi i ogniwa verifiera).
 Nie dispatchujesz więcej, nawet gdy masz więcej gotowych — nadmiar zostawiasz blokadzie
 krawędzią do wcześniejszego.
@@ -197,6 +197,24 @@ Cel = średnia ≥ 10 mln na stałych 300 seedach w symulatorze (definicja bench
 - **Cel osiągnięty** — dopiero gdy oba warunki potwierdzone raportami: zapisz plik
   `GOAL_REACHED` w repo **i** przypięty issue, napisz raport końcowy (`RAPORT.md`) i nie
   startuj więcej sesji. Wznowienie należy do człowieka (kasuje plik).
+
+## Zatrzymanie mostu na nieznanym oknie (#36)
+
+To **zwykłe zadanie**, nie awaria. Raport verifiera niesie skalar `okno: <nazwa>` i zrzut
+`NNN_end.png` w artefakcie. Sam współrzędnych nie odczytujesz.
+
+**Licznik strat na okno** nie ma magazynu: to łańcuch issues. Każde issue naprawcze ma w
+`## Cel` linię `strata_okna: N`, a implementer powtarza `okno:` w raporcie.
+
+| Zatrzymanie na oknie W | Robisz |
+|---|---|
+| pierwsze (brak zamkniętego issue naprawczego dla W) | `rola:implementer`, `strata_okna: 1`, nazwa okna i link do artefaktu ze zrzutem |
+| kolejne po naprawie `done` dla W | `strata_okna: N+1` z ostatniego issue naprawczego |
+| `strata_okna` = **2** | koniec łatania: `rola:verifier`, jednorazowy pomiar klawisza „wstecz" na materiale z tego zatrzymania |
+| „wstecz" zawiódł | `awaria` (patrz niżej) |
+
+„Z rzędu" znaczy: licznik zeruje się, gdy późniejszy przebieg mostu minął W bez zatrzymania.
+Zapisz w dzienniku, czy tak było.
 
 ## Awaria
 

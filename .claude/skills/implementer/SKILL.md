@@ -50,6 +50,14 @@ benchmark tego nie łapie — mierzy politykę, nie nagrodę.
 
 Jeśli sam nie jesteś pewien, czy zmiana dotyka nagrody, napisz `yes`.
 
+## Zadanie „okno" (zatrzymanie mostu)
+
+Issue niesie nazwę okna, `strata_okna: N` i odnośnik do artefaktu przebiegu. Odczytujesz
+współrzędną ✕ ze zrzutu `NNN_end.png`, dopisujesz stałą w `bridge.py` i test na pikselach
+**tego zrzutu** (wzór: #35). Emulatora nie masz; czy ✕ zamyka okno, pokaże następny przebieg.
+W raporcie YAML dopisz `okno: <nazwa>`. Nie zgadujesz reguły ogólnej „znajdź ✕" — zmierzono
+ją i odrzucono (#35).
+
 ## Wykrywasz coś poza zadaniem
 
 Wpisz do `## Odkrycia`, nie naprawiaj. Wyjątek: zadanie wprost każe naprawiać to, co

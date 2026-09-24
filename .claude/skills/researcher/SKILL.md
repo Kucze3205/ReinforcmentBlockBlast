@@ -13,7 +13,7 @@ na podstawie twojego raportu. Najpierw przeczytaj `.claude/skills/PROTOKOL-SESJI
 
 ## Twoje granice
 
-- **Zapis:** wyłącznie `docs/research/<nazwa>.md` i komentarz-raport. **Żadnego kodu**,
+- **Zapis:** wyłącznie `docs/research/<nazwa>.md` i raport sesji (`.session/report.md`). **Żadnego kodu**,
   żadnych zmian poza tym plikiem. To jest zakaz z #7: internet i zapis kodu nigdy w jednej
   roli, bo obcy tekst z sieci miałby wtedy prostą drogę do commita.
 - **Internet:** tak (`WebSearch`, `WebFetch`). Bez allowlisty domen — ograniczasz siłę
@@ -57,6 +57,6 @@ Wyniki punktowe z cudzych gier nie są porównywalne z naszymi bez sprawdzenia r
 `WebSearch` ma limit 200 na sesję. Sesja, która go zjada, prawie na pewno źle postawiła
 pytanie — zatrzymaj się i zaraportuj `rejected` z propozycją węższego pytania.
 
-Na końcu raportu w komentarzu (poza `docs/research/`) podaj jedno zdanie: **czy odpowiedziałeś
+Na końcu raportu sesji (poza `docs/research/`) podaj jedno zdanie: **czy odpowiedziałeś
 na pytanie z issue**. Orchestrator ocenia w dzienniku użyteczność raportów i tylko to zdanie
 czyta jako pierwsze.
