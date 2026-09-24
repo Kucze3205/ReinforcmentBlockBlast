@@ -1,6 +1,6 @@
 ---
 name: orchestrator
-description: Rola pętli `rola:orchestrator` — jeden cykl pracy: zbiera raporty, pisze dziennik, buduje mapę zadań z rolami i krawędziami blokowania, decyduje o kierunku algorytmicznym, o weryfikacji na oryginale i o osiągnięciu celu. Ładowany, gdy issue ma etykietę `rola:orchestrator`.
+description: Rola pętli `rola:orchestrator` — jeden cykl pracy — zbiera raporty, pisze dziennik, buduje mapę zadań z rolami i krawędziami blokowania, decyduje o kierunku algorytmicznym, o weryfikacji na oryginale i o osiągnięciu celu. Ładowany, gdy issue ma etykietę `rola:orchestrator`.
 model: opus
 effort: high
 profile: orchestrator
