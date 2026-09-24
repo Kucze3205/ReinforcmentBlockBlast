@@ -92,12 +92,11 @@ requests"**, siedzący tuż pod Workflow permissions. Nazwa mówi o zatwierdzani
 jedna opcja gasi **dwie** rzeczy: `GITHUB_TOKEN` nie może PR-a zatwierdzić **ani go
 otworzyć**.
 
-To jest otwarta sprawa dla [#16](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/16). Przepływ `task/<n>` → PR → merge przez epilog ([#7](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/7)) **nie ruszy**
-przy `false`. Checkbox zostaje wyłączony do czasu, aż #16 świadomie zdecyduje, że
-pętla potrzebuje PR-ów — i wtedy warto najpierw zapytać, po co jej PR-y, skoro epilog
-merguje bezwarunkowo, a benchmark jest nieblokujący ([#8](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/8)). Jeśli PR jest tylko powierzchnią
-audytu, znika razem z nim ten checkbox, `pull-requests: write` i przyszła migracja na
-GitHub App z [#5](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/5).
+**Rozstrzygnięte w [#16](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/16): pętla nie otwiera PR-ów.** PR był tylko
+powierzchnią audytu, bo epilog i tak merguje bezwarunkowo, a benchmark jest
+nieblokujący ([#8](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/8)). Epilog robi rebase `task/<n>` i pushuje na gałąź domyślną po zielonych
+testach; audyt to `git log`. Checkbox zostaje wyłączony na stałe, `pull-requests: write`
+i migracja na GitHub App z [#5](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/5) znikają z planu.
 
 Skoro domyślne to `read`, **każdy workflow musi jawnie zadeklarować `permissions:`**.
 Minimalne zestawy z [#5](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/5):
@@ -105,7 +104,7 @@ Minimalne zestawy z [#5](https://github.com/Kucze3205/ReinforcmentBlockBlast/iss
 | Workflow | `permissions:` |
 |---|---|
 | orchestrator | `actions: write`, `issues: write`, `contents: write` |
-| sesja | `contents: write`, `issues: write`, `actions: write` (+ `pull-requests: write`, jeśli otwiera PR-y) |
+| sesja | `contents: write`, `issues: write`, `actions: write` |
 
 `actions: write` jest tym, co pozwala pętli wywołać `workflow_dispatch` na samej sobie.
 
@@ -178,3 +177,73 @@ własnym `task/<n>`, którego merge na gałąź domyślną nie dotyka. Pytanie z
 Klucze muszą być nowe przy każdym zapisie (`avd-<warstwa>-${{ github.run_id }}`)
 i odczytywane przez `restore-keys`, bo wpis o danym kluczu jest niemutowalny
 ([#3](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/3) §5.3).
+
+---
+
+## Workflowy
+
+Cała logika siedzi w `.github/loop/loop.py` (sztywny kod, zero agenta), wołanym z YAML-i
+jednolinijkowcami. Kod pętli biegnie z checkoutu **gałęzi domyślnej** (`loop/`), agent
+pracuje w osobnym checkoutcie zadania (`work/`) — agent nie zmienia kodu, który go pilnuje.
+
+| Plik | Wyzwalacz | Robi |
+|---|---|---|
+| `dispatch.yml` | `workflow_dispatch(issue)`; `issues: labeled` = `ready` | Jedyne publiczne wejście: dozór, walidacja, zamek (`gh issue lock`, [#22](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/22)), deduplikacja, start `session.yml`. |
+| `session.yml` | `workflow_dispatch(issue)` | `prep` (dozór, sonda, rola → profil, model, budżet) → jeden z trzech kształtów: `plain`, `emulator`, `bench`. Każdy kończy krokiem **Epilog** (`if: always()`). |
+| `watchdog.yml` | cron co 30 min | Bramka `awaria`, sonda, cztery liczniki, kopnięcia. Czerwony przebieg = mail. |
+
+Odblokowanie dependentów robi sam epilog (w procesie, po zamknięciu issue) — osobny
+`unblock.yml` z [#6](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/6) odpadł, bo epilog ma te same uprawnienia i to samo wywołanie.
+
+### Wejście i wyjście agenta
+
+Agent nie ma `gh`. Workflow zapisuje `.session/issue.md` (treść + komentarze zaufanych
+autorów) i publikuje `.session/report.md` jako jeden komentarz z markerem (co 2 min
+i w epilogu), razem z pushem `task/<n>`. Pola raportu `proby`, `wznow_po`, `kopniecia`,
+`kopniete`, `konflikty`, `przyczyna`, `weryfikacja` należą do epilogu i dozorcy; publikacja
+raportu agenta ich nie kasuje.
+
+### Epilog
+
+Jeden parametr: numer issue. Kolejność: publikacja raportu → przyczyna maszynowa
+(`api_error_status`, `terminal_reason`, kod wyjścia — dosłownie, nigdy z `subtype`)
+→ brak statusu terminalnego = `paused` przy limicie, inaczej `crashed` → `## Weryfikacja`
+przy `done` (błąd = `partial`) → push `task/<n>` → **przy `done` rebase + testy + push na
+gałąź domyślną** (konflikt: etykieta `conflict`, issue otwarte, ponowny start, max 3;
+dotknięcie `.github/`, `.claude/skills/orchestrator/` albo `bench/record.json` bez roli
+`bench` = `blocked`, bez scalenia) → zamknięcie + `report:unread`, następca z `## Następca`
+(limit pokolenia 3, dziedziczy blokady rodzica), odblokowanie dependentów.
+
+Nie-`done` **nie scala się** — gałąź `task/<n>` zostaje, a następca startuje z niej.
+Merge'e szereguje git (odrzucony push = rebase i ponowienie), nie `concurrency: loop-merge`.
+
+`paused`: etykieta `blocked:rate-limit`, `wznow_po` z terminu resetu w pliku wykonania,
+a gdy go nie ma — backoff 1 h / 5 h / 24 h. Wznawia dozorca; więcej niż 3 próby albo
+30 dni = `crashed`.
+
+### Dozorca
+
+Kolejność: dozór (`AUTOPILOT`, `GOAL_REACHED`) → **bramka `awaria`** (otwarta = cisza)
+→ sonda poświadczenia (martwe = otwarcie `awaria` + `exit 1`) → sonda `ASSETS_READ_TOKEN`
+(martwe = sam czerwony przebieg, bez `awaria`) → licznik `crashed` bez commita (3) →
+wznowienie zaparkowanych → zobowiązania → kopnięcie (3 bezskuteczne = `awaria`).
+Zero otwartych issues to zator: dozorca zakłada issue `rola:orchestrator` ze sztywnego szablonu.
+
+### Sonda poświadczenia
+
+```bash
+curl -s -o /dev/null -w '%{http_code}' https://api.anthropic.com/v1/models   -H "Authorization: Bearer $CLAUDE_CODE_OAUTH_TOKEN"   -H "anthropic-version: 2023-06-01" -H "anthropic-beta: oauth-2025-04-20"
+# 200 żyje · 401 martwy · 403 odwołany
+```
+
+Zaimplementowana w `loop.py probe`; brak odpowiedzi sieci to nie martwe poświadczenie.
+Wygaśnięcie `CLAUDE_CODE_OAUTH_TOKEN` (rok od `claude setup-token`) i `ASSETS_READ_TOKEN`
+(ok. 2026-10-21) to notatka dla właściciela — pętla dat nie czyta.
+
+### Znane luki
+
+- **Granica `.github/` stoi na drodze scalania, nie na pushu.** Agent z `Bash(git:*)` mógłby
+  wypchnąć na gałąź domyślną wprost. Uszczelnienie wymaga reguły ochrony gałęzi (ustawienie
+  właściciela) i świadomie nie jest tu zrobione.
+- **Cache emulatora ([#24](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/24)) nie jest podpięty.** Zimny start z pobraniem obrazu; do decyzji po biegu na sucho.
+- **`rola:bench` uruchamia polecenia z `## Weryfikacja`**, bez polityki rekordu i wag ([#21](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/21)).

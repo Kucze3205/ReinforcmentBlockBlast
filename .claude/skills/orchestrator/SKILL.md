@@ -169,8 +169,8 @@ Po utworzeniu issues (potrzebują numerów) wiążesz krawędzie natywnym „blo
 
 ### 7. Rozpocznij issues
 
-Dispatchujesz `workflow_dispatch` **z nazwy** każdą sesję, którą uruchamiasz — wyłącznie
-issues z `blocked_by = 0`. Pozostałe rusza `unblock.yml` po zamknięciu blokera.
+Dispatchujesz **z nazwy** każdą sesję, którą uruchamiasz: `gh workflow run dispatch.yml -f issue=N`
+(zamek, walidacja i deduplikacja siedzą w workflow) — wyłącznie issues z `blocked_by = 0`. Pozostałe rusza epilog sesji po zamknięciu blokera.
 **Sufit jednoczesnych sesji: 12** (konto ma 20 jobów; reszta to epilogi i ogniwa verifiera).
 Nie dispatchujesz więcej, nawet gdy masz więcej gotowych — nadmiar zostawiasz blokadzie
 krawędzią do wcześniejszego.

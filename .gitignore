@@ -4,3 +4,4 @@ __pycache__/
 *.pth
 test_output.txt
 .vscode/
+.session/
