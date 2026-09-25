@@ -125,12 +125,26 @@ def goal_reached():
     return os.path.exists("GOAL_REACHED")   # cwd = checkout gałęzi domyślnej
 
 
+def say(msg):
+    """Zdanie do logu i do podsumowania przebiegu: przebieg nie kończy się bez powodu na widoku."""
+    print(msg)
+    path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if path:
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write(msg + "\n\n")
+
+
+def run_issue(title):
+    """'session #12 · implementer' -> 'session #12' (nie myl #12 z #123)."""
+    return title.split(" · ")[0]
+
+
 def guard_ok():
     if not autopilot_on():
-        print("AUTOPILOT != on: stój")
+        say("AUTOPILOT != on: stój")
         return False
     if goal_reached():
-        print("GOAL_REACHED: stój")
+        say("GOAL_REACHED: stój")
         return False
     return True
 
@@ -328,11 +342,12 @@ def launch(n):
         return False
     if not is_unblocked(n):
         return False
-    if any(r["displayTitle"] == "session #%s" % n and r["status"] in ("queued", "in_progress", "waiting")
+    if any(run_issue(r["displayTitle"]) == "session #%s" % n and r["status"] in ("queued", "in_progress", "waiting")
            for r in session_runs()):
         return False
-    gh("workflow", "run", "session.yml", "-f", "issue=%s" % n)
-    print("launch #%s" % n)
+    roles = [l[5:] for l in label_names(i) if l.startswith("rola:")]
+    gh("workflow", "run", "session.yml", "-f", "issue=%s" % n, "-f", "role=%s" % (roles[0] if len(roles) == 1 else ""))
+    say("launch #%s" % n)
     return True
 
 
@@ -560,8 +575,9 @@ def open_awaria(title, why, todo):
 def watch():
     if not guard_ok():
         return 0
-    if gh("issue", "list", "--label", "awaria", "--state", "open", "--json", "number").strip() not in ("", "[]"):
-        print("awaria otwarta: cisza")     # jedyny stan, w którym brak przebiegów nie jest zatorem
+    awarie = json.loads(gh("issue", "list", "--label", "awaria", "--state", "open", "--json", "number") or "[]")
+    if awarie:
+        say("cisza: awaria otwarta #%s" % awarie[0]["number"])     # jedyny stan, w którym brak przebiegów nie jest zatorem
         return 0
     red = False
     code = probe()
@@ -569,21 +585,24 @@ def watch():
         open_awaria("martwe poświadczenie Claude (HTTP %s)" % code,
                     "Sonda `CLAUDE_CODE_OAUTH_TOKEN` zwróciła %s. Żadna sesja nie wstanie." % code,
                     "Wygeneruj nowy token (`claude setup-token`) i zapisz jako sekret repo. Potem zdejmij etykietę `awaria`.")
+        say("awaria: martwe poświadczenie Claude (HTTP %s)" % code)
         return 1     # czerwony przebieg z crona = mail do autora pliku workflow
     assets = subprocess.run(["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "-H",
                              "Authorization: Bearer " + os.environ.get("ASSETS_READ_TOKEN", ""),
                              "https://api.github.com/repos/Kucze3205/blockblast-assets"],
                             capture_output=True, text=True).stdout
     if assets in ("401", "403", "404"):
-        print("ASSETS_READ_TOKEN martwy (%s): sam mail, bez awarii — gatuje tylko verifiera" % assets)
+        say("ASSETS_READ_TOKEN martwy (%s): sam mail, bez awarii — gatuje tylko verifiera" % assets)
         red = True
     if crash_streak():
         open_awaria("%s sesje z rzędu padły bez commita" % CRASH_STREAK,
                     "Trzy ostatnie sesje zakończyły się `crashed` bez commita. Licznik jest ślepy na przyczynę.",
                     "Obejrzyj przyczynę maszynową w raportach ostatnich sesji (pole `przyczyna`) i napraw.")
+        say("awaria: %s sesje z rzędu padły bez commita" % CRASH_STREAK)
         return 1
     red = watch_parked() or red
     if commitments():
+        say("cisza: zobowiązania w toku")
         return 1 if red else 0
     return kick() or (1 if red else 0)
 
@@ -627,7 +646,7 @@ def commitments():
     runs = session_runs()
     if any(r["status"] in ("queued", "in_progress", "waiting") for r in runs):
         return True
-    recent = {r["displayTitle"] for r in runs if now() - parse_time(r["createdAt"]) < timedelta(minutes=GRACE_MIN)}
+    recent = {run_issue(r["displayTitle"]) for r in runs if now() - parse_time(r["createdAt"]) < timedelta(minutes=GRACE_MIN)}
     for x in loop_open():
         names = label_names(x)
         r = find_report(x["number"])
@@ -651,6 +670,7 @@ def kick():
                  "--body-file", "-", inp="## Cel\n\nPętla zatrzymała się bez otwartych issues. Przeczytaj najnowszy `docs/journal/cykl-*.md` (sekcja `## Stan`) i zbuduj następną mapę.\n\n"
                  "## Kryteria akceptacji\n\n- [ ] wpis dziennika i mapa zadań z rolami i krawędziami\n\n## Kontekst\n\n`docs/loop-config.md`\n").strip()
         ready = [issue(int(url.rsplit("/", 1)[1]))]
+        say("pętla pusta: nowy orchestrator %s" % url)
     for x in ready[:12]:
         n = x["number"]
         r = find_report(n)
@@ -660,9 +680,11 @@ def kick():
             open_awaria("dozorca kopnął #%s %s razy, przebieg nie powstał" % (n, MAX_KICKS),
                         "Dispatch nie tworzy przebiegu (zepsuty workflow, odrzucone wywołanie, zdarzenie zgubione).",
                         "Sprawdź `.github/workflows/`, zakładkę Actions i uprawnienia tokenu.")
+            say("awaria: dozorca kopnął #%s %s razy, przebieg nie powstał" % (n, MAX_KICKS))
             return 1
         update_report(n, {"kopniecia": k, "kopniete": now().strftime("%Y-%m-%dT%H:%M:%SZ")})
-        launch(n)
+        if launch(n):
+            say("kopnięto #%s" % n)
     return 0
 
 
