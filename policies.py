@@ -89,17 +89,23 @@ class TrayPolicy:
     mutuje przekazanej gry — pracuje wyłącznie na kopiach planszy i tacki.
 
     `beam` ogranicza liczbę stanów trzymanych na każdym poziomie przeszukiwania
-    (uzasadnienie szerokości: `docs/przeszukanie-tacki.md`).
+    (uzasadnienie szerokości i wartości domyślnej: `docs/przeszukanie-tacki.md`, #79).
+
+    Po każdym `act` atrybut `last_expanded` niesie sumę kandydatów rozwiniętych na
+    wszystkich poziomach tej decyzji (przed przycięciem do `beam`) — miarę
+    rozgałęzienia sekwencji, używaną przez `tools/measure_tray_cost.py`.
     """
 
     name = "tray"
 
     DEFAULT_WEIGHTS = HeuristicPolicy.DEFAULT_WEIGHTS
+    # 8: kompromis jakość/czas zmierzony w #79 — patrz docs/przeszukanie-tacki.md.
     DEFAULT_BEAM = 8
 
     def __init__(self, weights=None, beam=None):
         self.weights = tuple(weights) if weights is not None else self.DEFAULT_WEIGHTS
         self.beam = beam if beam is not None else self.DEFAULT_BEAM
+        self.last_expanded = 0
 
     def reset(self, game_seed):
         pass
@@ -107,6 +113,7 @@ class TrayPolicy:
     def act(self, game, actions):
         pieces0 = tuple(game.pieces)
         depth = sum(1 for p in pieces0 if p is not None)
+        self.last_expanded = 0
         if depth == 0 or not actions:
             return actions[0]
 
@@ -132,6 +139,7 @@ class TrayPolicy:
                     continue
                 for action in legal:
                     candidates.append(_expand(state, action))
+            self.last_expanded += len(candidates)
             for candidate in candidates:
                 candidate["score"] = candidate["gain"] + _weighted_features(
                     self.weights, candidate["board"]
