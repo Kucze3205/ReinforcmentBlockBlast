@@ -1,12 +1,15 @@
 """
-Testy `tools/tune_weights.py` (#59): rozłączność seedów, format `weights.json`,
-poprawność `TraySearchPolicy` i aktualizacji CEM. Szybkie (limity czasu w
+Testy `tools/tune_weights.py` (#59, #77): rozłączność seedów, format
+`weights.json`, `build_policy` i aktualizacji CEM. Szybkie (limity czasu w
 sekundach) — pełny przebieg strojenia jest osobnym, ręcznym uruchomieniem
 udokumentowanym w `docs/strojenie-wag.md`.
+
+`TrayPolicy` sama w sobie (przeszukanie tacki, brak mutacji gry, kolejność
+klocków ma znaczenie) ma dedykowane testy w `tests/test_tray_policy.py` —
+tu sprawdzamy tylko, że `build_policy("tray", ...)` faktycznie jej używa.
 """
 import json
 import os
-import random
 import sys
 import tempfile
 import unittest
@@ -14,12 +17,10 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools"))
 
-from board import Board
 from features import FEATURE_NAMES
-from game import Game
-from policies import HeuristicPolicy
+from policies import HeuristicPolicy, TrayPolicy
 from tools.tune_weights import (
-    TraySearchPolicy,
+    build_policy,
     evaluate_candidate,
     main as tune_main,
     training_seeds,
@@ -69,51 +70,33 @@ class TestUpdateDistribution(unittest.TestCase):
         self.assertGreaterEqual(std[0], 0.05)
 
 
-class TestTraySearchPolicy(unittest.TestCase):
-    def test_returns_legal_action_from_fresh_tray(self):
-        game = Game(seed=123)
-        policy = TraySearchPolicy(HeuristicPolicy.DEFAULT_WEIGHTS)
-        policy.reset(123)
-        actions = game.available_actions()
-        action = policy.act(game, actions)
-        self.assertIn(action, actions)
+class TestBuildPolicy(unittest.TestCase):
+    def test_heuristic_uses_heuristic_policy_with_given_weights(self):
+        weights = tuple(2.0 for _ in FEATURE_NAMES)
+        policy = build_policy("heuristic", weights)
+        self.assertIsInstance(policy, HeuristicPolicy)
+        self.assertEqual(policy.weights, weights)
 
-    def test_plan_is_consumed_across_a_round(self):
-        game = Game(seed=42)
-        policy = TraySearchPolicy(HeuristicPolicy.DEFAULT_WEIGHTS)
-        policy.reset(42)
-        for _ in range(3):
-            actions = game.available_actions()
-            action = policy.act(game, actions)
-            self.assertIn(action, actions)
-            gained, _score, done, _msg = game.step(action)
-            self.assertGreaterEqual(gained, 0)
-            if done:
-                break
+    def test_tray_uses_policies_tray_policy_with_given_weights(self):
+        weights = tuple(1.5 for _ in FEATURE_NAMES)
+        policy = build_policy("tray", weights)
+        self.assertIsInstance(policy, TrayPolicy)
+        self.assertEqual(policy.weights, weights)
 
-    def test_prefers_line_clear_over_empty_board_when_equally_weighted(self):
-        # Plansza prawie pelny wiersz 0 (brakuje jednego pola na x=7), reszta pusta.
-        # Klocek 1x1 na (7,0) czysci linie i daje najwyzszy natychmiastowy zysk
-        # niezaleznie od wag cech (te sa te same dla kazdego kandydata w tacce).
-        board = Board()
-        board.grid[0] = [1, 1, 1, 1, 1, 1, 1, 0]
-        game = Game(seed=1)
-        game.board = board
-        from pieces import PIECE_POOL
-
-        one_by_one = next(p for p in PIECE_POOL if len(p.shape) == 1 and len(p.shape[0]) == 1)
-        game.pieces = [one_by_one, one_by_one, one_by_one]
-        policy = TraySearchPolicy(HeuristicPolicy.DEFAULT_WEIGHTS)
-        policy.reset(1)
-        actions = game.available_actions()
-        idx, x, y = policy.act(game, actions)
-        self.assertEqual((x, y), (7, 0))
+    def test_unknown_policy_raises(self):
+        with self.assertRaises(ValueError):
+            build_policy("nope", HeuristicPolicy.DEFAULT_WEIGHTS)
 
 
 class TestEvaluateCandidate(unittest.TestCase):
     def test_heuristic_matches_default_weights_policy(self):
         seeds = [111, 222]
         score = evaluate_candidate("heuristic", HeuristicPolicy.DEFAULT_WEIGHTS, seeds, move_cap=50)
+        self.assertIsInstance(score, (int, float))
+
+    def test_tray_policy_evaluates_via_policies_tray_policy(self):
+        seeds = [111, 222]
+        score = evaluate_candidate("tray", TrayPolicy.DEFAULT_WEIGHTS, seeds, move_cap=50)
         self.assertIsInstance(score, (int, float))
 
 

@@ -15,20 +15,11 @@ zbiorów zamieniłoby pomiar `benchmark.py` na pomiar przeuczenia.
 
 Ten sam wektor wag ocenia dwie polityki:
 
-- `heuristic` — `policies.HeuristicPolicy`, jeden pół-ruch w przód (import,
-  bez zmian w `policies.py`).
-- `tray` — `TraySearchPolicy` niżej: próbuje wszystkie **6 kolejności**
-  ułożenia bieżącej tacki (wzór z `JacksonW98/block-blast-bot` cytowany w
-  `docs/research/kierunek-algorytmiczny.md`), a w obrębie każdej kolejności
-  wybiera zachłannie (1-ply, `w · features(...)` po każdym postawieniu) gdzie
-  postawić kolejny klocek. To NIE jest przeszukanie wyczerpujące po pozycjach
-  (kolejność × pozycja1 × pozycja2 × pozycja3) — zmierzone w tym zadaniu: przy
-  pustej planszy i małych klockach to iloczyn rzędu 10^5-10^6 liści na jedną
-  decyzję, za drogie w Pythonie na tym symulatorze w limicie czasu joba.
-  Kompromis: pełne rozgałęzienie po kolejności (to jest ta część, którą
-  literatura wiąże z wygraną), zachłanne po pozycji (tania). Nie wchodzi w
-  `policies.py`, bo #59 dopuszcza do zapisu tylko ten plik, `weights.json`
-  i `docs/strojenie-wag.md`.
+- `heuristic` — `policies.HeuristicPolicy`, jeden pół-ruch w przód.
+- `tray` — `policies.TrayPolicy`, wyczerpujące przeszukanie z wiązką całej
+  bieżącej tacki (#58). Strojenie musi oceniać kandydatów tą samą polityką,
+  którą potem mierzy `benchmark.py` (`--candidate tray`) — inna implementacja
+  tacki na czas strojenia dałaby fałszywy wynik (patrz `docs/odzyskanie-cyklu-3.md`).
 
 Job ma limit czasu: pętla CEM sprawdza deadline przed każdym kandydatem (nie
 tylko między iteracjami), więc przerwanie w połowie iteracji nie gubi
@@ -36,7 +27,6 @@ najlepszego dotychczasowego wyniku — ten jest śledzony per-kandydat, nie
 per-iteracja.
 """
 import argparse
-import itertools
 import json
 import os
 import random
@@ -47,107 +37,19 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from benchmark import play_game
-from board import Board
-from features import FEATURE_NAMES, features
-from policies import HeuristicPolicy
-from scoring import COMBO_COUNTER_BASE, FULL_CLEAR_BONUS, clear_points, placement_points
+from features import FEATURE_NAMES
+from policies import HeuristicPolicy, TrayPolicy
 
 BENCH_CONFIG = "bench/config.json"
 DEFAULT_OUT = "weights.json"
 MIN_STD = 0.05
 
 
-class TraySearchPolicy:
-    """6 kolejności ułożenia bieżącej tacki, zachłanne (1-ply) dobieranie
-    pozycji w obrębie każdej kolejności, `w · features(...)` na planszy po
-    całej rundzie decyduje, która kolejność wygrywa (patrz moduł wyżej).
-
-    Plan liczony raz na rundę (gdy `self._plan` jest pusty) i konsumowany
-    postawienie po postawieniu — bez tego przeszukanie powtarzałoby się 3x.
-    Jeżeli żadna kolejność nie ułoży się w całości (rzadkie, planszą prawie
-    pełna), plan jest odpowiednio krótszy — kolejne wywołanie `act` przeliczy
-    resztę od aktualnego stanu `game.pieces`."""
-
-    def __init__(self, weights):
-        self.weights = tuple(weights)
-        self.name = "tray"
-        self._plan = []
-
-    def reset(self, game_seed):
-        self._plan = []
-
-    def act(self, game, actions):
-        if not self._plan:
-            self._plan = self._plan_round(game, actions)
-        return self._plan.pop(0)
-
-    def _plan_round(self, game, actions):
-        tray = [(idx, p) for idx, p in enumerate(game.pieces) if p is not None]
-        best_seq, best_score = None, None
-        for order in itertools.permutations(tray):
-            seq, score = _greedy_plan(game.board, game.combo, game.combo_counter, order, self.weights)
-            if not seq:
-                continue
-            if best_score is None or score > best_score:
-                best_score, best_seq = score, seq
-        if best_seq is None:
-            # Zadna kolejnosc nie ulozyla ani jednego klocka -- niemozliwe przy
-            # niepustym `actions` (gwarancja wywolujacego), zapora defensywna.
-            return [actions[0]]
-        return best_seq
-
-
-def _greedy_plan(board, combo, combo_counter, order, weights):
-    """Dla jednej kolejności `order` (lista `(idx, piece)`) dobiera zachłannie
-    (1-ply, `w · features(...)`) pozycję każdego kolejnego klocka na kopii
-    `board`, powtarzając logikę combo z `game.py:apply_placement`. Zwraca
-    `(sekwencja_akcji, wynik_koncowy)`; sekwencja jest krótsza od `order`,
-    jeśli w pewnym momencie żaden z pozostałych klocków się nie mieści."""
-    seq = []
-    total_gain = 0
-    cur_board = board
-    cur_combo, cur_combo_counter = combo, combo_counter
-    for i, (idx, piece) in enumerate(order):
-        remaining_after = len(order) - i - 1
-        h, w = len(piece.shape), len(piece.shape[0])
-        best = None
-        for y in range(Board.HEIGHT - h + 1):
-            for x in range(Board.WIDTH - w + 1):
-                if not cur_board.can_place_piece(piece, x, y):
-                    continue
-                nboard = cur_board.copy()
-                nboard.place_piece(piece, x, y)
-                step_gain = placement_points(piece)
-                rows, cols = nboard.check_full_lines()
-                lines = len(rows) + len(cols)
-                if lines > 0:
-                    ncombo = cur_combo + 1
-                    ncombo_counter = COMBO_COUNTER_BASE + remaining_after
-                    step_gain += clear_points(ncombo, lines)
-                elif cur_combo_counter <= 1:
-                    ncombo, ncombo_counter = 0, COMBO_COUNTER_BASE
-                else:
-                    ncombo, ncombo_counter = cur_combo, cur_combo_counter - 1
-                nboard.clear_lines(rows, cols)
-                if not any(any(row) for row in nboard.grid):
-                    step_gain += FULL_CLEAR_BONUS
-                step_score = step_gain + sum(wt * f for wt, f in zip(weights, features(nboard)))
-                if best is None or step_score > best[0]:
-                    best = (step_score, (idx, x, y), step_gain, nboard, ncombo, ncombo_counter)
-        if best is None:
-            break
-        _score, action, step_gain, cur_board, cur_combo, cur_combo_counter = best
-        seq.append(action)
-        total_gain += step_gain
-    final_score = total_gain + sum(wt * f for wt, f in zip(weights, features(cur_board)))
-    return seq, final_score
-
-
 def build_policy(policy_name, weights):
     if policy_name == "heuristic":
         return HeuristicPolicy(weights=weights)
     if policy_name == "tray":
-        return TraySearchPolicy(weights)
+        return TrayPolicy(weights=weights)
     raise ValueError("nieznana polityka: " + policy_name)
 
 
