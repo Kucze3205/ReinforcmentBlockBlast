@@ -1,6 +1,7 @@
 # Zegar wznowienia: cron GitHuba spóźnia się o godziny (dozorca wstaje co 2,5-5 h), a limit subskrypcji
 # resetuje się co do minuty. Epilog zaparkowanej sesji wywołuje ten workflow; job śpi do `wznow_po`
-# i woła launch. Dozorca zostaje siatką bezpieczeństwa (park dłuższy niż limit joba, padnięty zegar).
+# i woła launch; park dłuższy niż limit joba przekazuje zegar kolejnemu przebiegowi. Dozorca zostaje
+# tylko siatką bezpieczeństwa (zgubione zdarzenie), nie zegarem pętli.
 name: resume
 run-name: resume #${{ inputs.issue }}
 

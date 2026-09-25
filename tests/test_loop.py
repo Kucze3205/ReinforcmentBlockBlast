@@ -105,8 +105,9 @@ class RunIssueTest(unittest.TestCase):
 
 class ResumeTest(unittest.TestCase):
     def setUp(self):
-        self.saved = {k: getattr(loop, k) for k in ("find_report", "issue", "label_names", "launch", "time", "now")}
-        self.slept, self.launched = [], []
+        self.saved = {k: getattr(loop, k) for k in ("find_report", "issue", "label_names", "launch", "time", "now", "gh")}
+        self.slept, self.launched, self.dispatched = [], [], []
+        loop.gh = lambda *a, **k: self.dispatched.append(a) or ""
         loop.now = lambda: loop.parse_time("2026-09-25T12:00:00Z")
         loop.time = type("T", (), {"sleep": staticmethod(self.slept.append)})
         loop.issue = lambda n: {}
@@ -127,16 +128,60 @@ class ResumeTest(unittest.TestCase):
         self.assertEqual(self.slept, [1800])
         self.assertEqual(self.launched, [58])
 
-    def test_termin_poza_limitem_joba_zostaje_dozorcy(self):
+    def test_termin_poza_limitem_joba_przekazuje_zegar(self):
         self.report("2026-09-26T12:00:00Z")
         loop.resume(58)
-        self.assertEqual((self.slept, self.launched), ([], []))
+        self.assertEqual((self.slept, self.launched), ([loop.MAX_SLEEP_S], []))
+        self.assertEqual(self.dispatched, [("workflow", "run", "resume.yml", "-f", "issue=58")])
+
+    def test_zegar_nie_idzie_dalej_gdy_park_zdjety(self):
+        self.report("2026-09-26T12:00:00Z")
+        loop.label_names = lambda i: set()
+        loop.resume(58)
+        self.assertEqual(self.dispatched, [])
 
     def test_nie_wznawia_gdy_park_zdjety(self):
         self.report("2026-09-25T11:00:00Z")
         loop.label_names = lambda i: set()
         loop.resume(58)
         self.assertEqual(self.launched, [])
+
+
+class ZobowiazaniaTest(unittest.TestCase):
+    """Epilog pyta o resztę pętli, gdy jego własny przebieg jeszcze trwa: nie może go liczyć jako zobowiązania."""
+    def setUp(self):
+        self.saved = {k: getattr(loop, k) for k in ("gh", "loop_open", "now")}
+        self.env = os.environ.get("GITHUB_RUN_ID")
+        os.environ["GITHUB_RUN_ID"] = "7"
+        loop.now = lambda: loop.parse_time("2026-09-25T12:00:00Z")
+        loop.loop_open = lambda: []
+        loop.LAUNCHED.clear()
+
+    def tearDown(self):
+        for k, v in self.saved.items():
+            setattr(loop, k, v)
+        loop.LAUNCHED.clear()
+        if self.env is None:
+            os.environ.pop("GITHUB_RUN_ID")
+        else:
+            os.environ["GITHUB_RUN_ID"] = self.env
+
+    def runs(self, *runs):
+        loop.gh = lambda *a, **k: json.dumps([dict(databaseId=i, displayTitle="session #%s" % i, status=s,
+                                                   createdAt="2026-09-25T11:00:00Z") for i, s in runs])
+
+    def test_wlasny_przebieg_to_nie_zobowiazanie(self):
+        self.runs((7, "in_progress"))
+        self.assertFalse(loop.commitments())
+
+    def test_cudzy_przebieg_to_zobowiazanie(self):
+        self.runs((7, "in_progress"), (8, "queued"))
+        self.assertTrue(loop.commitments())
+
+    def test_swiezy_dispatch_z_procesu_to_zobowiazanie(self):
+        self.runs()
+        loop.LAUNCHED.add(12)
+        self.assertTrue(loop.commitments())
 
 
 if __name__ == "__main__":

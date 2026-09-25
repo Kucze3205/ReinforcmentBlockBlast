@@ -305,6 +305,7 @@ def resolve(n):
         why = "brak skilla dla roli `%s`" % role
     if why:
         close_out(n, i, "blocked", {"przyczyna": "start:" + why.split()[0]}, "Sesja nie wystartowała: " + why + ".")
+        reconcile()
         raise SystemExit(why)
     branch = "task/%s" % n
     m = re.search(r"<!-- start-branch: (\S+) -->", i["body"] or "")
@@ -329,10 +330,15 @@ def resolve(n):
 
 # ---------------------------------------------------------------- dispatch
 
+LAUNCHED = set()     # dispatch z tego procesu: `gh run list` pokazuje nowy przebieg z opóźnieniem
+
+
 def session_runs():
+    """Przebiegi sesji bez własnego: epilog pyta o resztę pętli, a jego przebieg jeszcze trwa."""
     out = gh("run", "list", "--workflow", "session.yml", "--limit", "100",
-             "--json", "displayTitle,status,createdAt")
-    return json.loads(out or "[]")
+             "--json", "databaseId,displayTitle,status,createdAt")
+    own = os.environ.get("GITHUB_RUN_ID", "")
+    return [r for r in json.loads(out or "[]") if str(r["databaseId"]) != own]
 
 
 def launch(n):
@@ -349,6 +355,7 @@ def launch(n):
         return False
     roles = [l[5:] for l in label_names(i) if l.startswith("rola:")]
     gh("workflow", "run", "session.yml", "-f", "issue=%s" % n, "-f", "role=%s" % (roles[0] if len(roles) == 1 else ""))
+    LAUNCHED.add(n)
     say("launch #%s" % n)
     return True
 
@@ -578,12 +585,15 @@ def open_awaria(title, why, todo):
     gh("issue", "create", "--title", "AWARIA: " + title, "--label", "awaria", "--body-file", "-", inp=body)
 
 
-def watch():
-    if not guard_ok():
-        return 0
+def awaria_open():
     awarie = json.loads(gh("issue", "list", "--label", "awaria", "--state", "open", "--json", "number") or "[]")
     if awarie:
         say("cisza: awaria otwarta #%s" % awarie[0]["number"])     # jedyny stan, w którym brak przebiegów nie jest zatorem
+    return bool(awarie)
+
+
+def watch():
+    if not guard_ok() or awaria_open():
         return 0
     red = False
     code = probe()
@@ -600,17 +610,28 @@ def watch():
     if assets in ("401", "403", "404"):
         say("ASSETS_READ_TOKEN martwy (%s): sam mail, bez awarii — gatuje tylko verifiera" % assets)
         red = True
+    return drive() or (1 if red else 0)
+
+
+def reconcile():
+    """Koniec każdej sesji: pętla bez zobowiązań rusza od razu, nie przy następnym cronie (ten spóźnia się o godziny)."""
+    if guard_ok() and not awaria_open():
+        drive()
+
+
+def drive():
+    """Wspólny ogon dozorcy i epilogu: seria padów -> awaria; zaparkowane po terminie -> wznów; brak zobowiązań -> kopnij."""
     if crash_streak():
         open_awaria("%s sesje z rzędu padły bez commita" % CRASH_STREAK,
                     "Trzy ostatnie sesje zakończyły się `crashed` bez commita. Licznik jest ślepy na przyczynę.",
                     "Obejrzyj przyczynę maszynową w raportach ostatnich sesji (pole `przyczyna`) i napraw.")
         say("awaria: %s sesje z rzędu padły bez commita" % CRASH_STREAK)
         return 1
-    red = watch_parked() or red
+    watch_parked()
     if commitments():
         say("cisza: zobowiązania w toku")
-        return 1 if red else 0
-    return kick() or (1 if red else 0)
+        return 0
+    return kick()
 
 
 def crash_streak():
@@ -635,7 +656,11 @@ def resume(n):
         return
     wait = (parse_time(due) - now()).total_seconds()
     if wait > MAX_SLEEP_S:
-        say("#%s: termin %s poza limitem joba, wznowienie zostaje dozorcy" % (n, due))
+        # termin dalej niż limit joba: śpij, ile wolno, i przekaż zegar następnemu przebiegowi
+        say("#%s: termin %s poza limitem joba, śpię %s s i przekazuję zegar dalej" % (n, due, MAX_SLEEP_S))
+        time.sleep(MAX_SLEEP_S)
+        if "blocked:rate-limit" in label_names(issue(n)):
+            gh("workflow", "run", "resume.yml", "-f", "issue=%s" % n, check=False)
         return
     if wait > 0:
         say("#%s: śpię %s s do %s" % (n, int(wait), due))
@@ -667,6 +692,8 @@ def loop_open():
 
 def commitments():
     """Pętla żyje <=> istnieje zobowiązanie: przebieg w toku, park z terminem w przyszłości, świeży dispatch (#10)."""
+    if LAUNCHED:
+        return True
     runs = session_runs()
     if any(r["status"] in ("queued", "in_progress", "waiting") for r in runs):
         return True
@@ -738,6 +765,7 @@ def main(argv):
         return 0
     if cmd == "finalize":
         finalize(int(args[0]), args[1])
+        reconcile()
         return 0
     if cmd == "bench":
         bench(int(args[0]), args[1])
