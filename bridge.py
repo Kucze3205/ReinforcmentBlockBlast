@@ -2,7 +2,8 @@
 Most do oryginału (#18): zrzut ekranu -> stan -> ruch -> przeciągnięcie -> potwierdzenie.
 
 Działa na emulatorze w Actions (ekran 320x640). Stan planszy i trzech klocków
-czytany z pikseli, ruch wybiera polityka zachłanna z benchmarku, wykonanie przez
+czytany z pikseli, ruch wybiera polityka z benchmarku (domyślnie zachłanna,
+wybór przez argv[2]/`BRIDGE_POLICY`, #95), wykonanie przez
 `adb shell input motionevent`. Każdy ruch trafia do bridge-out/moves.jsonl
 (stan, trójka, ruch, wynik — wejście z #9 dla dopasowania symulatora).
 
@@ -19,9 +20,10 @@ from types import SimpleNamespace
 import numpy as np
 from PIL import Image, ImageDraw
 
+from benchmark import build_policy
 from board import Board
 from pieces import Piece
-from policies import GreedyPolicy
+from scoring import COMBO_COUNTER_BASE
 
 OUT = "bridge-out"
 PACKAGE = "com.block.juggle"
@@ -189,9 +191,16 @@ def annotate(img, grid, path):
     im.save(path)
 
 
-def main(max_moves):
+def resolve_policy_spec(argv, env):
+    """Wiersz poleceń ma pierwszeństwo nad `BRIDGE_POLICY`; domyślnie `greedy` (#95)."""
+    if len(argv) > 2:
+        return argv[2]
+    return env.get("BRIDGE_POLICY", "greedy")
+
+
+def main(max_moves, policy_spec="greedy"):
     os.makedirs(OUT, exist_ok=True)
-    policy = GreedyPolicy()
+    policy = build_policy(policy_spec, {"torch_seed": 0})
     log = open(os.path.join(OUT, "moves.jsonl"), "w")
     img, grid, slots = settled_state()
     ok_streak = best_streak = 0
@@ -203,7 +212,8 @@ def main(max_moves):
         board.grid = [row[:] for row in grid]
         pieces = [Piece(s[0], f"slot{i}", -1) if s else None for i, s in enumerate(slots)]
         moves = legal_moves(board, pieces)
-        entry = {"n": n, "board": grid, "tray": [s[0] if s else None for s in slots], "score": score}
+        entry = {"n": n, "policy": policy.name, "board": grid,
+                 "tray": [s[0] if s else None for s in slots], "score": score}
         if not in_game():
             entry["end"] = "gra nie jest na pierwszym planie"
             log.write(json.dumps(entry) + "\n")
@@ -213,7 +223,7 @@ def main(max_moves):
             entry["end"] = "brak legalnego ruchu wg odczytu"
             log.write(json.dumps(entry) + "\n")
             break
-        game = SimpleNamespace(board=board, pieces=pieces, combo=0)
+        game = SimpleNamespace(board=board, pieces=pieces, combo=0, combo_counter=COMBO_COUNTER_BASE)
         i, x, y = policy.act(game, moves)
         expected = simulate(board, pieces[i], x, y)
         info, aim = drag(slots[i][1], pieces[i], x, y)
@@ -233,4 +243,5 @@ def main(max_moves):
 
 
 if __name__ == "__main__":
-    main(int(sys.argv[1]) if len(sys.argv) > 1 else 30)
+    main(int(sys.argv[1]) if len(sys.argv) > 1 else 30,
+         resolve_policy_spec(sys.argv, os.environ))
