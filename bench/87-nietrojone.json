@@ -1,0 +1,67 @@
+{
+  "sha": "debae317889601b1b6ae94a03e81931204fd73da",
+  "dirty": false,
+  "issue": 87,
+  "status": "ok",
+  "blocked_reason": null,
+  "config": {
+    "n_seeds": 300,
+    "move_cap": 2000,
+    "epsilon": 0.0,
+    "torch_seed": 0,
+    "threshold_pct": 10.0,
+    "fixed_seed_file": "bench/seeds_fixed.json",
+    "rotated_seed_salt": 2654435761
+  },
+  "source_hashes": {
+    "scoring.py": "1e4a1b8730243ce6",
+    "pieces.py": "7241459a3cb11706"
+  },
+  "arms": {
+    "candidate": {
+      "policy": "tray",
+      "fixed": {
+        "mean": 3727.0,
+        "median": 2006.5,
+        "p10": 312.5,
+        "survival_mean": 77.17,
+        "capped_pct": 0.0
+      },
+      "rotated": {
+        "mean": 4419.17,
+        "median": 2700.5,
+        "p10": 498.3,
+        "survival_mean": 86.9,
+        "capped_pct": 0.0
+      },
+      "overfit_gap_pct": -18.57
+    },
+    "previous": {
+      "policy": "heuristic",
+      "fixed": {
+        "mean": 762.5,
+        "median": 515.5,
+        "p10": 139.9,
+        "survival_mean": 36.84,
+        "capped_pct": 0.0
+      },
+      "rotated": {
+        "mean": 832.81,
+        "median": 516.5,
+        "p10": 141.0,
+        "survival_mean": 38.16,
+        "capped_pct": 0.0
+      },
+      "overfit_gap_pct": -9.22
+    }
+  },
+  "deltas": {
+    "kandydat vs previous": {
+      "mean_diff": 2964.5,
+      "pct": 388.79,
+      "sd_diff": 4742.83,
+      "label": "poprawa"
+    }
+  },
+  "duration_s": 1337.8
+}
