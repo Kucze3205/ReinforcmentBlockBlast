@@ -7,6 +7,7 @@ co polityka umie, a nie jak wypada w trakcie nauki (#8).
 import random
 
 from board import Board
+from features import features
 from scoring import FULL_CLEAR_BONUS, clear_points, placement_points
 
 
@@ -42,6 +43,41 @@ class GreedyPolicy:
         return best
 
 
+class HeuristicPolicy:
+    """Wybiera postawienie po `immediate_gain + w · features(plansza po postawieniu)`.
+
+    Wagi są dobrane ręcznie, na oko (uzasadnienie: `docs/cechy-planszy.md`) — to
+    fundament pod przyszłe strojenie, nie rekord.
+    """
+
+    name = "heuristic"
+
+    # Kolejność zgodna z features.FEATURE_NAMES.
+    DEFAULT_WEIGHTS = (
+        -0.5,   # occupied_cells
+        -10.0,  # surrounded_empty
+        -2.0,   # empty_regions
+        1.0,    # largest_empty_rect
+        3.0,    # near_full_lines
+        0.5,    # placeable_shapes
+    )
+
+    def __init__(self, weights=None):
+        self.weights = tuple(weights) if weights is not None else self.DEFAULT_WEIGHTS
+
+    def reset(self, game_seed):
+        pass
+
+    def act(self, game, actions):
+        best, best_score = actions[0], None
+        for action in actions:
+            gain, board = _simulate_placement(game, action)
+            score = gain + sum(w * f for w, f in zip(self.weights, features(board)))
+            if best_score is None or score > best_score:
+                best, best_score = action, score
+        return best
+
+
 class ModelPolicy:
     """Wytrenowana sieć w trybie deterministycznym (ε = 0)."""
 
@@ -58,8 +94,11 @@ class ModelPolicy:
         return tuple(move)
 
 
-def _immediate_gain(game, action):
-    """Punkty, które da to postawienie — wg skalibrowanego wzoru, bez zmiany stanu gry."""
+def _simulate_placement(game, action):
+    """Postawienie na kopii planszy, bez dotykania stanu gry.
+
+    Zwraca `(przyrost punktów, plansza po postawieniu i ewentualnym czyszczeniu)`.
+    """
     idx, x, y = action
     piece = game.pieces[idx]
     board = game.board.copy()
@@ -73,4 +112,10 @@ def _immediate_gain(game, action):
         board.clear_lines(rows, cols)
         if not any(any(row) for row in board.grid):
             gain += FULL_CLEAR_BONUS
+    return gain, board
+
+
+def _immediate_gain(game, action):
+    """Punkty, które da to postawienie — wg skalibrowanego wzoru, bez zmiany stanu gry."""
+    gain, _ = _simulate_placement(game, action)
     return gain
