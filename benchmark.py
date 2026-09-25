@@ -23,7 +23,7 @@ import sys
 import time
 
 from game import Game
-from policies import GreedyPolicy, ModelPolicy, RandomPolicy
+from policies import GreedyPolicy, HeuristicPolicy, ModelPolicy, RandomPolicy
 
 CONFIG_PATH = "bench/config.json"
 HASHED_SOURCES = ["scoring.py", "pieces.py"]
@@ -87,11 +87,13 @@ def is_dirty():
 
 
 def build_policy(spec, config):
-    """`random`, `greedy` albo ścieżka do wag."""
+    """`random`, `greedy`, `heuristic` albo ścieżka do wag."""
     if spec == "random":
         return RandomPolicy(seed=config["torch_seed"])
     if spec == "greedy":
         return GreedyPolicy()
+    if spec == "heuristic":
+        return HeuristicPolicy()
 
     if not os.path.exists(spec):
         raise ArmUnavailable("brak pliku wag: " + spec)
@@ -243,7 +245,7 @@ def main(argv=None):
             pass
 
     parser = argparse.ArgumentParser(description="Benchmark bota Block Blast")
-    parser.add_argument("--candidate", required=True, help="random | greedy | ścieżka do wag")
+    parser.add_argument("--candidate", required=True, help="random | greedy | heuristic | ścieżka do wag")
     parser.add_argument("--previous", help="ramię odniesienia: poprzednik")
     parser.add_argument("--record", help="ramię odniesienia: rekordzista")
     parser.add_argument("--issue", type=int, required=True, help="numer issue zadania-benchmarku")
