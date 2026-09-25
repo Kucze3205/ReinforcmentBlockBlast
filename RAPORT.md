@@ -1,63 +1,78 @@
 # Raport pętli
 
-**2026-09-24 · cykl 2**
+**2026-09-25 · cykl 3**
 
 **Czeka na ciebie:** [otwarte awarie](https://github.com/Kucze3205/ReinforcmentBlockBlast/labels/awaria)
-— dziś jedna, [#48](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/48), i bez niej
-pętla nie ruszy.
+— dziś żadnej. Pętla chodzi sama.
+
+Są natomiast **dwie rzeczy, których żadna rola nie ma jak naprawić** i które opisuję niżej,
+w „Co się wydarzyło". Obie są drobne i obie leżą poza zasięgiem sesji.
 
 ## Gdzie jesteśmy
 
-Rekordu nie ma. `bench/record.json` nie istnieje, nie ma ani jednych wag. Najlepsze, co repo
-dziś potrafi, to zachłanna heurystyka na jeden pół-ruch w przód: **704,79 punktu** średnio
-i **34,99 postawień** na partię, na 300 stałych seedach. Losowa polityka dla skali: 59,15.
-Cel to 10 000 000 średnio w symulatorze i jedna realna partia ≥ 1 mln w apce. Brakuje czterech
-rzędów wielkości.
+Rekordu nadal nie ma. `bench/record.json` nie istnieje, nie ma ani jednych wag. Najlepsze,
+co repo dziś potrafi, to zachłanna heurystyka patrząca na jeden klocek i na jeden ruch w przód:
+**704,79 punktu** średnio i **34,99 postawień** na partię, na 300 stałych seedach. Losowa
+polityka dla skali: 59,15. Cel to 10 000 000 średnio w symulatorze i jedna realna partia
+≥ 1 mln w apce. Dystans: **około czternaście tysięcy razy**.
 
-Przez dwa cykle ta liczba nie drgnęła i nie mogła, bo przez dwa cykle **żadna sesja nie
-wykonała ani jednej linii pracy**.
+Ta liczba nie drgnęła **trzeci cykl z rzędu**. Cykl 1 był biegiem na sucho, cykl 2 spędził
+się na odblokowywaniu pętli, cykl 3 dopiero teraz zlecił pierwszą prawdziwą pracę
+algorytmiczną. To jest uczciwy opis: trzy cykle poszły na to, żeby maszyna w ogóle ruszyła.
 
 ## Co się wydarzyło
 
-Cykl 1 był biegiem na sucho i zdał: znalazł dwie usterki, które zatrzymują pętlę. Naprawiłeś
-pierwszą — zamek na issue, który uniemożliwiał sesji opublikowanie raportu. Ta naprawa
-zadziałała w całości i to jest dobra wiadomość tego cyklu: raport publikuje się sam, etykieta
-się nakłada, issue się zamyka, zadania zależne ruszają bez niczyjej ręki. Sesja, która pisze
-ten raport, wstała dokładnie w ten sposób.
+**Pętla jest sprawna na całej długości i to jest najważniejsza wiadomość tego cyklu.**
+Commity sesji roboczych cyklu 2 dojechały na gałąź domyślną — sześć zadań, żadnego nie
+uruchamiał człowiek. Zadanie dociera do sesji, sesja raportuje, raport ląduje przy issue,
+issue się zamyka, zależne odblokowują się same, epilog rusza następne, a zmiany się scalają.
+Ostatni niesprawdzony odcinek mechaniki jest sprawdzony.
 
-Druga usterka została nietknięta i to ona zjadła cały cykl. `agent.sh` sięga po treść zadania,
-zanim ustawi token, więc plik z zadaniem nie powstaje **dla żadnej roli**. Wszystkie trzy
-sesje robocze cyklu 1 wróciły z tym samym zdaniem: katalog jest pusty, nie wiem, co mam robić.
-Pętla domyka więc cykl poprawnie i wykonuje w nim puste zadanie. Opis i gotowa poprawka są
-w [#48](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/48), z uwagą, żeby nie
-przesuwać eksportu tokenu globalnie — wyciekłby wtedy do ról, które celowo go nie mają.
+**Cykl 3 podjął decyzję, którą poprzednie dwa odkładały: zmienia kierunek algorytmiczny.**
+DQN schodzi z linii głównej. Miał przeciw sobie własny pomiar — 53 kroki na sekundę na
+runnerze bez GPU, płaska krzywa po osiemdziesięciu tysiącach kroków, przeżycie gorsze od
+zwykłej heurystyki — i, jak się okazało po przeszukaniu literatury, nie miał za sobą żadnego
+precedensu. W tej rodzinie gier (Tetris i pokrewne) DQN, C51 i PPO przegrywają z ręcznie
+dostrojoną heurystyką i wynikiem, i kosztem.
 
-Do tego doszła trzecia rzecz, której wcześniej nie było jak zobaczyć: **nic się nie scala**.
-Epilog uruchamia testy po rebasie i przy czerwonych odrzuca scalenie, a testy są czerwone
-przez jeden przypadkowy import w `model.py`, który ciągnie bibliotekę okienkową nieobecną
-na runnerze. Skutek jest cichy: dziennik cyklu 1 i poprzednia wersja tego raportu leżą na
-gałęzi zadaniowej i nigdy nie dojechały, a każdy kolejny orchestrator budzi się z pustą
-pamięcią i uznaje, że jest pierwszy. Ta poprawka jest w zasięgu pętli i czeka jako
-[#49](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/49) — ruszy sama, gdy
-zamkniesz awarię.
+Nowa linia to trzy rzeczy naraz: **funkcja oceny planszy** zbudowana z cech (dziury,
+fragmentacja, największy wolny prostokąt, ile kształtów jeszcze wchodzi), **wyczerpujące
+przeszukanie bieżącej tacki** — trzy klocki są przecież znane jednocześnie, a dzisiejsza
+polityka patrzy tylko na jeden — oraz **strojenie wag offline** metodą cross-entropy.
+Argument, który przesądził: w klasycznym Tetrisie te same cechy dają pięć milionów linii
+z wagami dobranymi ręcznie i pięćdziesiąt jeden milionów z wagami strojonymi. Cała przewaga
+siedzi w wagach, strojenie jest liniowe, chodzi na zwykłym procesorze i nie potrzebuje GPU —
+czyli mieści się dokładnie na sprzęcie, który mamy.
 
-Przy okazji wyszło na jaw, że poprzedni cykl źle odczytał sprawę punktacji. Nazwał ją
-zaniedbanym długiem; w rzeczywistości jest to konflikt dwóch ustaleń. Punktacja symulatora
-została przez ciebie **zamrożona** na pomiarze z mostu, zgodnym co do punktu w osiemnastu
-ruchach z rzędu — a obok, na niescalonej gałęzi, leży sprzeczna z nią drabinka punktów,
-filtr grywalności tacki i przepisany generator, każde z własnym pomiarem i własną linią
-bazową. To jest prawdziwa niewiadoma tego projektu i dostała osobne zadanie.
+**Rozstrzygnięty został też spór o punktację.** Na bocznej gałęzi leżała drabinka punktowa
+dająca ponad dwa razy więcej punktów za ten sam ruch. Odrzucona: obecny wzór jest zamrożony
+na pomiarze z prawdziwej gry, zgodnym co do punktu przez osiemnaście ruchów, a drabinka nie
+ma za sobą żadnego pomiaru. Dwukrotnie wyższe liczby to inflacja miarki, nie lepszy bot —
+podnoszą tak samo wynik polityki losowej. Linia bazowa zostaje nieprzeliczona, więc
+porównania w cyklu 3 będą uczciwe.
+
+Nagroda dostała jedną konkretną poprawkę: silnik wyrzucał punkty zdobyte ostatnim ruchem
+partii i raportował za niego karę. Średnio to jedenaście punktów, ale w skrajnym przypadku
+sto pięćdziesiąt dwa — czyli agent dostawał karę za najlepszy ruch, jaki wykonał. Sprawdzone
+zostało przy tym, że poprawka nie rusza linii bazowej, bo benchmark czyta wynik partii,
+a nie nagrodę.
+
+**Dwie rzeczy dla ciebie, obie drobne.** Pierwsza: cykl, który wykryje awarię, traci własny
+dziennik — sesja zgłaszająca awarię raportuje uczciwie `partial`, a scalane są tylko sesje
+`done`. Tak uwięzły dzienniki cykli 1 i 2; odzyskałem je ręcznie, ale pułapka zostaje
+i dotyczy dokładnie tych cykli, w których wydarzyło się coś wartego zapisania. Druga: profil
+implementera dopuszcza `python`, ale nie `python3`, przez co jednej sesji nie udało się
+uruchomić testów. Obie poprawki leżą w plikach, których role nie dotykają.
 
 ## Co dalej
 
-Linia pracy brzmi: najpierw uczciwy sygnał nagrody i uczciwy symulator, potem wybór metody.
-Merytorycznie ona nadal rokuje — pomiar z cyklu przed nami pokazał, że uczenie sieci na
-runnerze bez karty graficznej jest nierealne jako metoda główna, a sam symulator bez sieci
-jest od niego dwa rzędy wielkości szybszy, co przesuwa ciężar na przeszukiwanie. Mapa cyklu 3
-jest już zbudowana i czeka: dwa zadania badawcze mają dowieźć materiał pod decyzję o kształcie
-nagrody i o kierunku algorytmicznym, trzy pomiarowe mają rozstrzygnąć rozjazdy, których nie
-wolno rozstrzygać zgadywaniem.
+Cykl 3 buduje nową linię czterema zadaniami po kolei — cechy planszy, przeszukanie tacki,
+strojenie wag, pomiar — i równolegle wysyła pierwszą od dwóch cykli sesję na emulator,
+po materiał do pytania „w jaką grę bot naprawdę gra" i po odpowiedź, czy most jeszcze żyje.
 
-Operacyjnie linia pracy nie rokuje wcale i nie da się tego obejść planowaniem. Nie mam sygnału,
-że kierunek jest zły; mam sygnał, że maszyna nie jeździ. Wszystko wisi na jednej poprawce
-w `agent.sh`. Po niej pętla ruszy sama.
+**Rokowanie: linia rokuje, po raz pierwszy z konkretnego powodu.** Ma precedens ilościowy
+w tej samej rodzinie gier, mieści się na naszym sprzęcie i ma dwa niezależne źródła przewagi,
+z których dziś nie używamy żadnego. Próg oceny zapisałem przed pomiarem, żeby nie dał się
+przesunąć po fakcie: benchmark ma pokazać **krotność, nie procenty**. Kilkanaście procent
+nad 704,79 po pełnym strojeniu oznacza, że linia jest źle postawiona, i cykl 4 ma ją wtedy
+zmienić, a nie iterować dalej.
