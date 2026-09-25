@@ -94,6 +94,15 @@ class PrzyczynaTest(unittest.TestCase):
         self.assertFalse(limited)
 
 
+class RunIssueTest(unittest.TestCase):
+    def test_run_issue_obcina_role(self):
+        self.assertEqual(loop.run_issue("session #12 · implementer"), "session #12")
+        self.assertEqual(loop.run_issue("session #12"), "session #12")
+
+    def test_run_issue_nie_myli_12_z_123(self):
+        self.assertNotEqual(loop.run_issue("session #123 · verifier"), "session #12")
+
+
 if __name__ == "__main__":
     unittest.main()
 

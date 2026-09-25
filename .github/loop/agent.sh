@@ -26,8 +26,9 @@ PROMPT="Jesteś rolą \`$ROLE\` w pętli. Wywołaj skill \`$ROLE\` narzędziem S
 timeout "${AGENT_TIMEOUT}m" claude -p "$PROMPT" \
   --model "$MODEL" --effort "$EFFORT" \
   --permission-mode acceptEdits --allowedTools "$TOOLS" \
-  --max-turns "$MAX_TURNS" --output-format json \
-  > "$OUT/claude-execution-output.json" 2> "$OUT/claude-stderr.txt"
-echo $? > "$OUT/agent-exit"
+  --max-turns "$MAX_TURNS" --output-format stream-json --verbose \
+  2> "$OUT/claude-stderr.txt" \
+  | python3 "$GITHUB_WORKSPACE/loop/.github/loop/stream_filter.py" "$OUT"
+echo "${PIPESTATUS[0]}" > "$OUT/agent-exit"
 kill "$SYNC" 2>/dev/null
 exit 0
