@@ -5,13 +5,14 @@ Zero agenta. Uruchamiany zawsze z checkoutu gałęzi domyślnej, nigdy z gałęz
 zadania — agent nie może zmienić kodu, który go pilnuje. Leży w `.github/`, więc
 pętla nie może go edytować (zakaz 2 z #7).
 
-Podpolecenia: guard, probe, route, resolve, export, publish, finalize, bench, watch.
+Podpolecenia: guard, probe, route, resolve, export, publish, finalize, bench, watch, resume.
 """
 import json
 import os
 import re
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -31,6 +32,7 @@ MAX_ATTEMPTS = 3        # #10: próby wznowienia
 MAX_AGE_DAYS = 30       # #10: zapadka wieku
 MAX_KICKS = 3           # #10: bezskuteczne kopnięcia
 CRASH_STREAK = 3        # #26: kolejne `crashed` bez commita
+MAX_SLEEP_S = 340 * 60  # resume.yml: job ma limit 360 min; dłuższy park zostaje dozorcy
 GRACE_MIN = 30          # #10: karencja pokrywa opóźnienie dispatchu, nigdy czas pracy
 MAX_GEN = 3             # #7: limit pokoleń następców
 MAX_CONFLICTS = 3
@@ -558,6 +560,8 @@ def finalize(n, work):
             when = reset or now() + timedelta(hours=BACKOFF_H[min(k - 1, len(BACKOFF_H) - 1)])
             update_report(n, dict(upd, status="paused", proby=k, wznow_po=when.strftime("%Y-%m-%dT%H:%M:%SZ")), prose)
             edit_labels(n, add=["blocked:rate-limit"])
+            # zegar w workflow: cron GitHuba spóźnia się o godziny, a park ma termin co do minuty
+            gh("workflow", "run", "resume.yml", "-f", "issue=%s" % n, check=False)
             return
     close_out(n, i, status, upd, prose)
 
@@ -620,6 +624,24 @@ def crash_streak():
         if f.get("status") != "crashed" or f.get("commit"):
             return False
     return True
+
+
+def resume(n):
+    """Śpi do `wznow_po` i wznawia zaparkowane issue. Powtórka dozorcy jest nieszkodliwa: launch deduplikuje."""
+    r = find_report(n)
+    due = fields(r["body"]).get("wznow_po") if r else None
+    if not due:
+        say("#%s: brak wznow_po, wznowienie zostaje dozorcy" % n)
+        return
+    wait = (parse_time(due) - now()).total_seconds()
+    if wait > MAX_SLEEP_S:
+        say("#%s: termin %s poza limitem joba, wznowienie zostaje dozorcy" % (n, due))
+        return
+    if wait > 0:
+        say("#%s: śpię %s s do %s" % (n, int(wait), due))
+        time.sleep(wait)
+    if "blocked:rate-limit" in label_names(issue(n)) and launch(n):
+        say("#%s: wznowiono o czasie" % n)
 
 
 def watch_parked():
@@ -722,6 +744,9 @@ def main(argv):
         return 0
     if cmd == "watch":
         return watch()
+    if cmd == "resume":
+        resume(int(args[0]))
+        return 0
     raise SystemExit("nieznane polecenie: " + cmd)
 
 
