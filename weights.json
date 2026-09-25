@@ -1,0 +1,56 @@
+{
+  "policy": "tray",
+  "feature_names": [
+    "occupied_cells",
+    "surrounded_empty",
+    "empty_regions",
+    "largest_empty_rect",
+    "near_full_lines",
+    "placeable_shapes"
+  ],
+  "weights": [
+    0.403299535647219,
+    -20.28685418437914,
+    -1.9260088638502832,
+    1.453845381190211,
+    3.3586330599884953,
+    1.0916145720258523
+  ],
+  "best_score": 6723.5,
+  "iterations": 1,
+  "duration_s": 109.2,
+  "games_played": 84,
+  "games_per_minute": 46.15,
+  "training_seeds_n": 6,
+  "params": {
+    "minutes": null,
+    "games_per_candidate": 6,
+    "population": 14,
+    "elite": 4,
+    "seed": 81
+  },
+  "init_weights": [
+    -0.5,
+    -10.0,
+    -2.0,
+    1.0,
+    3.0,
+    0.5
+  ],
+  "log": [
+    {
+      "iteration": 1,
+      "evaluated": 14,
+      "mean_score": 3154.38,
+      "elite_best_score": 6723.5,
+      "mean_vector": [
+        -0.198,
+        -13.4983,
+        -1.4506,
+        1.6807,
+        2.8856,
+        1.115
+      ]
+    }
+  ]
+}
