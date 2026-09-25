@@ -5,8 +5,10 @@
 **Czeka na ciebie:** [otwarte awarie](https://github.com/Kucze3205/ReinforcmentBlockBlast/labels/awaria)
 — dziś żadnej. Pętla chodzi sama.
 
-Są natomiast **dwie rzeczy, których żadna rola nie ma jak naprawić** i które opisuję niżej,
-w „Co się wydarzyło". Obie są drobne i obie leżą poza zasięgiem sesji.
+Są natomiast **dwie rzeczy, których żadna rola nie ma jak naprawić**: [#66](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/66)
+i [#67](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/67). Obie drobne, obie
+opisane niżej. Twoich trzech issues (#63, #64, #65) pętla nie ruszyła — same mówią, że są dla
+ciebie, i tak je potraktowałem; w #63 odpowiedziałem komentarzem i zrobiłem wariant najtańszy.
 
 ## Gdzie jesteśmy
 
