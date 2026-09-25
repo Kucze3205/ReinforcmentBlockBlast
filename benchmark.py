@@ -22,6 +22,7 @@ import subprocess
 import sys
 import time
 
+from features import FEATURE_NAMES
 from game import Game
 from policies import GreedyPolicy, HeuristicPolicy, ModelPolicy, RandomPolicy, TrayPolicy
 
@@ -86,8 +87,36 @@ def is_dirty():
         return True
 
 
+TUNED_POLICY_CLASSES = {
+    "heuristic": HeuristicPolicy,
+    "tray": TrayPolicy,
+}
+
+
+def load_tuned_weights(path):
+    """Wczytuje wektor wag z pliku zapisanego przez `tools/tune_weights.py` (klucz `weights`).
+
+    Zgłasza `ArmUnavailable` zamiast wyjątku z głębi: brak pliku, zły JSON albo
+    długość wektora niezgodna z `features.FEATURE_NAMES` (#80)."""
+    if not os.path.exists(path):
+        raise ArmUnavailable("brak pliku wag: " + path)
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+        weights = tuple(data["weights"])
+    except Exception as exc:
+        raise ArmUnavailable("wagi " + path + " nieładowalne: " + str(exc)) from exc
+    if len(weights) != len(FEATURE_NAMES):
+        raise ArmUnavailable(
+            "wagi " + path + ": oczekiwano " + str(len(FEATURE_NAMES))
+            + " liczb (FEATURE_NAMES), otrzymano " + str(len(weights))
+        )
+    return weights
+
+
 def build_policy(spec, config):
-    """`random`, `greedy`, `heuristic` albo ścieżka do wag."""
+    """`random`, `greedy`, `heuristic`, `tray`, `heuristic:<plik>`, `tray:<plik>`
+    albo ścieżka do wag torcha."""
     if spec == "random":
         return RandomPolicy(seed=config["torch_seed"])
     if spec == "greedy":
@@ -96,6 +125,12 @@ def build_policy(spec, config):
         return HeuristicPolicy()
     if spec == "tray":
         return TrayPolicy()
+
+    for prefix, policy_cls in TUNED_POLICY_CLASSES.items():
+        if spec.startswith(prefix + ":"):
+            path = spec[len(prefix) + 1:]
+            weights = load_tuned_weights(path)
+            return policy_cls(weights=weights)
 
     if not os.path.exists(spec):
         raise ArmUnavailable("brak pliku wag: " + spec)
@@ -247,7 +282,10 @@ def main(argv=None):
             pass
 
     parser = argparse.ArgumentParser(description="Benchmark bota Block Blast")
-    parser.add_argument("--candidate", required=True, help="random | greedy | heuristic | tray | ścieżka do wag")
+    parser.add_argument(
+        "--candidate", required=True,
+        help="random | greedy | heuristic | tray | heuristic:<plik> | tray:<plik> | ścieżka do wag torcha",
+    )
     parser.add_argument("--previous", help="ramię odniesienia: poprzednik")
     parser.add_argument("--record", help="ramię odniesienia: rekordzista")
     parser.add_argument("--issue", type=int, required=True, help="numer issue zadania-benchmarku")
