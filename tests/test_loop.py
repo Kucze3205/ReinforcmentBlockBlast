@@ -99,9 +99,9 @@ if __name__ == "__main__":
 
 
 class PoleWidzeniaTest(unittest.TestCase):
-    """#65: pętla nie dotyka issues bez etykiety `rola:*`."""
+    """#65: pętla nie dotyka issues bez etykiety `loop:iteration N`."""
 
-    def test_rola_open_pomija_issues_bez_roli_i_pr(self):
+    def test_loop_open_pomija_issues_bez_roli_i_pr(self):
         def lab(*names):
             return [{"name": n} for n in names]
         issues = [{"number": 1, "labels": lab("wayfinder:map")},
@@ -112,14 +112,15 @@ class PoleWidzeniaTest(unittest.TestCase):
         orig = loop.api_list
         loop.api_list = lambda path: issues
         try:
-            self.assertEqual([x["number"] for x in loop.rola_open()], [2])
+            self.assertEqual([x["number"] for x in loop.loop_open()], [2])
         finally:
             loop.api_list = orig
 
-    def test_resolve_odrzuca_issue_bez_dokladnie_jednej_roli(self):
+    def test_resolve_odrzuca_issue_bez_petli_albo_roli(self):
         orig = loop.issue
         try:
-            for labels in ([], [{"name": "ready"}], [{"name": "rola:implementer"}, {"name": "rola:researcher"}]):
+            for labels in ([], [{"name": "ready"}], [{"name": "rola:implementer"}, {"name": "rola:researcher"}],
+                           [{"name": "rola:implementer"}], [{"name": "loop:iteration 3"}]):
                 loop.issue = lambda n, l=labels: {"state": "open", "labels": l, "body": ""}
                 with self.assertRaises(SystemExit):
                     loop.resolve(1)

@@ -87,6 +87,11 @@ def edit_labels(n, add=(), remove=()):
         gh(*args, check=False)
 
 
+def in_loop(names):
+    """Issue należy do pętli <=> ma `loop:iteration N` (pole widzenia) i rolę (kogo uruchomić). Sama `rola:*` nie wystarcza (#65)."""
+    return any(l.startswith(ITER) for l in names) and any(l.startswith("rola:") for l in names)
+
+
 def ensure_label(name):
     gh("label", "create", name, "--color", "C5DEF5", "--description", "Cykl pętli, w którym powstało issue", "--force", check=False)
 
@@ -274,8 +279,8 @@ def resolve(n):
     i = issue(n)
     labels = label_names(i)
     roles = sorted(l[5:] for l in labels if l.startswith("rola:"))
-    if i["state"] != "open" or len(roles) != 1:
-        raise SystemExit("issue %s: nieotwarte albo nie dokładnie jedna rola (%s)" % (n, roles))
+    if i["state"] != "open" or len(roles) != 1 or not in_loop(labels):
+        raise SystemExit("issue %s: nieotwarte, poza pętlą (brak `%sN`) albo nie dokładnie jedna rola (%s)" % (n, ITER, roles))
     role = roles[0]
     p = load_profiles().get(role)
     why = "brak profilu dla roli `%s` w .claude/profiles.yml" % role if not p else check_profile(role, p)
@@ -318,7 +323,7 @@ def launch(n):
     if not guard_ok():
         return False
     i = issue(n)
-    if i["state"] != "open" or not any(l.startswith("rola:") for l in label_names(i)):
+    if i["state"] != "open" or not in_loop(label_names(i)):
         return False
     if not is_unblocked(n):
         return False
@@ -587,10 +592,10 @@ def watch_parked():
     return False
 
 
-def rola_open():
-    """Jedyne źródło issues dla dozorcy i zobowiązań: bez `rola:*` pętla issue nie widzi (#65)."""
+def loop_open():
+    """Jedyne źródło issues dla dozorcy i zobowiązań: bez `loop:iteration N` pętla issue nie widzi (#65)."""
     return [x for x in api_list("repos/%s/issues?state=open" % REPO)
-            if "pull_request" not in x and any(l["name"].startswith("rola:") for l in x["labels"])]
+            if "pull_request" not in x and in_loop({l["name"] for l in x["labels"]})]
 
 
 def commitments():
@@ -599,7 +604,7 @@ def commitments():
     if any(r["status"] in ("queued", "in_progress", "waiting") for r in runs):
         return True
     recent = {r["displayTitle"] for r in runs if now() - parse_time(r["createdAt"]) < timedelta(minutes=GRACE_MIN)}
-    for x in rola_open():
+    for x in loop_open():
         names = label_names(x)
         r = find_report(x["number"])
         f = fields(r["body"]) if r else {}
@@ -612,7 +617,7 @@ def commitments():
 
 def kick():
     """Zator: kopnij, zanim zawołasz. Bezskuteczne kopnięcia liczy raport issue (#10)."""
-    ready = [x for x in rola_open() if is_unblocked(x["number"])
+    ready = [x for x in loop_open() if is_unblocked(x["number"])
              and "blocked:rate-limit" not in label_names(x)]
     if not ready:
         # czysta śmierć: zero otwartych issues to zator, nie sukces. Nowy orchestrator ze sztywnego szablonu.

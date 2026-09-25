@@ -74,7 +74,7 @@ nigdy sesja sama sobie ([#7](https://github.com/Kucze3205/ReinforcmentBlockBlast
 
 | Etykieta | Znaczenie |
 |---|---|
-| `loop:iteration <n>` | Numer cyklu orchestratora (`docs/journal/cykl-NNNN.md`), w którym powstało issue. Każde issue pętli ją niesie; następca dziedziczy ją po rodzicu, a issue założone przez dozorcę dostaje ostatni numer + 1. Nie wybiera zachowania workflow — służy do filtrowania: `label:"loop:iteration 3"`. |
+| `loop:iteration <n>` | Numer cyklu orchestratora (`docs/journal/cykl-NNNN.md`), w którym powstało issue. Każde issue pętli ją niesie; następca dziedziczy ją po rodzicu, a issue założone przez dozorcę dostaje ostatni numer + 1. Jest **bramką pola widzenia** pętli (patrz „Pole widzenia pętli”); rolę nadal wybiera `rola:*`. Człowiek, który chce puścić własne issue przez `ready`, dodaje obie: `rola:*` i `loop:iteration N`. |
 
 ### Stan
 
@@ -86,16 +86,16 @@ nigdy sesja sama sobie ([#7](https://github.com/Kucze3205/ReinforcmentBlockBlast
 
 ## Pole widzenia pętli
 
-**Pętla nie widzi ani nie dotyka issues bez etykiety `rola:*` (i bez `ready`).** Właściciel
+**Pętla widzi i dotyka wyłącznie issues z etykietą `loop:iteration N` (oraz z jedną `rola:*`, która mówi, kogo uruchomić).** Sama `rola:*` ani sama `ready` nie wystarcza. Właściciel
 może w tym samym repo prowadzić własne issues i branche (np. wayfinderowe) — pętla ich nie ruszy
 ([#65](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/65)). Gwarantują to cztery miejsca, pilnowane testami w `tests/test_loop.py`:
 
 | Miejsce | Zachowanie |
 |---|---|
-| `rola_open()` | Jedyne źródło dla dozorcy (`kick()`) i `commitments()`: `state=open` **i** etykieta zaczynająca się na `rola:` |
+| `loop_open()` | Jedyne źródło dla dozorcy (`kick()`) i `commitments()`: `state=open` **i** etykieta `loop:iteration N` **i** `rola:*` |
 | `dispatch.yml` | Tylko `workflow_dispatch` albo `issues: labeled` z etykietą dokładnie `ready` |
-| `resolve()` | Odrzuca issue bez dokładnie jednej etykiety `rola:*` |
-| orchestrator | Pole widzenia = issues z `rola:*`; nic spoza nich nie wchodzi do kontekstu |
+| `resolve()` | Odrzuca issue bez `loop:iteration N` albo bez dokładnie jednej etykiety `rola:*` |
+| orchestrator | Pole widzenia = issues z `loop:iteration N`; nic spoza nich nie wchodzi do kontekstu |
 
 **Gałęzie:** `merge_main()` pcha wyłącznie na gałąź domyślną i na własne `task/<n>`; cudzej gałęzi nie tyka.
 
