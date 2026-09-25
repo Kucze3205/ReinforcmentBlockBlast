@@ -70,11 +70,39 @@ nigdy sesja sama sobie ([#7](https://github.com/Kucze3205/ReinforcmentBlockBlast
 | `model:opus` | model → Opus |
 | `effort:high` | effort → high |
 
+### Cykl
+
+| Etykieta | Znaczenie |
+|---|---|
+| `loop:iteration <n>` | Numer cyklu orchestratora (`docs/journal/cykl-NNNN.md`), w którym powstało issue. Każde issue pętli ją niesie; następca dziedziczy ją po rodzicu, a issue założone przez dozorcę dostaje ostatni numer + 1. Nie wybiera zachowania workflow — służy do filtrowania: `label:"loop:iteration 3"`. |
+
 ### Stan
 
 | Etykieta | Znaczenie |
 |---|---|
 | `conflict` | Merge nieudany. Issue zostaje **otwarte** i odpala się ponownie ze świeżego HEAD. Konflikt nie jest porażką zadania ([#7](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/7)). |
+
+---
+
+## Pole widzenia pętli
+
+**Pętla nie widzi ani nie dotyka issues bez etykiety `rola:*` (i bez `ready`).** Właściciel
+może w tym samym repo prowadzić własne issues i branche (np. wayfinderowe) — pętla ich nie ruszy
+([#65](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/65)). Gwarantują to cztery miejsca, pilnowane testami w `tests/test_loop.py`:
+
+| Miejsce | Zachowanie |
+|---|---|
+| `rola_open()` | Jedyne źródło dla dozorcy (`kick()`) i `commitments()`: `state=open` **i** etykieta zaczynająca się na `rola:` |
+| `dispatch.yml` | Tylko `workflow_dispatch` albo `issues: labeled` z etykietą dokładnie `ready` |
+| `resolve()` | Odrzuca issue bez dokładnie jednej etykiety `rola:*` |
+| orchestrator | Pole widzenia = issues z `rola:*`; nic spoza nich nie wchodzi do kontekstu |
+
+**Gałęzie:** `merge_main()` pcha wyłącznie na gałąź domyślną i na własne `task/<n>`; cudzej gałęzi nie tyka.
+
+**Ryzyko brzegowe — ręczna praca na `main`.** Jeśli właściciel pushuje na `main` w chwili epilogu,
+`merge_main()` dostaje odrzucony push i ponawia rebase (do 5 razy, potem `conflict`). Issues
+to nie dotyka — najwyżej zadanie wróci do kolejki ze świeżego HEAD. Kto chce mieć spokój,
+pracuje na własnej gałęzi, nie na `main`.
 
 ---
 

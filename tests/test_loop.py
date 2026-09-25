@@ -96,3 +96,37 @@ class PrzyczynaTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PoleWidzeniaTest(unittest.TestCase):
+    """#65: pętla nie dotyka issues bez etykiety `rola:*`."""
+
+    def test_rola_open_pomija_issues_bez_roli_i_pr(self):
+        def lab(*names):
+            return [{"name": n} for n in names]
+        issues = [{"number": 1, "labels": lab("wayfinder:map")},
+                  {"number": 2, "labels": lab("rola:implementer", "loop:iteration 3")},
+                  {"number": 3, "labels": lab("ready")},
+                  {"number": 4, "labels": lab("rola:researcher"), "pull_request": {}},
+                  {"number": 5, "labels": []}]
+        orig = loop.api_list
+        loop.api_list = lambda path: issues
+        try:
+            self.assertEqual([x["number"] for x in loop.rola_open()], [2])
+        finally:
+            loop.api_list = orig
+
+    def test_resolve_odrzuca_issue_bez_dokladnie_jednej_roli(self):
+        orig = loop.issue
+        try:
+            for labels in ([], [{"name": "ready"}], [{"name": "rola:implementer"}, {"name": "rola:researcher"}]):
+                loop.issue = lambda n, l=labels: {"state": "open", "labels": l, "body": ""}
+                with self.assertRaises(SystemExit):
+                    loop.resolve(1)
+        finally:
+            loop.issue = orig
+
+    def test_dispatch_na_labeled_tylko_dla_ready(self):
+        with open(os.path.join(ROOT, ".github", "workflows", "dispatch.yml"), encoding="utf-8") as fh:
+            yml = fh.read()
+        self.assertIn("github.event.label.name == 'ready'", yml)

@@ -36,6 +36,7 @@ MAX_GEN = 3             # #7: limit pokoleń następców
 MAX_CONFLICTS = 3
 PROTECTED_PREFIXES = (".github/", ".claude/skills/orchestrator/")
 RECORD = "bench/record.json"
+ITER = "loop:iteration "                    # numer cyklu orchestratora, który założył issue; dziedziczy go następca
 
 
 # ---------------------------------------------------------------- gh
@@ -84,6 +85,16 @@ def edit_labels(n, add=(), remove=()):
         args += ["--remove-label", r]
     if len(args) > 3:
         gh(*args, check=False)
+
+
+def ensure_label(name):
+    gh("label", "create", name, "--color", "C5DEF5", "--description", "Cykl pętli, w którym powstało issue", "--force", check=False)
+
+
+def last_iteration():
+    out = gh("label", "list", "--search", "loop:iteration", "--limit", "200", "--json", "name", check=False)
+    return max([int(l["name"][len(ITER):]) for l in json.loads(out or "[]")
+                if l["name"].startswith(ITER) and l["name"][len(ITER):].isdigit()] or [0])
 
 
 def blockers(n):
@@ -416,7 +427,7 @@ def spawn_successor(n, i, report_body):
     gen = max([int(l.split(":")[1]) for l in labels if l.startswith("pokolenie:")] or [0])
     if gen >= MAX_GEN:
         return None
-    keep = [l for l in labels if l.startswith(("rola:", "model:", "effort:"))] + ["pokolenie:%s" % (gen + 1)]
+    keep = [l for l in labels if l.startswith(("rola:", "model:", "effort:", ITER))] + ["pokolenie:%s" % (gen + 1)]
     body = m.group(2).strip() + "\n\n<!-- start-branch: task/%s -->\n" % n
     args = ["issue", "create", "--title", m.group(1).strip(), "--body-file", "-"]
     for l in keep:
@@ -577,6 +588,7 @@ def watch_parked():
 
 
 def rola_open():
+    """Jedyne źródło issues dla dozorcy i zobowiązań: bez `rola:*` pętla issue nie widzi (#65)."""
     return [x for x in api_list("repos/%s/issues?state=open" % REPO)
             if "pull_request" not in x and any(l["name"].startswith("rola:") for l in x["labels"])]
 
@@ -604,7 +616,9 @@ def kick():
              and "blocked:rate-limit" not in label_names(x)]
     if not ready:
         # czysta śmierć: zero otwartych issues to zator, nie sukces. Nowy orchestrator ze sztywnego szablonu.
-        url = gh("issue", "create", "--title", "Cykl orchestratora wznowiony przez dozorcę", "--label", "rola:orchestrator",
+        it = ITER + str(last_iteration() + 1)
+        ensure_label(it)
+        url = gh("issue", "create", "--title", "Cykl orchestratora wznowiony przez dozorcę", "--label", "rola:orchestrator", "--label", it,
                  "--body-file", "-", inp="## Cel\n\nPętla zatrzymała się bez otwartych issues. Przeczytaj najnowszy `docs/journal/cykl-*.md` (sekcja `## Stan`) i zbuduj następną mapę.\n\n"
                  "## Kryteria akceptacji\n\n- [ ] wpis dziennika i mapa zadań z rolami i krawędziami\n\n## Kontekst\n\n`docs/loop-config.md`\n").strip()
         ready = [issue(int(url.rsplit("/", 1)[1]))]

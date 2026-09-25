@@ -164,6 +164,10 @@ Po utworzeniu issues (potrzebują numerów) wiążesz krawędzie natywnym „blo
   **wszystkie** pozostałe issues cyklu. Zamknięcie ostatniego jest mechanizmem posuwania
   pętli. Bez niego pętla staje.
 - Następca (`## Następca`) dziedziczy blokady rodzica — o to dba epilog.
+- **Każde issue, które zakładasz, dostaje etykietę `loop:iteration <N>`**, gdzie N to numer
+  twojego cyklu (ten sam co w `docs/journal/cykl-NNNN.md`), także issue złączeniowe. Brak
+  etykiety w repo? `gh label create "loop:iteration <N>" --color C5DEF5 --force`. Następca
+  i issue dozorcy dostają ją od pętli.
 - Licznik ogniw łańcucha to etykieta `pokolenie:<n>` (poza sesją, więc przeżywa sesję, która
   padła bez raportu). Nie kopiuj go do treści.
 
