@@ -5,6 +5,7 @@ Testy pilnują kalibracji pod wzór referencyjny z badania #2. Każdy test, któ
 sprawdza liczbę, jest przywiązany do konkretnej rozbieżności (R-1..R-10), żeby
 regresja wskazywała, co dokładnie się rozjechało.
 """
+import json
 import os
 import sys
 import unittest
@@ -14,7 +15,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from game import Game
 from generator import Generator
 from pieces import CANONICAL_TYPES, EXPECTED_POSES, PIECE_POOL, PIECE_TYPES
+from policies import GreedyPolicy
 from scoring import FULL_CLEAR_BONUS, clear_points, line_bonus, placement_points
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 ONE_BY_ONE = PIECE_POOL[0]
 
@@ -128,6 +132,27 @@ class TestScoreAccumulates(unittest.TestCase):
             game.step(actions[0])
             moves += 1
         self.assertEqual(game.placements, moves)
+
+
+class TestTerminalReward(unittest.TestCase):
+    """#56: step() nie może gubić gained w kroku terminalnym (game_over)."""
+
+    def test_reward_sum_equals_final_score_for_greedy_policy(self):
+        with open(os.path.join(REPO_ROOT, "bench", "seeds_fixed.json")) as f:
+            seeds = json.load(f)[:20]
+
+        policy = GreedyPolicy()
+        for seed in seeds:
+            game = Game(seed=seed)
+            policy.reset(seed)
+            total_reward = 0
+            while not game.done:
+                actions = game.available_actions()
+                if not actions:
+                    break
+                gained, _, _, _ = game.step(policy.act(game, actions))
+                total_reward += gained
+            self.assertEqual(total_reward, game.score, "seed=%r" % (seed,))
 
 
 class TestGenerator(unittest.TestCase):

@@ -48,6 +48,10 @@ class Game:
         idx, x, y = action
         piece = self.pieces[idx] if 0 <= idx < len(self.pieces) else None
         if piece is None or not self.board.place_piece(piece, x, y):
+            # Nieosiągalne w praktyce: polityka wybiera akcje wyłącznie z
+            # available_actions(), które są już przefiltrowane pod can_place_piece
+            # (#51: zero wystąpień na 300 partii polityki zachłannej). Zapora na
+            # wypadek błędu wywołującego, nie element kształtu nagrody.
             self.done = True
             return -5, self.score, self.done, "wrong_placement"
 
@@ -56,7 +60,7 @@ class Game:
 
         if not self._can_place_any():
             self.done = True
-            return -5, self.score, True, "game_over"
+            return gained, self.score, True, "game_over"
 
         return gained, self.score, self.done, "successful placement"
 
