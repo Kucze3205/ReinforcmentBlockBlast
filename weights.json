@@ -17,10 +17,10 @@
     1.3489845482065244
   ],
   "best_score": 14736,
-  "iterations": 8,
-  "duration_s": 1639.6,
-  "games_played": 672,
-  "games_per_minute": 24.59,
+  "iterations": 9,
+  "duration_s": 1936.2,
+  "games_played": 756,
+  "games_per_minute": 23.43,
   "training_seeds_n": 6,
   "params": {
     "minutes": null,
@@ -148,6 +148,20 @@
         2.6142,
         3.2279,
         1.329
+      ]
+    },
+    {
+      "iteration": 9,
+      "evaluated": 14,
+      "mean_score": 11794.39,
+      "elite_best_score": 14486.83,
+      "mean_vector": [
+        0.2358,
+        -10.4591,
+        -1.7465,
+        2.6401,
+        3.2504,
+        1.3522
       ]
     }
   ]
