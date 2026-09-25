@@ -36,6 +36,7 @@ MAX_GEN = 3             # #7: limit pokoleń następców
 MAX_CONFLICTS = 3
 PROTECTED_PREFIXES = (".github/", ".claude/skills/orchestrator/")
 RECORD = "bench/record.json"
+NOTES = ("RAPORT.md", "docs/journal/")  # zapis cyklu scala się zawsze, także gdy sesja nie jest done (#66)
 ITER = "loop:iteration "                    # numer cyklu orchestratora, który założył issue; dziedziczy go następca
 
 
@@ -424,6 +425,27 @@ def merge_main(n, role, work):
     return "conflict", ""
 
 
+def notes_only(changed):
+    return [f for f in changed if f == NOTES[0] or f.startswith(NOTES[1])]
+
+
+def merge_notes(work):
+    """Sesja niedokończona nie scala kodu, ale jej dziennik i raport nie mogą zostać na task/N."""
+    d = os.environ.get("DEFAULT_BRANCH", "main")
+    head = git(work, "rev-parse", "HEAD").stdout.strip()
+    for _ in range(5):
+        git(work, "fetch", "origin", d)
+        files = notes_only(git(work, "diff", "--name-only", "--diff-filter=AM", "origin/%s...%s" % (d, head)).stdout.split())
+        if not files:
+            return False
+        git(work, "checkout", "-q", "--detach", "origin/%s" % d)
+        git(work, "checkout", head, "--", *files)
+        git(work, "commit", "-q", "-m", "Zapis cyklu z niedokończonej sesji: %s" % ", ".join(files), check=False)
+        if git(work, "push", "origin", "HEAD:refs/heads/%s" % d, check=False).returncode == 0:
+            return True
+    return False
+
+
 def spawn_successor(n, i, report_body):
     m = re.search(r"^## Następca\s*\ntytuł:\s*(.+)\ntreść:\s*(.*?)(?=^## |\Z)", report_body, re.S | re.M)
     if not m:
@@ -508,6 +530,8 @@ def finalize(n, work):
             status, prose = "blocked", "Zmiana dotyka chronionych ścieżek: %s. Scalenie odrzucone." % out
         elif result == "tests":
             status, prose = "partial", "Testy po rebase na gałąź domyślną czerwone:\n```\n%s\n```" % out
+    if status != "done" and status != "paused" and role != "bench":
+        merge_notes(work)
     if status == "paused":
         k = int(f.get("proby", 0)) + 1
         age = (now() - parse_time(i["created_at"])).days

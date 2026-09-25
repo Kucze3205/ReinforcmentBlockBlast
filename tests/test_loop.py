@@ -131,3 +131,39 @@ class PoleWidzeniaTest(unittest.TestCase):
         with open(os.path.join(ROOT, ".github", "workflows", "dispatch.yml"), encoding="utf-8") as fh:
             yml = fh.read()
         self.assertIn("github.event.label.name == 'ready'", yml)
+
+
+class ZapisCykluTest(unittest.TestCase):
+    """#66: sesja niedokończona scala dziennik i raport, nigdy kod."""
+
+    def test_notes_only_przepuszcza_tylko_dziennik_i_raport(self):
+        got = loop.notes_only(["docs/journal/cykl-0003.md", "RAPORT.md", "engine.py", "docs/inne.md", ".github/loop/loop.py"])
+        self.assertEqual(got, ["docs/journal/cykl-0003.md", "RAPORT.md"])
+
+    def test_merge_notes_scala_dziennik_bez_kodu(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            def run(cwd, *a):
+                subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *a], cwd=cwd, check=True, capture_output=True)
+            origin, work = os.path.join(tmp, "o"), os.path.join(tmp, "w")
+            os.mkdir(origin)
+            run(origin, "init", "-q", "--bare", "-b", "main")
+            run(tmp, "clone", "-q", origin, work)
+            with open(os.path.join(work, "a.py"), "w") as fh:
+                fh.write("1\n")
+            run(work, "add", "-A")
+            run(work, "commit", "-q", "-m", "init")
+            run(work, "push", "-q", "origin", "HEAD:refs/heads/main")
+            run(work, "checkout", "-q", "-b", "task/1")
+            os.makedirs(os.path.join(work, "docs", "journal"))
+            for name in ("docs/journal/cykl-0009.md", "a.py"):
+                with open(os.path.join(work, name), "w") as fh:
+                    fh.write("nowe\n")
+            run(work, "add", "-A")
+            run(work, "commit", "-q", "-m", "praca")
+            os.environ.pop("DEFAULT_BRANCH", None)
+            self.assertTrue(loop.merge_notes(work))
+            files = subprocess.run(["git", "ls-tree", "-r", "--name-only", "main"], cwd=origin, capture_output=True, text=True).stdout.split()
+            show = subprocess.run(["git", "show", "main:a.py"], cwd=origin, capture_output=True, text=True).stdout
+            self.assertIn("docs/journal/cykl-0009.md", files)
+            self.assertEqual(show, "1\n")
