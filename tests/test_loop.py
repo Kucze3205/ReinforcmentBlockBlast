@@ -103,6 +103,42 @@ class RunIssueTest(unittest.TestCase):
         self.assertNotEqual(loop.run_issue("session #123 · verifier"), "session #12")
 
 
+class ResumeTest(unittest.TestCase):
+    def setUp(self):
+        self.saved = {k: getattr(loop, k) for k in ("find_report", "issue", "label_names", "launch", "time", "now")}
+        self.slept, self.launched = [], []
+        loop.now = lambda: loop.parse_time("2026-09-25T12:00:00Z")
+        loop.time = type("T", (), {"sleep": staticmethod(self.slept.append)})
+        loop.issue = lambda n: {}
+        loop.label_names = lambda i: {"blocked:rate-limit"}
+        loop.launch = lambda n: self.launched.append(n) or True
+
+    def tearDown(self):
+        for k, v in self.saved.items():
+            setattr(loop, k, v)
+
+    def report(self, due):
+        body = "%s\n```yaml\nwznow_po: %s\n```\n" % (loop.MARK, due)
+        loop.find_report = lambda n: {"body": body}
+
+    def test_spi_do_terminu_i_wznawia(self):
+        self.report("2026-09-25T12:30:00Z")
+        loop.resume(58)
+        self.assertEqual(self.slept, [1800])
+        self.assertEqual(self.launched, [58])
+
+    def test_termin_poza_limitem_joba_zostaje_dozorcy(self):
+        self.report("2026-09-26T12:00:00Z")
+        loop.resume(58)
+        self.assertEqual((self.slept, self.launched), ([], []))
+
+    def test_nie_wznawia_gdy_park_zdjety(self):
+        self.report("2026-09-25T11:00:00Z")
+        loop.label_names = lambda i: set()
+        loop.resume(58)
+        self.assertEqual(self.launched, [])
+
+
 if __name__ == "__main__":
     unittest.main()
 
