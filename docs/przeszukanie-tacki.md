@@ -89,3 +89,53 @@ heuristic --record model.pth`), sam koszt gry ramienia `tray` mnoży czas przebi
 tę wartość ponad ramiona bez przeszukania — orchestrator powinien liczyć z ~31 minutami
 tylko na to ramię przy `beam=8`, nie z budżetem rzędu heurystyki (144 s / 300 partii,
 `docs/cechy-planszy.md`).
+
+## Przyspieszenie `features.py` (#88): te same decyzje, mniej sekund
+
+Zadanie: [#88](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/88). Job
+benchmarku zabija pojedyncze polecenie po 3600 s (`.github/loop/loop.py:408`); ~31 min
+na samo ramię `tray` przy `beam=8` (wyżej) zjadało ~60% tego budżetu, więc każdy przyszły
+kandydat żyjący dłużej groził ucięciem pomiaru w połowie. `TrayPolicy` sama się nie
+zmieniła — profil (`cProfile`) na 10 partiach × 60 ruchów pokazał, że ~90% czasu
+`TrayPolicy.act` to `features()` (wołana raz na każdego rozwijanego kandydata, przy
+`beam=8` to setki wywołań na decyzję), głównie `_placeable_shapes` (dawniej:
+`Board.can_place_piece` per komórka klocka, na każdej pozycji, dla wszystkich 41
+orientacji) i histogramowe `_largest_empty_rectangle` / rekurencyjny `_empty_regions`.
+
+`features.py` przepisano na maski bitowe planszy (bit `y·WIDTH+x`): `_placeable_shapes`
+porównuje prekomputowane maski pozycji klocków z maską planszy jednym AND zamiast
+przechodzić po komórkach; `_largest_empty_rectangle` liczy AND masek pustych wierszy
+zamiast histogramu; `_empty_regions` rozlewa się przez przesunięcia bitowe zamiast stosu
+`(y, x)`. Wartości identyczne z implementacją sprzed zmiany — zweryfikowane na 20 000
+losowych plansz (`features(board)` porównane bezpośrednio) i testem równoważności w
+`tests/test_tray_policy.py::TestTrayPolicySpeedupPreservesDecisions`, który gra pełne
+partie starą i nową implementacją na wspólnym zbiorze seedów i porównuje całe sekwencje
+ruchów, na **obu** zestawach wag (`TrayPolicy.DEFAULT_WEIGHTS` i `weights.json`).
+
+### Pomiar: przed vs po, ten sam sprzęt, te same seedy
+
+`tools/measure_tray_cost.py`, seedy identyczne z pomiarem #79 powyżej (`measurement_seeds`,
+sól `"tray-cost:79"`, 40 partii na wartość `beam`, rozłączne z `bench/seeds_fixed.json`).
+Kolumny „przed" to tabela z sekcji „Wynik" wyżej (ten sam sprzęt runnera GitHub Actions);
+`wynik` i `przeżycie` są w tabeli „po" identyczne z „przed" na każdym `beam` — dowód, że
+przyspieszenie nie zmieniło ani jednej decyzji.
+
+| `beam` | śr. czas decyzji — przed | śr. czas decyzji — po | przyspieszenie | wynik (przed = po) | przeżycie (przed = po) |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 9,49 ms | 2,91 ms | 3,26× | 1334,35 | 45,75 |
+| 2 | 12,92 ms | 3,989 ms | 3,24× | 2023,60 | 62,65 |
+| 4 | 20,30 ms | 6,323 ms | 3,21× | 2080,55 | 63,83 |
+| 8 | 34,10 ms | 10,873 ms | 3,14× | 4121,20 | 90,22 |
+| 16 | 58,80 ms | 19,02 ms | 3,09× | 5532,15 | 94,35 |
+
+Całkowity czas pomiaru (200 partii, 5 wartości `beam`): **143,8 s**, wobec 447,8 s przed
+zmianą — **3,11× szybciej** na tym samym zbiorze partii.
+
+### Szacowany czas ramienia `tray` na 600 partii przy `beam=8`, po zmianie
+
+Ta sama ekstrapolacja co w sekcji wyżej (śr. czas decyzji × śr. liczba decyzji na partię
+× 600 partii), z nowym czasem decyzji: 10,873 ms × 90,22 decyzji/partia × 600 partii:
+
+**≈ 589 s ≈ 9,8 minuty na jedno ramię `tray`** (wobec ~31 minut przed zmianą) — z powrotem
+wygodnie w budżecie 3600 s na polecenie, nawet gdyby przyszły `beam` większy niż 8 albo
+strojenie z [#87](../../issues/87) wydłużyło partie.
