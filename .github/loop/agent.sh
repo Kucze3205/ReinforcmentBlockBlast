@@ -10,11 +10,11 @@ git config user.name "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 git checkout -q -B "task/$ISSUE"
 mkdir -p .session
-python3 "$LOOP" export "$ISSUE" .session/issue.md
+GH_TOKEN="$LOOP_GH_TOKEN" python3 "$LOOP" export "$ISSUE" .session/issue.md
 
 # checkpoint: raport i gałąź jadą na zewnątrz, zanim runner zginie
 ( while sleep 120; do
-    python3 "$LOOP" publish "$ISSUE" .session/report.md
+    GH_TOKEN="$LOOP_GH_TOKEN" python3 "$LOOP" publish "$ISSUE" .session/report.md
     git push -q -f origin "HEAD:refs/heads/task/$ISSUE"
   done ) >/dev/null 2>&1 &
 SYNC=$!
