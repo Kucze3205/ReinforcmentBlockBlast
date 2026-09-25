@@ -168,6 +168,14 @@ Po utworzeniu issues (potrzebują numerów) wiążesz krawędzie natywnym „blo
   twojego cyklu (ten sam co w `docs/journal/cykl-NNNN.md`), także issue złączeniowe. Brak
   etykiety w repo? `gh label create "loop:iteration <N>" --color C5DEF5 --force`. Następca
   i issue dozorcy dostają ją od pętli.
+- **Issue złączeniowe jest mapą cyklu** (format jak wayfinderowy indeks) i dostaje etykietę
+  `loop:map` (`gh label create "loop:map" --color 0E8A16 --force`). Zadania cyklu podpinasz
+  jako jego sub-issues (`gh api repos/{owner}/{repo}/issues/<mapa>/sub_issues -F sub_issue_id=<id>`,
+  gdzie `id` to `gh api repos/{owner}/{repo}/issues/<N> --jq .id`, nie numer). Body: `## Cel`
+  (czym kończy się cykl), `## Decyzje` (jedna linia na zamknięte zadanie: nazwa z linkiem +
+  gist odpowiedzi, szczegół zostaje w zadaniu), `## Jeszcze nieokreślone` (mgła: co wiesz, że
+  przyjdzie, a nie umiesz jeszcze zapisać jako zadanie). Mapa jest indeksem — decyzji nie
+  przepisujesz.
 - Licznik ogniw łańcucha to etykieta `pokolenie:<n>` (poza sesją, więc przeżywa sesję, która
   padła bez raportu). Nie kopiuj go do treści.
 

@@ -75,6 +75,7 @@ nigdy sesja sama sobie ([#7](https://github.com/Kucze3205/ReinforcmentBlockBlast
 | Etykieta | Znaczenie |
 |---|---|
 | `loop:iteration <n>` | Numer cyklu orchestratora (`docs/journal/cykl-NNNN.md`), w którym powstało issue. Każde issue pętli ją niesie; następca dziedziczy ją po rodzicu, a issue założone przez dozorcę dostaje ostatni numer + 1. Jest **bramką pola widzenia** pętli (patrz „Pole widzenia pętli”); rolę nadal wybiera `rola:*`. Człowiek, który chce puścić własne issue przez `ready`, dodaje obie: `rola:*` i `loop:iteration N`. |
+| `loop:map` | Issue złączeniowe cyklu jako mapa cyklu (#63): sub-issues to zadania cyklu, body to indeks decyzji. Informacyjna — pętla jej nie czyta; pole widzenia i rolę nadal dają `loop:iteration N` i `rola:*`. |
 
 ### Stan
 
