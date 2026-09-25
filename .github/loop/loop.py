@@ -414,6 +414,8 @@ def run_verification(work, body):
 def bench(n, work):
     """`rola:bench`: job liczący bez sesji Claude'a. Polecenia bierze z `## Weryfikacja`."""
     ok, out = run_verification(work, issue(n)["body"])
+    if ok and not git(work, "status", "--porcelain", "--", "bench/*.json").stdout.strip():
+        ok, out = False, "Polecenia z `## Weryfikacja` przeszły, ale żaden bench/*.json nie przybył ani się nie zmienił: nic nie policzono."
     print(out)
     with open(os.path.join(os.environ.get("RUNNER_TEMP", "/tmp"), "agent-exit"), "w") as fh:
         fh.write("0" if ok else "1")
