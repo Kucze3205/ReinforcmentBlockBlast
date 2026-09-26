@@ -232,6 +232,45 @@ class BenchTest(unittest.TestCase):
         self.assertTrue(self.committed("bench/97.json"))
 
 
+class KrawedzTest(unittest.TestCase):
+    """#114: krawędź blokowania zwalnia konsumenta tylko po `done`."""
+    def setUp(self):
+        self.saved = {k: getattr(loop, k) for k in ("update_report", "edit_labels", "spawn_successor", "gh", "api_list", "launch")}
+        self.launched, self.closed = [], []
+        self.edges = {}
+        loop.update_report = lambda n, upd, prose="": self.closed.append((n, upd["status"])) or ""
+        loop.edit_labels = lambda *a, **k: None
+        loop.spawn_successor = lambda n, i, body: None
+        loop.gh = lambda *a, **k: ""
+        loop.api_list = lambda path: self.edges.get(int(path.split("/issues/")[1].split("/")[0]), [])
+        loop.launch = lambda n: self.launched.append(n)
+
+    def tearDown(self):
+        for k, v in self.saved.items():
+            setattr(loop, k, v)
+
+    def dep(self, n, role):
+        return {"number": n, "state": "open", "labels": [{"name": "rola:" + role}]}
+
+    def test_done_zwalnia_konsumenta(self):
+        self.edges = {104: [self.dep(105, "bench")]}
+        loop.close_out(104, {}, "done", {}, "")
+        self.assertEqual(self.launched, [105])
+
+    def test_crashed_zamyka_konsumentow_kaskada_a_orchestrator_rusza(self):
+        self.edges = {104: [self.dep(105, "bench")], 105: [self.dep(107, "orchestrator")]}
+        loop.close_out(104, {}, "crashed", {}, "")
+        self.assertEqual(self.closed, [(104, "crashed"), (105, "blocked")])
+        self.assertEqual(self.launched, [107])
+
+    def test_partial_z_nastepca_nie_rusza_konsumentow(self):
+        self.edges = {104: [self.dep(105, "bench")]}
+        loop.spawn_successor = lambda n, i, body: 120
+        loop.close_out(104, {}, "partial", {}, "")
+        self.assertEqual(self.closed, [(104, "partial")])
+        self.assertEqual(self.launched, [120])
+
+
 if __name__ == "__main__":
     unittest.main()
 
