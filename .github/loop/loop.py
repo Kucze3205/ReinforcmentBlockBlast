@@ -366,6 +366,19 @@ def unblock(closed):
             launch(d["number"])
 
 
+def halt_dependents(closed, status):
+    """Producent nie dowiózł (#114): konsument nie rusza na pusto, tylko zamyka się jako `blocked` (kaskadą
+    dalej). Orchestrator rusza normalnie: to on decyduje, co z niedowiezionym cyklem."""
+    for d in api_list("repos/%s/issues/%s/dependencies/blocking" % (REPO, closed)):
+        if d["state"] != "open":
+            continue
+        if "rola:orchestrator" in label_names(d):
+            launch(d["number"])
+        else:
+            close_out(d["number"], d, "blocked", {"przyczyna": "producent-#%s-%s" % (closed, status)},
+                      "Producent #%s zamknięty jako `%s`: nie dowiózł, więc to zadanie nie ruszyło." % (closed, status))
+
+
 # ---------------------------------------------------------------- epilog
 
 def clean_env():
@@ -508,7 +521,10 @@ def close_out(n, i, status, upd, prose):
     edit_labels(n, add=["report:unread"], remove=["blocked:rate-limit", "conflict"])
     succ = spawn_successor(n, i, body) if status == "partial" else None
     gh("issue", "close", str(n), "--reason", "completed" if status == "done" else "not planned", check=False)
-    unblock(n)
+    if status == "done":
+        unblock(n)
+    elif not succ:     # następca przejął krawędzie rodzica: konsumenci czekają na niego
+        halt_dependents(n, status)
     if succ:
         launch(succ)
 
@@ -578,6 +594,11 @@ def finalize(n, work):
             # zegar w workflow: cron GitHuba spóźnia się o godziny, a park ma termin co do minuty
             gh("workflow", "run", "resume.yml", "-f", "issue=%s" % n, check=False)
             return
+    ahead = git(work, "rev-list", "--count", "origin/%s..HEAD" % os.environ.get("DEFAULT_BRANCH", "main"), check=False).stdout.strip()
+    if status != "done" and ahead not in ("", "0"):
+        # scommitowana praca nie ginie, tylko czeka: orchestrator wskazuje ją następcy (#114)
+        prose += ("\n\nPraca zostaje na `task/%s` (%s commitów ponad gałąź domyślną). Następca startuje z niej, "
+                  "gdy ma w treści `<!-- start-branch: task/%s -->`." % (n, ahead, n))
     close_out(n, i, status, upd, prose)
 
 
