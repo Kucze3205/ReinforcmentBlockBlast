@@ -34,6 +34,10 @@ SCORE_BOX = (60, 70, 260, 130)
 FRAMES = 3
 DRAG_GAIN = 1.5  # zmierzone: klocek przesuwa się 1,5 px na 1 px palca
 LIFT = 80.6  # środek podniesionego klocka jest tyle px nad środkiem klocka na tacce
+AD_CLOSE = (285, 34)  # X reklamy międzyplanszowej, zmierzony na bridge/runs/0d96333/121_end.png (#129)
+AD_DARK_FRAC = 0.85  # 121_end.png: 0.95 czarnych pikseli; 120_state.png: 0.0; ekran główny po zabiciu procesu: 0.62
+RESTART_TRIES = 3
+RESTART_WAIT = 20
 
 
 def adb(*args):
@@ -52,6 +56,49 @@ def screenshot():
 
 def in_game():
     return PACKAGE in adb("shell", "dumpsys", "window").decode(errors="replace").split("mCurrentFocus", 1)[-1][:200]
+
+
+def is_ad_screen(img):
+    """Reklama międzyplanszowa: prawie cały ekran czarny (#129).
+
+    `bridge/runs/0d96333/121_end.png` (reklama) ma 0,95 pikseli ciemniejszych niż próg;
+    `120_state.png` (zwykła plansza) ma 0,0; ekran główny po zabiciu procesu
+    (`bridge/runs/1bd38fa/111_state.png`) ma 0,62 — próg 0,85 łapie tylko reklamę.
+    """
+    return (img.max(axis=-1) < 30).mean() > AD_DARK_FRAC
+
+
+def board_and_tray_empty(grid, slots):
+    """Plansza bez klocków i pusta tacka razem to odczyt podejrzany, nie koniec partii:
+
+    taki stan nie zdarza się w normalnej grze (tacka zawsze niesie klocki, dopóki gra
+    trwa), więc zwykle znaczy, że most patrzy na nieznane okno (np. reklamę), nie na
+    planszę bez legalnego ruchu (#129).
+    """
+    return not any(any(row) for row in grid) and all(s is None for s in slots)
+
+
+def close_ad(tries=3):
+    """Zamyka reklamę międzyplanszową znanym X; True, gdy ekran przestał być reklamą."""
+    for _ in range(tries):
+        touch("DOWN", *AD_CLOSE)
+        touch("UP", *AD_CLOSE)
+        time.sleep(2)
+        if not is_ad_screen(screenshot()):
+            return True
+    return False
+
+
+def restart_app(tries=RESTART_TRIES, wait=RESTART_WAIT):
+    """Podnosi zabitą apkę zwykłym startem — bez instalacji i bez ToS, z lokalnego
+    autozapisu (#129: logcat 1bd38fa, `app died, no saved state`). True, gdy wróciła."""
+    for attempt in range(1, tries + 1):
+        print(f"restart {attempt}/{tries}: {PACKAGE}", flush=True)
+        adb("shell", "monkey", "-p", PACKAGE, "-c", "android.intent.category.LAUNCHER", "1")
+        time.sleep(wait)
+        if in_game():
+            return True
+    return False
 
 
 def settled_state():
@@ -233,7 +280,8 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
     log = open(os.path.join(OUT, "moves.jsonl"), "w")
     img, grid, slots = settled_state()
     ok_streak = best_streak = 0
-    for n in range(max_moves):
+    n = 0
+    while n < max_moves:
         score = read_score(img)
         Image.fromarray(img.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_state.png"))
         annotate(img, grid, os.path.join(OUT, f"{n:03d}_read.png"))
@@ -244,7 +292,26 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
         entry = {"n": n, "policy": policy.name, "board": grid,
                  "tray": [s[0] if s else None for s in slots], "score": score}
         if not in_game():
+            if restart_app():
+                entry["restart"] = "apka wznowiona po awarii (monkey, bez instalacji/ToS)"
+                log.write(json.dumps(entry) + "\n")
+                log.flush()
+                print("restart udany, kontynuacja partii", flush=True)
+                img, grid, slots = stable_state()
+                continue
             entry["end"] = "gra nie jest na pierwszym planie"
+            log.write(json.dumps(entry) + "\n")
+            print(entry["end"], flush=True)
+            break
+        if not moves and (is_ad_screen(img) or board_and_tray_empty(grid, slots)):
+            if close_ad():
+                entry["okno"] = "reklama_interstitial zamknięta"
+                log.write(json.dumps(entry) + "\n")
+                log.flush()
+                print("reklama zamknięta, kontynuacja partii", flush=True)
+                img, grid, slots = stable_state()
+                continue
+            entry["end"] = "okno: reklama_interstitial"
             log.write(json.dumps(entry) + "\n")
             print(entry["end"], flush=True)
             break
@@ -269,6 +336,7 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
         log.write(json.dumps(entry) + "\n")
         log.flush()
         print(f"ruch {n}: slot {i} -> ({x},{y}) wynik {score} {'OK' if ok else 'ROZBIEŻNOŚĆ'}", flush=True)
+        n += 1
     annotate(img, grid, os.path.join(OUT, "final.png"))
     print(f"najdłuższa seria zgodnych ruchów: {best_streak}")
     return best_streak
