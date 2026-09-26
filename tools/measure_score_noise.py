@@ -15,6 +15,16 @@ korelacje Pearsona i Spearmana miedzy wynikiem a przezyciem, partia po partii.
 
 `lookahead` kosztuje ok. 2,0 s/partia na `weights.json` (docs/lookahead.md) —
 150 partii to okolo 5 minut.
+
+`--seed-file` (#112) podmienia zrodlo seedow: zamiast `training_seeds()`
+(seedy treningowe, rozlaczne z benchmarkiem) bierze pierwsze `--n-games`
+seedow wprost z podanego pliku-listy, np. `bench/seeds_fixed.json` — te same
+300 seedow, na ktorych liczy `benchmark.py`. `--series-out` zrzuca serie
+partia-po-partii `(seed, score, survival, capped)` do JSON-a, obok podsumowania
+z `--out`:
+
+    python3 tools/measure_score_noise.py --policy lookahead --weights-file weights.json \\
+        --n-games 300 --seed-file bench/seeds_fixed.json --series-out docs/data/serie-300-lookahead.json
 """
 import argparse
 import json
@@ -54,16 +64,45 @@ def load_weights(path):
 
 
 def play_series(policy_name, weights, seeds, move_cap):
-    """Zwraca `(scores, survivals)`, po jednej parze na seed."""
+    """Zwraca `(scores, survivals, capped)`, po jednej trojce na seed.
+
+    `capped` mowi, czy partia zostala ucieta sufitem ruchow (#112: taka partia
+    nie jest zakonczona i kubelki dlugosci partii musza to odroznic).
+    """
     policy_cls = POLICY_CLASSES[policy_name]
     policy = policy_cls(weights=weights) if weights is not None else policy_cls()
-    scores, survivals = [], []
+    scores, survivals, capped = [], [], []
     for seed in seeds:
         policy.reset(seed)
-        score, placements, _capped = play_game(policy, seed, move_cap)
+        score, placements, was_capped = play_game(policy, seed, move_cap)
         scores.append(score)
         survivals.append(placements)
-    return scores, survivals
+        capped.append(was_capped)
+    return scores, survivals, capped
+
+
+def load_seeds_from_file(path, n_games):
+    """Seedy wprost z pliku (np. `bench/seeds_fixed.json`), nie z `training_seeds()`.
+
+    Plik jest lista (#112, jak `bench/seeds_fixed.json`), nie slownikiem.
+    `n_games` obcina liste tak, jak `benchmark.py` obcina `n_seeds` — zeby
+    wywolanie z domyslnym `--n-games` nie zaladowalo cichutko calego pliku.
+    """
+    with open(path, encoding="utf-8") as fh:
+        seeds = json.load(fh)
+    if not isinstance(seeds, list):
+        raise ValueError(path + ": oczekiwano listy seedow, nie slownika")
+    return seeds[:n_games] if n_games else seeds
+
+
+def dump_series(path, seeds, scores, survivals, capped):
+    """Zrzut partia-po-partii do JSON-a: `(seed, wynik, postawienia, ucieta)` (#112)."""
+    rows = [
+        {"seed": seed, "score": score, "survival": survival, "capped": bool(was_capped)}
+        for seed, score, survival, was_capped in zip(seeds, scores, survivals, capped)
+    ]
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(rows, fh, indent=2, ensure_ascii=False)
 
 
 def summarize(values):
@@ -136,21 +175,30 @@ def main(argv=None):
     parser.add_argument("--n-games", type=int, default=150)
     parser.add_argument("--salt", type=int, default=DEFAULT_SALT,
                          help="sol training_seeds(); ta sama sol na obu politykach daje te same seedy")
+    parser.add_argument("--seed-file", default=None,
+                         help="plik z lista seedow (np. bench/seeds_fixed.json); pomija training_seeds() "
+                              "i --salt, bierze pierwsze --n-games seedow wprost z pliku")
     parser.add_argument("--config", default=BENCH_CONFIG)
     parser.add_argument("--out", default=None, help="opcjonalna sciezka do zapisu surowego JSON")
+    parser.add_argument("--series-out", default=None,
+                         help="opcjonalna sciezka do zrzutu serii partia-po-partii (seed, score, survival, capped)")
     args = parser.parse_args(argv)
 
     bench_seeds, move_cap = load_bench_seeds(args.config)
-    seeds = training_seeds(args.n_games, bench_seeds, salt=args.salt)
+    if args.seed_file:
+        seeds = load_seeds_from_file(args.seed_file, args.n_games)
+    else:
+        seeds = training_seeds(args.n_games, bench_seeds, salt=args.salt)
     weights = load_weights(args.weights_file)
 
-    scores, survivals = play_series(args.policy, weights, seeds, move_cap)
+    scores, survivals, capped = play_series(args.policy, weights, seeds, move_cap)
 
     result = {
         "policy": args.policy,
         "weights_file": args.weights_file,
         "n_games": len(seeds),
-        "salt": args.salt,
+        "salt": args.salt if not args.seed_file else None,
+        "seed_file": args.seed_file,
         "score": summarize(scores),
         "survival": summarize(survivals),
         "pearson_score_survival": round(statistics.correlation(scores, survivals), 4),
@@ -163,6 +211,8 @@ def main(argv=None):
     if args.out:
         with open(args.out, "w", encoding="utf-8") as fh:
             json.dump(result, fh, indent=2, ensure_ascii=False)
+    if args.series_out:
+        dump_series(args.series_out, seeds, scores, survivals, capped)
 
     print(json.dumps(result, indent=2, ensure_ascii=False))
     return 0
