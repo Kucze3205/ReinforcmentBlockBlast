@@ -24,7 +24,14 @@ import time
 
 from features import FEATURE_NAMES
 from game import Game
-from policies import GreedyPolicy, HeuristicPolicy, ModelPolicy, RandomPolicy, TrayPolicy
+from policies import (
+    GreedyPolicy,
+    HeuristicPolicy,
+    LookaheadPolicy,
+    ModelPolicy,
+    RandomPolicy,
+    TrayPolicy,
+)
 
 CONFIG_PATH = "bench/config.json"
 HASHED_SOURCES = ["scoring.py", "pieces.py"]
@@ -90,6 +97,7 @@ def is_dirty():
 TUNED_POLICY_CLASSES = {
     "heuristic": HeuristicPolicy,
     "tray": TrayPolicy,
+    "lookahead": LookaheadPolicy,
 }
 
 
@@ -115,8 +123,8 @@ def load_tuned_weights(path):
 
 
 def build_policy(spec, config):
-    """`random`, `greedy`, `heuristic`, `tray`, `heuristic:<plik>`, `tray:<plik>`
-    albo ścieżka do wag torcha."""
+    """`random`, `greedy`, `heuristic`, `tray`, `lookahead`, `heuristic:<plik>`,
+    `tray:<plik>`, `lookahead:<plik>` albo ścieżka do wag torcha."""
     if spec == "random":
         return RandomPolicy(seed=config["torch_seed"])
     if spec == "greedy":
@@ -125,6 +133,8 @@ def build_policy(spec, config):
         return HeuristicPolicy()
     if spec == "tray":
         return TrayPolicy()
+    if spec == "lookahead":
+        return LookaheadPolicy()
 
     for prefix, policy_cls in TUNED_POLICY_CLASSES.items():
         if spec.startswith(prefix + ":"):
@@ -284,7 +294,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Benchmark bota Block Blast")
     parser.add_argument(
         "--candidate", required=True,
-        help="random | greedy | heuristic | tray | heuristic:<plik> | tray:<plik> | ścieżka do wag torcha",
+        help="random | greedy | heuristic | tray | lookahead | heuristic:<plik> | "
+             "tray:<plik> | lookahead:<plik> | ścieżka do wag torcha",
     )
     parser.add_argument("--previous", help="ramię odniesienia: poprzednik")
     parser.add_argument("--record", help="ramię odniesienia: rekordzista")
