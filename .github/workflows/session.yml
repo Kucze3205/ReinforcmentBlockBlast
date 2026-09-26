@@ -97,6 +97,8 @@ jobs:
           npm install -g @anthropic-ai/claude-code@2.1.278
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global author.name "Kucze3205"   # pętla działa w imieniu właściciela; bot zostaje committerem
+          git config --global author.email "kuczerowski2005@gmail.com"
       - id: guard
         working-directory: loop
         env:
@@ -154,6 +156,8 @@ jobs:
           npm install -g @anthropic-ai/claude-code@2.1.278
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global author.name "Kucze3205"   # pętla działa w imieniu właściciela; bot zostaje committerem
+          git config --global author.email "kuczerowski2005@gmail.com"
       - name: Pobierz APK z prywatnego release
         working-directory: work
         env:
@@ -210,6 +214,8 @@ jobs:
           pip install -q torch --index-url https://download.pytorch.org/whl/cpu
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global author.name "Kucze3205"   # pętla działa w imieniu właściciela; bot zostaje committerem
+          git config --global author.email "kuczerowski2005@gmail.com"
           git -C work checkout -q -B "task/$ISSUE"
       - id: guard
         working-directory: loop
