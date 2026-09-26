@@ -7,7 +7,7 @@ co polityka umie, a nie jak wypada w trakcie nauki (#8).
 import random
 
 from board import Board
-from features import features
+from features import FEATURE_NAMES, combo_features, features
 from generator import Generator
 from scoring import COMBO_COUNTER_BASE, FULL_CLEAR_BONUS, clear_points, placement_points
 
@@ -84,9 +84,13 @@ class TrayPolicy:
 
     Dla każdej kolejności postawienia pozostałych klocków tacki i każdej legalnej
     pozycji ocenia sekwencję jako `suma punktów po drodze + w · features(plansza
-    końcowa)`, przenosząc combo i licznik wygaśnięcia przez całą sekwencję zgodnie
-    z `game.apply_placement` (`game.py:67-101`). Gra pierwszy ruch najlepszej
-    znalezionej sekwencji. Nigdy nie woła `generator.next_pieces()` ani nie
+    końcowa) + w_combo · combo_features(stan combo na końcu)`, przenosząc combo i
+    licznik wygaśnięcia przez całą sekwencję zgodnie z `game.apply_placement`
+    (`game.py:67-101`). Człon combo (#118) wycenia to, co łańcuch zarobi **za**
+    horyzontem — bez niego liść wart był tyle samo przy combo 40 co przy combo 0
+    (`docs/combo-w-ocenie.md`). Wagi combo, których w pliku wag nie ma, są zerami,
+    więc wektor sześciu wag daje ocenę sprzed #118 co do bitu. Gra pierwszy ruch
+    najlepszej znalezionej sekwencji. Nigdy nie woła `generator.next_pieces()` ani nie
     mutuje przekazanej gry — pracuje wyłącznie na kopiach planszy i tacki.
 
     `beam` ogranicza liczbę stanów trzymanych na każdym poziomie przeszukiwania
@@ -143,7 +147,7 @@ class LookaheadPolicy:
     `inner_depth` poziomów). Wartość kandydata to
 
         punkty zdobyte po drodze + średnia po próbkach z (punkty z następnej tacki
-        + w · features(plansza po niej))
+        + w · features(plansza po niej) + w_combo · combo_features(stan combo po niej))
 
     czyli oczekiwana wartość po węźle losowym — expectimax z estymatorem Monte
     Carlo zamiast pełnej sumy po 15³ tackach.
@@ -287,7 +291,8 @@ def _tray_beam_search(board, pieces, combo, combo_counter, weights, beam,
         expanded += len(candidates)
         for candidate in candidates:
             candidate["score"] = candidate["gain"] + _weighted_features(
-                weights, candidate["board"]
+                weights, candidate["board"],
+                candidate["combo"], candidate["combo_counter"],
             )
         candidates.sort(key=lambda c: c["score"], reverse=True)
         frontier = candidates[:beam]
@@ -295,13 +300,31 @@ def _tray_beam_search(board, pieces, combo, combo_counter, weights, beam,
     if levels == 0:
         for candidate in frontier:
             candidate["score"] = candidate["gain"] + _weighted_features(
-                weights, candidate["board"]
+                weights, candidate["board"],
+                candidate["combo"], candidate["combo_counter"],
             )
     return frontier, expanded
 
 
-def _weighted_features(weights, board):
-    return sum(w * f for w, f in zip(weights, features(board)))
+def _weighted_features(weights, board, combo, combo_counter):
+    """Ocena liścia: wagi planszowe razy `features`, plus wagi combo razy `combo_features`.
+
+    Wektor `weights` może być krótszy niż `features.ALL_FEATURE_NAMES` — ogon
+    combo jest wtedy pusty i człon w ogóle się nie liczy. Przy zerowych wagach
+    combo (tak dopełnia `benchmark.load_tuned_weights`) dochodzi dokładne `0.0`,
+    a `x + 0.0 == x` dla każdej skończonej liczby zmiennoprzecinkowej. Oba
+    warianty zwracają więc **bit w bit** tę samą liczbę co przed #118 — to jest
+    mechanizm, którym `lookahead:weights.json` zostaje ramieniem odniesienia bez
+    zmiany ani jednego ruchu.
+    """
+    total = sum(w * f for w, f in zip(weights, features(board)))
+    combo_weights = weights[len(FEATURE_NAMES):]
+    if combo_weights:
+        total += sum(
+            w * f
+            for w, f in zip(combo_weights, combo_features(combo, combo_counter))
+        )
+    return total
 
 
 def _tray_legal_actions(board, pieces):

@@ -23,7 +23,7 @@ import subprocess
 import sys
 import time
 
-from features import FEATURE_NAMES
+from features import ALL_FEATURE_NAMES, FEATURE_NAMES
 from game import Game
 from policies import (
     GreedyPolicy,
@@ -124,8 +124,14 @@ TUNED_POLICY_CLASSES = {
 def load_tuned_weights(path):
     """Wczytuje wektor wag z pliku zapisanego przez `tools/tune_weights.py` (klucz `weights`).
 
+    Długość wektora jest przyjmowana od `len(FEATURE_NAMES)` (sześć wag
+    planszowych) do `len(ALL_FEATURE_NAMES)` (plansza + combo, #118). Brakujący
+    ogon jest **dopełniany zerami**, więc pliki sprzed #118 (`weights.json`,
+    `weights-lookahead.json`) wczytują się bez zmiany i dają ocenę bez combo —
+    czyli dokładnie tę samą politykę co dotąd.
+
     Zgłasza `ArmUnavailable` zamiast wyjątku z głębi: brak pliku, zły JSON albo
-    długość wektora niezgodna z `features.FEATURE_NAMES` (#80)."""
+    długość wektora spoza tego zakresu (#80)."""
     if not os.path.exists(path):
         raise ArmUnavailable("brak pliku wag: " + path)
     try:
@@ -134,12 +140,13 @@ def load_tuned_weights(path):
         weights = tuple(data["weights"])
     except Exception as exc:
         raise ArmUnavailable("wagi " + path + " nieładowalne: " + str(exc)) from exc
-    if len(weights) != len(FEATURE_NAMES):
+    if not len(FEATURE_NAMES) <= len(weights) <= len(ALL_FEATURE_NAMES):
         raise ArmUnavailable(
-            "wagi " + path + ": oczekiwano " + str(len(FEATURE_NAMES))
-            + " liczb (FEATURE_NAMES), otrzymano " + str(len(weights))
+            "wagi " + path + ": oczekiwano od " + str(len(FEATURE_NAMES))
+            + " (FEATURE_NAMES) do " + str(len(ALL_FEATURE_NAMES))
+            + " (ALL_FEATURE_NAMES) liczb, otrzymano " + str(len(weights))
         )
-    return weights
+    return weights + (0.0,) * (len(ALL_FEATURE_NAMES) - len(weights))
 
 
 def build_policy(spec, config):
