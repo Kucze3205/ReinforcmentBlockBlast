@@ -241,5 +241,96 @@ class TestTrayPolicySpeedupPreservesDecisions(unittest.TestCase):
         self._assert_same_sequences(tuple(data["weights"]))
 
 
+def _pre92_tray_act(policy, game, actions):
+    """Kopia `TrayPolicy.act` sprzed #92 — pętla wiązki wpisana wprost w politykę,
+    zanim wyniesiono ją do `policies._tray_beam_search` na użytek `LookaheadPolicy`.
+    """
+    pieces0 = tuple(game.pieces)
+    depth = sum(1 for p in pieces0 if p is not None)
+    policy.last_expanded = 0
+    if depth == 0 or not actions:
+        return actions[0]
+
+    root = {
+        "board": game.board.copy(),
+        "pieces": pieces0,
+        "combo": game.combo,
+        "combo_counter": game.combo_counter,
+        "gain": 0,
+        "first_action": None,
+    }
+    frontier = [root]
+
+    for level in range(depth):
+        level_actions = actions if level == 0 else None
+        candidates = []
+        for state in frontier:
+            legal = level_actions if level_actions is not None else policies._tray_legal_actions(
+                state["board"], state["pieces"]
+            )
+            if not legal:
+                candidates.append(state)
+                continue
+            for action in legal:
+                candidates.append(policies._expand(state, action))
+        policy.last_expanded += len(candidates)
+        for candidate in candidates:
+            candidate["score"] = candidate["gain"] + policies._weighted_features(
+                policy.weights, candidate["board"]
+            )
+        candidates.sort(key=lambda c: c["score"], reverse=True)
+        frontier = candidates[: policy.beam]
+
+    best = max(frontier, key=lambda c: c["score"])
+    return best["first_action"]
+
+
+class TestTrayPolicySharedSearchPreservesDecisions(unittest.TestCase):
+    """#92: wyniesienie pętli wiązki do `_tray_beam_search` nie wolno, żeby zmieniło
+    ani jednej decyzji `TrayPolicy` — jest posiadaczem rekordu (`bench/record.json`)
+    i ramieniem odniesienia następnego pomiaru.
+
+    Porównywane są **całe sekwencje akcji pełnych partii**, nie pojedyncze ruchy:
+    jedna inna decyzja rozjeżdża resztę partii i test to łapie (wzór z #88 wyżej).
+    Także `last_expanded` — z niego liczy `tools/measure_tray_cost.py`.
+    """
+
+    SEEDS = tuple(range(3101, 3107))  # rozłączne z seedami reszty tego pliku
+    MOVE_CAP = 250
+
+    def _play(self, weights, act):
+        sequences = []
+        for seed in self.SEEDS:
+            game = Game(seed=seed)
+            policy = TrayPolicy(weights=weights)
+            policy.reset(seed)
+            moves = []
+            n = 0
+            while not game.done and n < self.MOVE_CAP:
+                actions = game.available_actions()
+                if not actions:
+                    break
+                action = act(policy, game, actions)
+                moves.append((action, policy.last_expanded))
+                game.step(action)
+                n += 1
+            sequences.append(tuple(moves))
+        return tuple(sequences)
+
+    def _assert_same_sequences(self, weights):
+        before = self._play(weights, _pre92_tray_act)
+        after = self._play(weights, lambda p, g, a: p.act(g, a))
+        self.assertEqual(before, after)
+
+    def test_default_weights(self):
+        self._assert_same_sequences(None)
+
+    def test_trained_weights_from_weights_json(self):
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        with open(os.path.join(root, "weights.json"), encoding="utf-8") as fh:
+            data = json.load(fh)
+        self._assert_same_sequences(tuple(data["weights"]))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
