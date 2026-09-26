@@ -25,6 +25,21 @@ FEATURE_NAMES = (
     "placeable_shapes",
 )
 
+# Składniki oceny liczone ze STANU COMBO, nie z planszy (#118). Plansza ich nie
+# niesie: `combo` i `combo_counter` żyją w `Game`, a przeszukanie przenosi je
+# przez horyzont (`policies._expand`). Dokładne wyprowadzenie wag, razem z
+# przybliżeniami, jest w `docs/combo-w-ocenie.md` — tu, jak wyżej, tylko liczby.
+COMBO_FEATURE_NAMES = (
+    "combo",
+    "combo_counter",
+    "combo_x_counter",
+)
+
+# Kolejność wektora wag plików `weights*.json`: najpierw plansza, potem combo.
+# Plik z samymi sześcioma wagami planszowymi zostaje poprawny — brakujący ogon
+# to zera (`benchmark.load_tuned_weights`), czyli ocena bez combo, co do bitu.
+ALL_FEATURE_NAMES = FEATURE_NAMES + COMBO_FEATURE_NAMES
+
 FULL_ROW_MASK = (1 << WIDTH) - 1
 COL0_MASK = sum(1 << (y * WIDTH) for y in range(HEIGHT))
 COL_LAST_MASK = sum(1 << (y * WIDTH + WIDTH - 1) for y in range(HEIGHT))
@@ -44,6 +59,18 @@ def features(board):
         _near_full_lines(rows),
         _placeable_shapes(board_bits),
     )
+
+
+def combo_features(combo, combo_counter):
+    """Zwraca krotkę liczb w kolejności `COMBO_FEATURE_NAMES` ze stanu combo.
+
+    `combo_x_counter` to iloczyn, bo wartość łańcucha jest iloczynem tego, ile
+    combo mnoży (`combo`), i tego, czy łańcuch dożyje następnego czyszczenia
+    (`combo_counter`) — patrz `docs/combo-w-ocenie.md`. Dwa pierwsze składniki
+    są liniowe i zostają w wektorze jako nazwane miejsca; wyprowadzenie daje im
+    zero.
+    """
+    return (combo, combo_counter, combo * combo_counter)
 
 
 def _row_bits(row):

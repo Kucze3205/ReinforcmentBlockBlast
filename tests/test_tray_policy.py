@@ -244,6 +244,10 @@ class TestTrayPolicySpeedupPreservesDecisions(unittest.TestCase):
 def _pre92_tray_act(policy, game, actions):
     """Kopia `TrayPolicy.act` sprzed #92 — pętla wiązki wpisana wprost w politykę,
     zanim wyniesiono ją do `policies._tray_beam_search` na użytek `LookaheadPolicy`.
+
+    Ocena liścia woła dzisiejsze `_weighted_features`, które od #118 bierze też
+    stan combo. Na wektorze sześciu wag (a takich ten test używa) człon combo
+    jest pusty, więc kopia dalej liczy to samo, co liczyła w #92.
     """
     pieces0 = tuple(game.pieces)
     depth = sum(1 for p in pieces0 if p is not None)
@@ -276,7 +280,8 @@ def _pre92_tray_act(policy, game, actions):
         policy.last_expanded += len(candidates)
         for candidate in candidates:
             candidate["score"] = candidate["gain"] + policies._weighted_features(
-                policy.weights, candidate["board"]
+                policy.weights, candidate["board"],
+                candidate["combo"], candidate["combo_counter"],
             )
         candidates.sort(key=lambda c: c["score"], reverse=True)
         frontier = candidates[: policy.beam]

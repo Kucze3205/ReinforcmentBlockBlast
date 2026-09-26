@@ -17,7 +17,7 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools"))
 
-from features import FEATURE_NAMES
+from features import ALL_FEATURE_NAMES, FEATURE_NAMES
 from policies import HeuristicPolicy, LookaheadPolicy, TrayPolicy
 from tools.tune_weights import (
     build_policy,
@@ -271,7 +271,13 @@ class TestGenerationalRunIsResumable(unittest.TestCase):
             out = os.path.join(tmp, "load.weights.json")
             policy = bench_build_policy("lookahead:" + out, {"torch_seed": 0})
             self.assertEqual(policy.name, "lookahead")
-            self.assertEqual(len(policy.weights), len(FEATURE_NAMES))
+            # CEM stroi sześć wag planszowych; ogon combo dopełnia zerami
+            # `benchmark.load_tuned_weights` (#118), czyli ocena bez combo.
+            self.assertEqual(len(policy.weights), len(ALL_FEATURE_NAMES))
+            self.assertEqual(
+                policy.weights[len(FEATURE_NAMES):],
+                (0.0,) * (len(ALL_FEATURE_NAMES) - len(FEATURE_NAMES)),
+            )
             with open(out, encoding="utf-8") as fh:
                 record = json.load(fh)
             self.assertEqual(record["feature_names"], list(FEATURE_NAMES))
