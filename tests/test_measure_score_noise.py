@@ -12,12 +12,18 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from board import Board
+from pieces import Piece
 from tools.measure_score_noise import (
+    _any_action_would_clear,
+    combo_summary,
     dump_series,
+    dump_series_detailed,
     games_per_candidate_table,
     load_bench_seeds,
     load_seeds_from_file,
     play_series,
+    play_series_detailed,
     spearman,
     summarize,
 )
@@ -118,6 +124,99 @@ class TestDumpSeries(unittest.TestCase):
                 {"seed": 1, "score": 100, "survival": 10, "capped": False},
                 {"seed": 2, "score": 200, "survival": 20, "capped": True},
             ])
+        finally:
+            os.remove(path)
+
+
+class TestAnyActionWouldClear(unittest.TestCase):
+    def test_detects_clearing_action_among_several(self):
+        board = Board()
+        for x in range(Board.WIDTH - 1):
+            board.grid[0][x] = 1  # brakuje jednej komorki do pelnego wiersza 0
+        piece = Piece([[1]], "single", 0)
+        pieces = [piece]
+        clearing_action = (0, Board.WIDTH - 1, 0)
+        non_clearing_action = (0, 0, 5)
+        self.assertTrue(
+            _any_action_would_clear(board, pieces, [non_clearing_action, clearing_action])
+        )
+
+    def test_no_clearing_action_available(self):
+        board = Board()
+        piece = Piece([[1]], "single", 0)
+        pieces = [piece]
+        actions = [(0, 0, 0), (0, 1, 1)]
+        self.assertFalse(_any_action_would_clear(board, pieces, actions))
+
+
+class TestPlaySeriesDetailed(unittest.TestCase):
+    def test_placement_plus_clear_equals_score_and_breaks_are_categorized(self):
+        bench_seeds, move_cap = load_bench_seeds("bench/config.json")
+        seeds = training_seeds(4, bench_seeds, salt=101)
+        records = play_series_detailed("heuristic", None, seeds, move_cap)
+        self.assertEqual(len(records), 4)
+        for r in records:
+            self.assertEqual(r["placement_points"] + r["clear_points"], r["score"])
+            self.assertGreaterEqual(r["clear_points"], 0)
+            self.assertEqual(r["breaks"], len(r["chain_lengths"]))
+            self.assertEqual(r["breaks"], r["breaks_no_legal_clear"] + r["breaks_policy_choice"])
+            self.assertGreaterEqual(r["unresolved_chain_at_end"], 0)
+            self.assertGreaterEqual(r["max_combo"], 0)
+            if r["clears"] == 0:
+                self.assertIsNone(r["mean_combo_at_clear"])
+
+
+class TestComboSummary(unittest.TestCase):
+    def test_aggregates_percentages_causes_and_chain_distribution(self):
+        records = [
+            {
+                "score": 100, "placement_points": 40, "clear_points": 60,
+                "clears": 2, "max_combo": 3, "mean_combo_at_clear": 2.0,
+                "breaks": 1, "breaks_no_legal_clear": 1, "breaks_policy_choice": 0,
+                "chain_lengths": [3], "unresolved_chain_at_end": 0,
+            },
+            {
+                "score": 50, "placement_points": 20, "clear_points": 30,
+                "clears": 1, "max_combo": 1, "mean_combo_at_clear": 1.0,
+                "breaks": 0, "breaks_no_legal_clear": 0, "breaks_policy_choice": 0,
+                "chain_lengths": [], "unresolved_chain_at_end": 1,
+            },
+        ]
+        summary = combo_summary(records)
+        self.assertEqual(summary["total_score"], 150)
+        self.assertAlmostEqual(summary["placement_points_pct"], 100.0 * 60 / 150)
+        self.assertAlmostEqual(summary["clear_points_pct"], 100.0 * 90 / 150)
+        self.assertEqual(summary["break_causes"]["total_breaks"], 1)
+        self.assertEqual(summary["break_causes"]["no_legal_clear"], 1)
+        self.assertEqual(summary["break_causes"]["policy_choice"], 0)
+        self.assertEqual(summary["chain_length"]["n_broken"], 1)
+        self.assertEqual(summary["chain_length"]["n_censored_at_game_end"], 1)
+        self.assertEqual(summary["chain_length"]["max"], 3)
+        self.assertAlmostEqual(summary["mean_combo_at_clear_pooled"], 5.0 / 3, places=4)
+
+    def test_zero_breaks_gives_none_percentages(self):
+        records = [{
+            "score": 10, "placement_points": 10, "clear_points": 0,
+            "clears": 0, "max_combo": 0, "mean_combo_at_clear": None,
+            "breaks": 0, "breaks_no_legal_clear": 0, "breaks_policy_choice": 0,
+            "chain_lengths": [], "unresolved_chain_at_end": 0,
+        }]
+        summary = combo_summary(records)
+        self.assertIsNone(summary["break_causes"]["no_legal_clear_pct"])
+        self.assertIsNone(summary["mean_combo_at_clear_pooled"])
+        self.assertIsNone(summary["chain_length"]["median"])
+
+
+class TestDumpSeriesDetailed(unittest.TestCase):
+    def test_round_trips_full_records(self):
+        records = [{"seed": 1, "score": 100, "chain_lengths": [2, 3]}]
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as fh:
+            path = fh.name
+        try:
+            dump_series_detailed(path, records)
+            with open(path, encoding="utf-8") as fh:
+                loaded = json.load(fh)
+            self.assertEqual(loaded, records)
         finally:
             os.remove(path)
 
