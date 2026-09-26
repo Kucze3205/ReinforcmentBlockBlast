@@ -15,6 +15,7 @@ się kodem błędu z powodu regresji.
 import argparse
 import hashlib
 import json
+import math
 import os
 import random
 import statistics
@@ -34,7 +35,17 @@ from policies import (
 )
 
 CONFIG_PATH = "bench/config.json"
-HASHED_SOURCES = ["scoring.py", "pieces.py"]
+# Jawna lista, nie glob (#102): dopisanie pliku, który wpływa na mierzoną
+# liczbę, ma być świadomą decyzją, a nie efektem ubocznym `os.listdir`.
+HASHED_SOURCES = [
+    "game.py",
+    "scoring.py",
+    "generator.py",
+    "pieces.py",
+    "features.py",
+    "policies.py",
+    "benchmark.py",
+]
 
 STATUS_OK = "ok"
 STATUS_BLOCKED = "blocked"
@@ -61,12 +72,21 @@ def rotated_seeds(config, issue):
     return rng.sample(range(1, 2**31 - 1), config["n_seeds"])
 
 
+def file_hash(path):
+    with open(path, "rb") as fh:
+        return hashlib.sha256(fh.read()).hexdigest()[:16]
+
+
 def source_hashes():
-    out = {}
-    for name in HASHED_SOURCES:
-        with open(name, "rb") as fh:
-            out[name] = hashlib.sha256(fh.read()).hexdigest()[:16]
-    return out
+    return {name: file_hash(name) for name in HASHED_SOURCES}
+
+
+def weights_file_for_spec(spec):
+    """Ścieżka pliku wag, jeśli `spec` to `<prefix>:<plik>` (#102: skrót wag w rekordzie)."""
+    for prefix in TUNED_POLICY_CLASSES:
+        if spec.startswith(prefix + ":"):
+            return spec[len(prefix) + 1:]
+    return None
 
 
 def current_sha():
@@ -200,10 +220,18 @@ def percentile(values, pct):
 
 
 def paired_delta(candidate_scores, baseline_scores, threshold_pct):
-    """Różnica sparowana na wspólnych seedach + etykieta progu (nieblokująca)."""
+    """Różnica sparowana na wspólnych seedach + etykieta progu (nieblokująca).
+
+    Dopisuje błąd standardowy różnicy (#102): przy 300 seedach `sd_diff` samo
+    w sobie nie mówi, czy `mean_diff` jest odróżnialne od szumu — próg
+    promocji potrafi leżeć w okolicach jednego błędu standardowego.
+    """
     diffs = [c - b for c, b in zip(candidate_scores, baseline_scores)]
+    n = len(diffs)
     base_mean = statistics.mean(baseline_scores)
     mean_diff = statistics.mean(diffs)
+    sd_diff = statistics.pstdev(diffs) if n > 1 else 0.0
+    se_diff = sd_diff / math.sqrt(n) if n > 0 else 0.0
     pct = 100.0 * mean_diff / base_mean if base_mean else 0.0
     if pct >= threshold_pct:
         label = "poprawa"
@@ -214,7 +242,10 @@ def paired_delta(candidate_scores, baseline_scores, threshold_pct):
     return {
         "mean_diff": round(mean_diff, 2),
         "pct": round(pct, 2),
-        "sd_diff": round(statistics.pstdev(diffs), 2) if len(diffs) > 1 else 0.0,
+        "sd_diff": round(sd_diff, 2),
+        "se_diff": round(se_diff, 2),
+        "se_pct": round(100.0 * se_diff / base_mean, 2) if base_mean else 0.0,
+        "mean_diff_over_se": round(mean_diff / se_diff, 2) if se_diff else 0.0,
         "label": label,
     }
 
@@ -346,7 +377,11 @@ def main(argv=None):
             record["status"] = STATUS_BLOCKED
             record["blocked_reason"] = "ramię `" + name + "`: " + str(exc)
             continue
-        record["arms"][name] = measure_arm(policy, seeds_f, seeds_r, config["move_cap"])
+        arm = measure_arm(policy, seeds_f, seeds_r, config["move_cap"])
+        weights_path = weights_file_for_spec(spec)
+        if weights_path:
+            arm["weights_hash"] = file_hash(weights_path)
+        record["arms"][name] = arm
 
     if "candidate" in record["arms"]:
         cand = record["arms"]["candidate"]["fixed"]["scores"]
