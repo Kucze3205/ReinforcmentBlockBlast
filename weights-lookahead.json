@@ -9,18 +9,18 @@
     "placeable_shapes"
   ],
   "weights": [
-    0.5011911858034355,
-    -8.541177833550202,
-    -3.975396902857251,
-    3.6116749137006003,
-    4.471973068339583,
-    0.4710468293769111
+    0.4567457682889432,
+    -5.936260044253659,
+    -2.099353791600543,
+    3.704531988522924,
+    4.596538276185366,
+    1.6060818006746345
   ],
-  "best_score": 7436.16,
-  "iterations": 1,
-  "duration_s": 621.6,
-  "games_played": 448,
-  "games_per_minute": 43.24,
+  "best_score": 10283.09,
+  "iterations": 2,
+  "duration_s": 1292.9,
+  "games_played": 896,
+  "games_per_minute": 41.58,
   "training_seeds_n": 32,
   "params": {
     "minutes": null,
@@ -54,6 +54,22 @@
         0.579
       ],
       "duration_s": 621.6
+    },
+    {
+      "iteration": 2,
+      "evaluated": 14,
+      "mean_score": 5798.92,
+      "elite_best_score": 10283.09,
+      "elite_mean_score": 7682.73,
+      "mean_vector": [
+        0.3856,
+        -9.5994,
+        -2.6212,
+        3.0231,
+        3.4251,
+        0.2289
+      ],
+      "duration_s": 671.3
     }
   ]
 }
