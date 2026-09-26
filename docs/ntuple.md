@@ -49,9 +49,29 @@ się z innym (`NTupleValue.load` sprawdza to asercją).
 ## Gdzie się wpina
 
 `ntuple.NTupleValue.value(board)` zastępuje `policies._weighted_features(weights,
-board)` jako wartość liścia w przeszukaniu tacki — ale tylko w nowej klasie
-`policies.NTupleLookaheadPolicy`, nie w `TrayPolicy`/`LookaheadPolicy`, które
-zostają nietknięte (zero zmiany zachowania, patrz test regresji niżej).
+board, combo, combo_counter)` jako wartość liścia w przeszukaniu tacki — ale
+tylko w nowej klasie `policies.NTupleLookaheadPolicy`, nie w
+`TrayPolicy`/`LookaheadPolicy`, które zostają nietknięte (zero zmiany
+zachowania, patrz test regresji niżej).
+
+**Sygnatura haka: trójka, ocena: sama plansza** (#125, przy scalaniu na `main`).
+`_tray_beam_search(..., leaf_value=...)` woła hak dokładnie tymi argumentami,
+którymi woła `_weighted_features` — `(board, combo, combo_counter)` — a adapter
+`NTupleLookaheadPolicy._ntuple_leaf` **ignoruje dwa ostatnie** i zwraca
+`NTupleValue.value(board)`. Dwie strony tej decyzji, obie celowe:
+
+- *Dlaczego liść nie dostaje członu combo*: `gain` już niesie efekt combo dla
+  ocenianego ruchu, a `V(board)` ma szacować przyszłość samej planszy; jedyny
+  pomiar combo w ocenie liścia wyszedł **ujemnie** (#122: −6,6%, przeżycie
+  95,97 wobec 110,5), więc skopiowanie tego członu tutaj skopiowałoby zmierzony
+  błąd.
+- *Dlaczego argumenty zostają w sygnaturze*: dosypanie combo do oceny N-tuple
+  później — gdyby pomiar kiedyś wyszedł inaczej — jest wtedy zmianą w jednym
+  adapterze, bez kolejnej zmiany sygnatury haka i bez ruszania
+  `TrayPolicy`/`LookaheadPolicy`.
+
+Pilnuje tego `tests/test_leaf_value_hook.py`: hak widzi tę samą trójkę co
+domyślna ocena, a wartość liścia N-tuple nie zmienia się przy combo 0, 1, 7 i 40.
 `benchmark.py --candidate lookahead-ntuple:<plik>` buduje to ramię tak jak
 `lookahead:<plik>` buduje `LookaheadPolicy` z wagami — `<plik>` jest w formacie
 `ntuple.NTupleValue.save()`, nie `weights.json` (`features.FEATURE_NAMES`).
@@ -87,12 +107,17 @@ jest zachłanna o jeden pół-ruch w przód: `gain(akcja) + V(afterstate(akcja))
 maksymalizowane po wszystkich legalnych akcjach bieżącej tacki — **nie**
 przeszukanie tacki (`TrayPolicy`/`LookaheadPolicy`), żeby jeden odcinek
 treningu był tani. `combo`/`combo_counter` nie wchodzą do stanu wartościowanego
-przez sieć — tak samo jak dziś `_weighted_features(weights, board)` w
-`HeuristicPolicy`/`TrayPolicy`: `gain` już niesie efekt combo dla *tego* ruchu,
-`V(board)` szacuje wartość *przyszłą* samej planszy. To jest znane ograniczenie,
-nazwane (nie zmierzone) w `docs/research/budzet-wyuczonej-oceny.md` sekcja 6 —
-nierozwiązane w tym zadaniu, bo issue #123 wymaga wpięcia w miejsce
-`_weighted_features`, które już ma tę samą własność.
+przez sieć: `gain` już niesie efekt combo dla *tego* ruchu, `V(board)` szacuje
+wartość *przyszłą* samej planszy.
+
+Uwaga aktualizacyjna (#125): `_weighted_features` **ma** od #118 człon combo, więc
+zdanie „tak samo jak dziś w `HeuristicPolicy`/`TrayPolicy`" z pierwszej wersji
+tego dokumentu już nie jest prawdą — na `main` liść ręcznych wag może combo
+wyceniać, tylko `weights.json` ma ogon combo zerowy. Brak członu combo w liściu
+N-tuple **nie jest** więc odziedziczoną własnością, jest decyzją: jedyny pomiar
+tego członu w ocenie liścia wyszedł ujemnie (#122, −6,6%). Kwestia, czy inny
+sposób wpuszczenia combo do wyuczonej oceny by pomógł, została nazwana w
+`docs/research/budzet-wyuczonej-oceny.md` sekcja 6 i pozostaje otwarta.
 
 ## Jak wznowić trening jednym poleceniem
 
@@ -198,7 +223,8 @@ uczenia jeszcze rośnie przed inwestowaniem w więcej — nie zakładać z góry
 
 ```
 python3 -m unittest tests.test_ntuple tests.test_train_ntuple \
-    tests.test_lookahead_ntuple_regression tests.test_benchmark_ntuple_weights -v
+    tests.test_lookahead_ntuple_regression tests.test_benchmark_ntuple_weights \
+    tests.test_leaf_value_hook tests.test_lookahead_regression -v
 ```
 
 `test_lookahead_ntuple_regression.py` jest ramieniem odniesienia wymaganym
@@ -206,3 +232,11 @@ przez #123: `LookaheadPolicy(weights=weights.json)` na 20 seedach
 `bench/seeds_fixed.json` daje dziś **identyczną, znak-w-znak** sekwencję
 ruchów co przed dodaniem haka `_leaf_value`/`NTupleLookaheadPolicy` — fixture
 `tests/fixtures/lookahead_regression.json` został przechwycony PRZED tą zmianą.
+
+Po scaleniu na `main` (#125) chronią tego samego dwa złote zapisy, nie jeden, i
+**żadnego się nie regeneruje**: `test_lookahead_regression.py` (24 partie,
+zapis z #118, `tests/data/lookahead_weights_moves.json`) oraz powyższy (20
+seedów, zapis z #123). Ten pierwszy pilnuje, że sygnatura z combo nie ruszyła
+ruchów; ten drugi — że nie ruszył ich hak liścia. `test_leaf_value_hook.py`
+(#125) domyka sam hak: trójka argumentów u haka i u domyślnej oceny jest ta
+sama, a adapter N-tuple daje tę samą wartość przy combo 0, 1, 7 i 40.

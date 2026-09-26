@@ -18,7 +18,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from benchmark import ArmUnavailable, build_policy, load_config
 from features import ALL_FEATURE_NAMES, FEATURE_NAMES
-from policies import HeuristicPolicy, TrayPolicy
+from policies import HeuristicPolicy, LookaheadPolicy, TrayPolicy
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 class TestBuildPolicyTunedWeights(unittest.TestCase):
@@ -90,6 +92,44 @@ class TestBuildPolicyTunedWeights(unittest.TestCase):
         with self.assertRaises(ArmUnavailable) as ctx:
             build_policy("tray:" + missing, self.config)
         self.assertIn(missing, str(ctx.exception))
+
+
+class TestRepoWeightFilesAsLookaheadArms(unittest.TestCase):
+    """Oba pliki wag **z repo** budują ramię `lookahead:` (#125).
+
+    Testy wyżej pracują na plikach tymczasowych, więc przechodziłyby nawet
+    wtedy, gdyby `weights.json` albo `weights-combo.json` w repo przestały się
+    wczytywać. Te dwa pliki są konkretnymi ramionami benchmarku (#118) —
+    `weights.json` odniesieniem sprzed combo, `weights-combo.json` ramieniem z
+    pełnym wektorem — i wpięcie alternatywnego liścia (#123/#125) nie ma prawa
+    ruszyć ani jednej, ani drugiej ścieżki wczytywania.
+    """
+
+    def setUp(self):
+        self.config = load_config("bench/config.json")
+
+    def test_weights_json_is_six_numbers_padded_with_zero_combo_tail(self):
+        with open(os.path.join(ROOT, "weights.json"), encoding="utf-8") as fh:
+            stored = tuple(json.load(fh)["weights"])
+        self.assertEqual(len(stored), len(FEATURE_NAMES))
+
+        policy = build_policy("lookahead:" + os.path.join(ROOT, "weights.json"), self.config)
+        self.assertIsInstance(policy, LookaheadPolicy)
+        self.assertEqual(len(policy.weights), len(ALL_FEATURE_NAMES))
+        self.assertEqual(policy.weights[:len(FEATURE_NAMES)], stored)
+        # Ogon dokładnie zerowy: to on gwarantuje ocenę bit w bit jak przed #118.
+        self.assertEqual(policy.weights[len(FEATURE_NAMES):],
+                         (0.0,) * (len(ALL_FEATURE_NAMES) - len(FEATURE_NAMES)))
+
+    def test_weights_combo_json_is_nine_numbers_loaded_verbatim(self):
+        with open(os.path.join(ROOT, "weights-combo.json"), encoding="utf-8") as fh:
+            stored = tuple(json.load(fh)["weights"])
+        self.assertEqual(len(stored), len(ALL_FEATURE_NAMES))
+
+        policy = build_policy("lookahead:" + os.path.join(ROOT, "weights-combo.json"),
+                              self.config)
+        self.assertIsInstance(policy, LookaheadPolicy)
+        self.assertEqual(policy.weights, stored)
 
 
 if __name__ == "__main__":

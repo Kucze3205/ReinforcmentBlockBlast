@@ -2,8 +2,11 @@
 Ocena N-tuple: suma odczytów z tablic LUT po łatach binarnych planszy (#123).
 
 Alternatywne, wybieralne źródło wartości liścia — wpinane tam, gdzie dziś stoi
-`policies._weighted_features(weights, board)`, nie jego zamiennik. `features.py`
-i sześć ręcznych cech zostają nietknięte jako punkt odniesienia.
+`policies._weighted_features(weights, board, combo, combo_counter)`, nie jego
+zamiennik. `features.py` i sześć ręcznych cech zostają nietknięte jako punkt
+odniesienia. Adapter w `policies.NTupleLookaheadPolicy` dostaje pełną trójkę
+`(board, combo, combo_counter)`, ale `value` bierze **samą planszę**: liść
+N-tuple świadomie nie ma członu combo (decyzja #125, pomiar #122).
 
 `c = 2`: komórka planszy jest pusta albo zajęta, więc łata o `k` komórkach ma
 `2**k` możliwych wzorców — każdy wzorzec to jeden wpis w tablicy wag tej łaty
