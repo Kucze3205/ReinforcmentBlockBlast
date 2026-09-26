@@ -25,11 +25,13 @@ import time
 
 from features import ALL_FEATURE_NAMES, FEATURE_NAMES
 from game import Game
+from ntuple import NTupleValue
 from policies import (
     GreedyPolicy,
     HeuristicPolicy,
     LookaheadPolicy,
     ModelPolicy,
+    NTupleLookaheadPolicy,
     RandomPolicy,
     TrayPolicy,
 )
@@ -83,7 +85,7 @@ def source_hashes():
 
 def weights_file_for_spec(spec):
     """Ścieżka pliku wag, jeśli `spec` to `<prefix>:<plik>` (#102: skrót wag w rekordzie)."""
-    for prefix in TUNED_POLICY_CLASSES:
+    for prefix in list(TUNED_POLICY_CLASSES) + [NTUPLE_POLICY_PREFIX]:
         if spec.startswith(prefix + ":"):
             return spec[len(prefix) + 1:]
     return None
@@ -119,6 +121,22 @@ TUNED_POLICY_CLASSES = {
     "tray": TrayPolicy,
     "lookahead": LookaheadPolicy,
 }
+
+# Osobny prefiks (#123): plik wag ma inny format niż FEATURE_NAMES (tablice LUT
+# po łatach, patrz `ntuple.py`), więc `load_tuned_weights` się do niego nie stosuje.
+NTUPLE_POLICY_PREFIX = "lookahead-ntuple"
+
+
+def load_ntuple_weights(path):
+    """Wczytuje `ntuple.NTupleValue` z pliku zapisanego przez `tools/train_ntuple.py`.
+
+    Zgłasza `ArmUnavailable` zamiast wyjątku z głębi, tak jak `load_tuned_weights` (#80)."""
+    if not os.path.exists(path):
+        raise ArmUnavailable("brak pliku wag: " + path)
+    try:
+        return NTupleValue.load(path)
+    except Exception as exc:
+        raise ArmUnavailable("wagi ntuple " + path + " nieładowalne: " + str(exc)) from exc
 
 
 def load_tuned_weights(path):
@@ -162,6 +180,11 @@ def build_policy(spec, config):
         return TrayPolicy()
     if spec == "lookahead":
         return LookaheadPolicy()
+
+    if spec.startswith(NTUPLE_POLICY_PREFIX + ":"):
+        path = spec[len(NTUPLE_POLICY_PREFIX) + 1:]
+        ntuple_value = load_ntuple_weights(path)
+        return NTupleLookaheadPolicy(ntuple_value)
 
     for prefix, policy_cls in TUNED_POLICY_CLASSES.items():
         if spec.startswith(prefix + ":"):
@@ -333,7 +356,8 @@ def main(argv=None):
     parser.add_argument(
         "--candidate", required=True,
         help="random | greedy | heuristic | tray | lookahead | heuristic:<plik> | "
-             "tray:<plik> | lookahead:<plik> | ścieżka do wag torcha",
+             "tray:<plik> | lookahead:<plik> | lookahead-ntuple:<plik> | "
+             "ścieżka do wag torcha",
     )
     parser.add_argument("--previous", help="ramię odniesienia: poprzednik")
     parser.add_argument("--record", help="ramię odniesienia: rekordzista")
