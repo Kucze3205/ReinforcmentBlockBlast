@@ -1,7 +1,7 @@
 {
-  "sha": "95096594d712030a86ab070ed077ff9c96e1d0b6",
+  "sha": "00ac4c22df0ef947f11f1f9358c17fbb181977a3",
   "dirty": false,
-  "issue": 87,
+  "issue": 97,
   "status": "ok",
   "blocked_reason": null,
   "config": {
@@ -19,6 +19,24 @@
   },
   "arms": {
     "candidate": {
+      "policy": "lookahead",
+      "fixed": {
+        "mean": 6171.04,
+        "median": 3894.5,
+        "p10": 609.5,
+        "survival_mean": 110.5,
+        "capped_pct": 0.0
+      },
+      "rotated": {
+        "mean": 5674.87,
+        "median": 3646.0,
+        "p10": 587.0,
+        "survival_mean": 99.79,
+        "capped_pct": 0.0
+      },
+      "overfit_gap_pct": 8.04
+    },
+    "previous": {
       "policy": "tray",
       "fixed": {
         "mean": 4510.24,
@@ -28,40 +46,22 @@
         "capped_pct": 0.0
       },
       "rotated": {
-        "mean": 5731.5,
-        "median": 3250.0,
-        "p10": 594.7,
-        "survival_mean": 103.52,
+        "mean": 4361,
+        "median": 2450.0,
+        "p10": 451.3,
+        "survival_mean": 86.82,
         "capped_pct": 0.0
       },
-      "overfit_gap_pct": -27.08
-    },
-    "previous": {
-      "policy": "greedy",
-      "fixed": {
-        "mean": 704.79,
-        "median": 486.0,
-        "p10": 160.0,
-        "survival_mean": 34.99,
-        "capped_pct": 0.0
-      },
-      "rotated": {
-        "mean": 677.32,
-        "median": 519.0,
-        "p10": 170.8,
-        "survival_mean": 34.61,
-        "capped_pct": 0.0
-      },
-      "overfit_gap_pct": 3.9
+      "overfit_gap_pct": 3.31
     }
   },
   "deltas": {
     "kandydat vs previous": {
-      "mean_diff": 3805.45,
-      "pct": 539.94,
-      "sd_diff": 6100.42,
+      "mean_diff": 1660.81,
+      "pct": 36.82,
+      "sd_diff": 9490.99,
       "label": "poprawa"
     }
   },
-  "duration_s": 1466.2
+  "duration_s": 1798.7
 }
