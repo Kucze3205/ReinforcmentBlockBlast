@@ -1,0 +1,145 @@
+{
+  "issue": 110,
+  "generation": 6,
+  "generations_target": 6,
+  "iterations": 6,
+  "best_score": 10283.09375,
+  "games_played": 2688,
+  "duration_s": 5247.1,
+  "weights": [
+    0.4567457682889432,
+    -5.936260044253659,
+    -2.099353791600543,
+    3.704531988522924,
+    4.596538276185366,
+    1.6060818006746345
+  ],
+  "feature_names": [
+    "occupied_cells",
+    "surrounded_empty",
+    "empty_regions",
+    "largest_empty_rect",
+    "near_full_lines",
+    "placeable_shapes"
+  ],
+  "mean": [
+    0.019037456169614553,
+    -9.41476459227321,
+    -2.3420914221922153,
+    3.011991149229327,
+    2.8079995283091335,
+    0.7514041995410529
+  ],
+  "std": [
+    0.20644830260003422,
+    0.6072755880356883,
+    0.05312415238773042,
+    0.2864702631617765,
+    0.060866562850347174,
+    0.376547707922951
+  ],
+  "elite_scores": [
+    9834.22,
+    8325.75,
+    8037.03,
+    7866
+  ],
+  "log": [
+    {
+      "iteration": 1,
+      "evaluated": 14,
+      "mean_score": 5310.01,
+      "elite_best_score": 7436.16,
+      "elite_mean_score": 7096.87,
+      "mean_vector": [
+        0.4279,
+        -8.3855,
+        -1.5988,
+        2.7333,
+        2.9614,
+        0.579
+      ],
+      "duration_s": 621.6
+    },
+    {
+      "iteration": 2,
+      "evaluated": 14,
+      "mean_score": 5798.92,
+      "elite_best_score": 10283.09,
+      "elite_mean_score": 7682.73,
+      "mean_vector": [
+        0.3856,
+        -9.5994,
+        -2.6212,
+        3.0231,
+        3.4251,
+        0.2289
+      ],
+      "duration_s": 671.3
+    },
+    {
+      "iteration": 3,
+      "evaluated": 14,
+      "mean_score": 5814.98,
+      "elite_best_score": 9329.84,
+      "elite_mean_score": 7605.51,
+      "mean_vector": [
+        0.3349,
+        -9.7496,
+        -2.762,
+        3.026,
+        3.2825,
+        0.5711
+      ],
+      "duration_s": 904.8
+    },
+    {
+      "iteration": 4,
+      "evaluated": 14,
+      "mean_score": 6516.75,
+      "elite_best_score": 9903.94,
+      "elite_mean_score": 8277.85,
+      "mean_vector": [
+        0.3217,
+        -9.3117,
+        -2.6135,
+        2.5304,
+        2.8464,
+        0.4935
+      ],
+      "duration_s": 997.2
+    },
+    {
+      "iteration": 5,
+      "evaluated": 14,
+      "mean_score": 6555.43,
+      "elite_best_score": 9463.28,
+      "elite_mean_score": 8060.02,
+      "mean_vector": [
+        0.2853,
+        -9.2071,
+        -2.375,
+        2.7523,
+        2.7681,
+        0.8188
+      ],
+      "duration_s": 1008.4
+    },
+    {
+      "iteration": 6,
+      "evaluated": 14,
+      "mean_score": 7231.45,
+      "elite_best_score": 9834.22,
+      "elite_mean_score": 8515.75,
+      "mean_vector": [
+        0.019,
+        -9.4148,
+        -2.3421,
+        3.012,
+        2.808,
+        0.7514
+      ],
+      "duration_s": 1043.8
+    }
+  ]
+}
