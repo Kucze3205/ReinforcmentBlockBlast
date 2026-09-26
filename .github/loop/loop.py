@@ -24,7 +24,7 @@ BOT = "github-actions[bot]"
 # Pola raportu pisane wyłącznie przez epilog i dozorcę; publikacja raportu agenta ich nie kasuje.
 OWNED = ("proby", "wznow_po", "kopniecia", "kopniete", "konflikty", "przyczyna", "weryfikacja")
 AGENT_STATUSES = {"done", "partial", "blocked", "rejected"}
-MODEL_LABELS = {"model:opus": "opus"}       # lista zamknięta (#13); etykietę nadaje tylko orchestrator
+MODEL_LABELS = {"model:opus": "claude-opus-5-5"}       # lista zamknięta (#13); etykietę nadaje tylko orchestrator
 EFFORT_LABELS = {"effort:high": "high"}
 SECRETS = ("GH_TOKEN", "GITHUB_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN", "ASSETS_READ_TOKEN")
 BACKOFF_H = (1, 5, 24)                      # gdy w wyniku sesji nie ma terminu resetu limitu
