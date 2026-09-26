@@ -1,0 +1,33 @@
+{
+  "policy": "lookahead",
+  "note": "Szesc wag planszowych przepisanych bez zmiany z weights.json (ramie rekordu bench/record.json). Trzy wagi combo WYPROWADZONE ze wzoru punktowego scoring.py, nie strojone: V(c,k) = (k/K_max)*c*B(1) = 2*c*k. Pelne wyprowadzenie i przyjete przyblizenia: docs/combo-w-ocenie.md (#118).",
+  "feature_names": [
+    "occupied_cells",
+    "surrounded_empty",
+    "empty_regions",
+    "largest_empty_rect",
+    "near_full_lines",
+    "placeable_shapes",
+    "combo",
+    "combo_counter",
+    "combo_x_counter"
+  ],
+  "weights": [
+    0.2721229482739313,
+    -10.516002301827875,
+    -1.7259996688230124,
+    2.605158017954318,
+    3.194765457485876,
+    1.3489845482065244,
+    0.0,
+    0.0,
+    2.0
+  ],
+  "derivation": {
+    "board_weights_from": "weights.json",
+    "line_bonus_1": 10,
+    "combo_counter_max": 5,
+    "combo_x_counter": "line_bonus(1) / (COMBO_COUNTER_BASE + 2)",
+    "doc": "docs/combo-w-ocenie.md"
+  }
+}
