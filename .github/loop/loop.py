@@ -415,6 +415,7 @@ def run_verification(work, body):
     cmds = [c.strip() for c in cmds] or re.findall(r"`([^`\n]+)`", text)
     for c in cmds:
         r = subprocess.run(["bash", "-c", c], cwd=work, env=clean_env(), capture_output=True, text=True, timeout=3600)
+        print("$ %s\n%s%s" % (c, r.stdout, r.stderr))     # liczby z udanych poleceń zostają w logu joba (#90)
         if r.returncode:
             return False, c + "\n" + (r.stdout + r.stderr)[-1500:]
     return True, ""
@@ -422,12 +423,20 @@ def run_verification(work, body):
 
 def bench(n, work):
     """`rola:bench`: job liczący bez sesji Claude'a. Polecenia bierze z `## Weryfikacja`."""
+    base = git(work, "rev-parse", "HEAD").stdout.strip()
     ok, out = run_verification(work, issue(n)["body"])
-    if ok and not git(work, "status", "--porcelain", "--", "bench/*.json").stdout.strip():
+    commit_bench(n, work)   # przed oceną: wynik przeżywa polecenie, które padło po pomiarze (#90)
+    # „policzono" = bench/*.json zmienione w tym jobie, w katalogu albo w commitach poleceń (#99)
+    if ok and not git(work, "diff", "--name-only", base, "HEAD", "--", "bench/*.json").stdout.strip():
         ok, out = False, "Polecenia z `## Weryfikacja` przeszły, ale żaden bench/*.json nie przybył ani się nie zmienił: nic nie policzono."
     print(out)
     with open(os.path.join(os.environ.get("RUNNER_TEMP", "/tmp"), "agent-exit"), "w") as fh:
         fh.write("0" if ok else "1")
+
+
+def commit_bench(n, work):
+    git(work, "add", "-A", "bench")
+    git(work, "commit", "-q", "-m", "bench: wynik zadania #%s" % n, check=False)
 
 
 def merge_main(n, role, work):
@@ -527,6 +536,8 @@ def finalize(n, work):
         status = "paused" if limited else "crashed"
         prose = ("Limit subskrypcji; wznowienie zaplanowane." if limited
                  else "Agent nie zostawił statusu terminalnego (%s)." % (cause or "bez przyczyny"))
+    if role == "bench":
+        commit_bench(n, work)   # krok bench zabity limitem czasu nie zdążył scommitować
     # nic z gałęzi nie ginie z runnerem
     if git(work, "rev-parse", "--verify", "-q", "HEAD", check=False).returncode == 0:
         git(work, "push", "-f", "origin", "HEAD:refs/heads/task/%s" % n, check=False)
@@ -538,9 +549,6 @@ def finalize(n, work):
         if not ok:
             status, prose = "partial", "Epilog uruchomił `## Weryfikacja` i dostał błąd:\n```\n%s\n```" % out
             upd["weryfikacja"] = "fail"
-    if role == "bench" and status == "done":
-        git(work, "add", "-A", "bench")
-        git(work, "commit", "-q", "-m", "bench: wynik zadania #%s" % n, check=False)
     if status == "done":
         result, out = merge_main(n, role, work)
         if result == "conflict":

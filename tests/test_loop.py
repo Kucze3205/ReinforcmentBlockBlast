@@ -184,6 +184,54 @@ class ZobowiazaniaTest(unittest.TestCase):
         self.assertTrue(loop.commitments())
 
 
+class BenchTest(unittest.TestCase):
+    """Bramka „policzono" (#99) i wynik, który przeżywa pad po pomiarze (#90), na prawdziwym repo git."""
+    def setUp(self):
+        self.saved = {k: getattr(loop, k) for k in ("issue",)}
+        self.work = tempfile.mkdtemp()
+        self.tmp = tempfile.mkdtemp()
+        self.env = os.environ.get("RUNNER_TEMP")
+        os.environ["RUNNER_TEMP"] = self.tmp
+        for args in (("init", "-q"), ("config", "user.email", "t@t"), ("config", "user.name", "t")):
+            loop.git(self.work, *args)
+        os.makedirs(os.path.join(self.work, "bench"))
+        with open(os.path.join(self.work, "bench", "record.json"), "w") as fh:
+            fh.write("{}")
+        loop.git(self.work, "add", "-A")
+        loop.git(self.work, "commit", "-q", "-m", "start")
+
+    def tearDown(self):
+        for k, v in self.saved.items():
+            setattr(loop, k, v)
+        if self.env is None:
+            os.environ.pop("RUNNER_TEMP")
+        else:
+            os.environ["RUNNER_TEMP"] = self.env
+
+    def run_bench(self, *cmds):
+        loop.issue = lambda n: {"body": "## Weryfikacja\n\n" + "".join("```bash\n%s\n```\n" % c for c in cmds)}
+        loop.bench(97, self.work)
+        with open(os.path.join(self.tmp, "agent-exit")) as fh:
+            return fh.read()
+
+    def committed(self, path):
+        return loop.git(self.work, "ls-files", "--error-unmatch", path, check=False).returncode == 0
+
+    def test_wynik_scommitowany_przez_polecenie_to_policzono(self):
+        self.assertEqual(self.run_bench("echo 1 > bench/97.json && git add -A bench && git commit -qm wynik"), "0")
+
+    def test_wynik_w_katalogu_to_policzono_i_trafia_do_commita(self):
+        self.assertEqual(self.run_bench("echo 1 > bench/97.json"), "0")
+        self.assertTrue(self.committed("bench/97.json"))
+
+    def test_nic_nie_policzono(self):
+        self.assertEqual(self.run_bench("true"), "1")
+
+    def test_pad_po_pomiarze_nie_gubi_wyniku(self):
+        self.assertEqual(self.run_bench("echo 1 > bench/97.json", "false"), "1")
+        self.assertTrue(self.committed("bench/97.json"))
+
+
 if __name__ == "__main__":
     unittest.main()
 
