@@ -13,6 +13,12 @@ ogóle zmieści się w limicie 3600 s na polecenie (`.github/loop/loop.py:408`).
 
     python3 tools/measure_lookahead_cost.py            # pełna tabela, 40 partii na wiersz
     python3 tools/measure_lookahead_cost.py 8          # szybki przebieg, 8 partii na wiersz
+    python3 tools/measure_lookahead_cost.py 100 "s=2 b=2 in=1x1"   # wybrane wiersze, po etykiecie
+
+Pierwszy argument to liczba partii na wiersz; kolejne to **dokładne** etykiety z
+`CONFIGS` (bez nich mierzone są wszystkie wiersze). Seedy powyżej 40 są dalszym
+ciągiem tej samej deterministycznej sekwencji, więc 40-seedowa tabela jest
+prefiksem 100-seedowej.
 """
 import os
 import statistics
@@ -39,6 +45,20 @@ CONFIGS = (
     ("s=3 b=3 in=1x3", lambda: LookaheadPolicy(samples=3, branch=3, inner_beam=1, inner_depth=3)),
     ("beam=4 s=3 b=3 in=1x1", lambda: LookaheadPolicy(
         beam=4, samples=3, branch=3, inner_beam=1, inner_depth=1)),
+    # Drugi przebieg: dostrojenie wokół zwycięzcy pierwszego (s=2 b=2 in=1x1).
+    ("s=1 b=2 in=1x1", lambda: LookaheadPolicy(samples=1, branch=2, inner_beam=1, inner_depth=1)),
+    ("s=3 b=2 in=1x1", lambda: LookaheadPolicy(samples=3, branch=2, inner_beam=1, inner_depth=1)),
+    ("s=2 b=3 in=1x1", lambda: LookaheadPolicy(samples=2, branch=3, inner_beam=1, inner_depth=1)),
+    ("s=2 b=2 in=1x1 kara=0", lambda: LookaheadPolicy(
+        samples=2, branch=2, inner_beam=1, inner_depth=1, death_penalty=0.0)),
+    ("s=2 b=2 in=1x1 kara=-50", lambda: LookaheadPolicy(
+        samples=2, branch=2, inner_beam=1, inner_depth=1, death_penalty=-50.0)),
+    ("s=2 b=2 in=1x1 kara=-500", lambda: LookaheadPolicy(
+        samples=2, branch=2, inner_beam=1, inner_depth=1, death_penalty=-500.0)),
+    ("beam=6 s=2 b=2 in=1x1", lambda: LookaheadPolicy(
+        beam=6, samples=2, branch=2, inner_beam=1, inner_depth=1)),
+    ("beam=12 s=2 b=2 in=1x1", lambda: LookaheadPolicy(
+        beam=12, samples=2, branch=2, inner_beam=1, inner_depth=1)),
 )
 
 
@@ -81,8 +101,16 @@ def measure(label, make_policy, seeds):
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     n_games = int(argv[0]) if argv else N_GAMES
-    seeds = measurement_seeds(N_GAMES)[:n_games]
-    print("Seedy pomiaru (%d z %d z tools/measure_tray_cost.py):" % (len(seeds), N_GAMES))
+    wanted = argv[1:]
+    configs = [c for c in CONFIGS if not wanted or c[0] in wanted]
+    if wanted and not configs:
+        raise SystemExit("żadna etykieta nie pasuje; dostępne:\n  "
+                         + "\n  ".join(c[0] for c in CONFIGS))
+    # `measurement_seeds` dokłada seedy w ustalonej kolejności, więc prefiks 40
+    # sztuk jest ten sam co w #79/#88 niezależnie od tego, ile ich zamówimy.
+    seeds = measurement_seeds(n_games)
+    print("Seedy pomiaru (%d, prefiks %d wspólny z tools/measure_tray_cost.py):"
+          % (len(seeds), min(n_games, N_GAMES)))
     print(seeds)
     print()
     header = "{0:<26} {1:>9} {2:>9} {3:>9} {4:>9} {5:>10} {6:>12}".format(
@@ -92,7 +120,7 @@ def main(argv=None):
     print("-" * len(header))
     started = time.time()
     results = []
-    for label, make_policy in CONFIGS:
+    for label, make_policy in configs:
         r = measure(label, make_policy, seeds)
         results.append(r)
         print("{0:<26} {1:>9} {2:>9} {3:>9} {4:>9} {5:>10} {6:>12}".format(
@@ -101,7 +129,7 @@ def main(argv=None):
         ))
     print()
     print("%d partii na wiersz, %d wierszy. Całkowity czas pomiaru: %.1f s"
-          % (len(seeds), len(CONFIGS), time.time() - started))
+          % (len(seeds), len(configs), time.time() - started))
     return results
 
 
