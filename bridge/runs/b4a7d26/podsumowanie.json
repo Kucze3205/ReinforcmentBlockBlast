@@ -1,0 +1,13 @@
+{
+  "run": "b4a7d26",
+  "wynik_z_trajektorii_scoring_py": 4566,
+  "postawien_realnych": 56,
+  "postawien_zalogowanych_lacznie": 200,
+  "postawien_odrzuconych_okno_ustawien": 144,
+  "rund_lacznie": 19,
+  "przyczyna_konca": "limit_ruchow",
+  "reklama_napotkana": "reklama_lub_ciemny_ekran_wykryty_i_zamkniety_1_probie_ale_pod_spodem_bylo_menu_ustawien_nie_plansza",
+  "apka_umarla": false,
+  "restart_apki_uzyty": false,
+  "uwaga": "od ruchu n=56 most czytal okno Ustawien gry (gear), nie plansze; wynik i rundy liczone tylko z ruchow n<=55. Szczegoly w .session/report.md i tools bridge/runs/b4a7d26/analiza.py"
+}

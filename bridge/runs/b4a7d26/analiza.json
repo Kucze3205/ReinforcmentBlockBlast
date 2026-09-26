@@ -1,0 +1,403 @@
+{
+  "run": "b4a7d26",
+  "postawien": 56,
+  "wynik_wg_naszej_trajektorii": 4566,
+  "koniec": "limit_ruchow",
+  "rund_lacznie": 19,
+  "rund_z_15_grywalnymi": 19,
+  "ruchy_odrzucone_okno_ustawien": 144,
+  "per_move": [
+    {
+      "n": 0,
+      "gained": 424,
+      "score": 424,
+      "lines": 4,
+      "combo": 1
+    },
+    {
+      "n": 1,
+      "gained": 5,
+      "score": 429,
+      "lines": 0,
+      "combo": 1
+    },
+    {
+      "n": 2,
+      "gained": 4,
+      "score": 433,
+      "lines": 0,
+      "combo": 1
+    },
+    {
+      "n": 3,
+      "gained": 24,
+      "score": 457,
+      "lines": 1,
+      "combo": 2
+    },
+    {
+      "n": 4,
+      "gained": 333,
+      "score": 790,
+      "lines": 1,
+      "combo": 3
+    },
+    {
+      "n": 5,
+      "gained": 3,
+      "score": 793,
+      "lines": 0,
+      "combo": 3
+    },
+    {
+      "n": 6,
+      "gained": 4,
+      "score": 797,
+      "lines": 0,
+      "combo": 3
+    },
+    {
+      "n": 7,
+      "gained": 2,
+      "score": 799,
+      "lines": 0,
+      "combo": 3
+    },
+    {
+      "n": 8,
+      "gained": 2,
+      "score": 801,
+      "lines": 0,
+      "combo": 3
+    },
+    {
+      "n": 9,
+      "gained": 44,
+      "score": 845,
+      "lines": 1,
+      "combo": 4
+    },
+    {
+      "n": 10,
+      "gained": 4,
+      "score": 849,
+      "lines": 0,
+      "combo": 4
+    },
+    {
+      "n": 11,
+      "gained": 52,
+      "score": 901,
+      "lines": 1,
+      "combo": 5
+    },
+    {
+      "n": 12,
+      "gained": 4,
+      "score": 905,
+      "lines": 0,
+      "combo": 5
+    },
+    {
+      "n": 13,
+      "gained": 3,
+      "score": 908,
+      "lines": 0,
+      "combo": 5
+    },
+    {
+      "n": 14,
+      "gained": 62,
+      "score": 970,
+      "lines": 1,
+      "combo": 6
+    },
+    {
+      "n": 15,
+      "gained": 372,
+      "score": 1342,
+      "lines": 1,
+      "combo": 7
+    },
+    {
+      "n": 16,
+      "gained": 2,
+      "score": 1344,
+      "lines": 0,
+      "combo": 7
+    },
+    {
+      "n": 17,
+      "gained": 4,
+      "score": 1348,
+      "lines": 0,
+      "combo": 7
+    },
+    {
+      "n": 18,
+      "gained": 3,
+      "score": 1351,
+      "lines": 0,
+      "combo": 0
+    },
+    {
+      "n": 19,
+      "gained": 4,
+      "score": 1355,
+      "lines": 0,
+      "combo": 0
+    },
+    {
+      "n": 20,
+      "gained": 323,
+      "score": 1678,
+      "lines": 2,
+      "combo": 1
+    },
+    {
+      "n": 21,
+      "gained": 4,
+      "score": 1682,
+      "lines": 0,
+      "combo": 1
+    },
+    {
+      "n": 22,
+      "gained": 25,
+      "score": 1707,
+      "lines": 1,
+      "combo": 2
+    },
+    {
+      "n": 23,
+      "gained": 5,
+      "score": 1712,
+      "lines": 0,
+      "combo": 2
+    },
+    {
+      "n": 24,
+      "gained": 5,
+      "score": 1717,
+      "lines": 0,
+      "combo": 2
+    },
+    {
+      "n": 25,
+      "gained": 9,
+      "score": 1726,
+      "lines": 0,
+      "combo": 2
+    },
+    {
+      "n": 26,
+      "gained": 69,
+      "score": 1795,
+      "lines": 2,
+      "combo": 3
+    },
+    {
+      "n": 27,
+      "gained": 4,
+      "score": 1799,
+      "lines": 0,
+      "combo": 3
+    },
+    {
+      "n": 28,
+      "gained": 4,
+      "score": 1803,
+      "lines": 0,
+      "combo": 3
+    },
+    {
+      "n": 29,
+      "gained": 42,
+      "score": 1845,
+      "lines": 1,
+      "combo": 4
+    },
+    {
+      "n": 30,
+      "gained": 4,
+      "score": 1849,
+      "lines": 0,
+      "combo": 4
+    },
+    {
+      "n": 31,
+      "gained": 2,
+      "score": 1851,
+      "lines": 0,
+      "combo": 4
+    },
+    {
+      "n": 32,
+      "gained": 54,
+      "score": 1905,
+      "lines": 1,
+      "combo": 5
+    },
+    {
+      "n": 33,
+      "gained": 64,
+      "score": 1969,
+      "lines": 1,
+      "combo": 6
+    },
+    {
+      "n": 34,
+      "gained": 4,
+      "score": 1973,
+      "lines": 0,
+      "combo": 6
+    },
+    {
+      "n": 35,
+      "gained": 73,
+      "score": 2046,
+      "lines": 1,
+      "combo": 7
+    },
+    {
+      "n": 36,
+      "gained": 5,
+      "score": 2051,
+      "lines": 0,
+      "combo": 7
+    },
+    {
+      "n": 37,
+      "gained": 2,
+      "score": 2053,
+      "lines": 0,
+      "combo": 7
+    },
+    {
+      "n": 38,
+      "gained": 163,
+      "score": 2216,
+      "lines": 2,
+      "combo": 8
+    },
+    {
+      "n": 39,
+      "gained": 6,
+      "score": 2222,
+      "lines": 0,
+      "combo": 8
+    },
+    {
+      "n": 40,
+      "gained": 9,
+      "score": 2231,
+      "lines": 0,
+      "combo": 8
+    },
+    {
+      "n": 41,
+      "gained": 94,
+      "score": 2325,
+      "lines": 1,
+      "combo": 9
+    },
+    {
+      "n": 42,
+      "gained": 6,
+      "score": 2331,
+      "lines": 0,
+      "combo": 9
+    },
+    {
+      "n": 43,
+      "gained": 204,
+      "score": 2535,
+      "lines": 2,
+      "combo": 10
+    },
+    {
+      "n": 44,
+      "gained": 4,
+      "score": 2539,
+      "lines": 0,
+      "combo": 10
+    },
+    {
+      "n": 45,
+      "gained": 5,
+      "score": 2544,
+      "lines": 0,
+      "combo": 10
+    },
+    {
+      "n": 46,
+      "gained": 114,
+      "score": 2658,
+      "lines": 1,
+      "combo": 11
+    },
+    {
+      "n": 47,
+      "gained": 4,
+      "score": 2662,
+      "lines": 0,
+      "combo": 11
+    },
+    {
+      "n": 48,
+      "gained": 124,
+      "score": 2786,
+      "lines": 1,
+      "combo": 12
+    },
+    {
+      "n": 49,
+      "gained": 266,
+      "score": 3052,
+      "lines": 2,
+      "combo": 13
+    },
+    {
+      "n": 50,
+      "gained": 4,
+      "score": 3056,
+      "lines": 0,
+      "combo": 13
+    },
+    {
+      "n": 51,
+      "gained": 4,
+      "score": 3060,
+      "lines": 0,
+      "combo": 13
+    },
+    {
+      "n": 52,
+      "gained": 285,
+      "score": 3345,
+      "lines": 2,
+      "combo": 14
+    },
+    {
+      "n": 53,
+      "gained": 9,
+      "score": 3354,
+      "lines": 0,
+      "combo": 14
+    },
+    {
+      "n": 54,
+      "gained": 6,
+      "score": 3360,
+      "lines": 0,
+      "combo": 14
+    },
+    {
+      "n": 55,
+      "gained": 1206,
+      "score": 4566,
+      "lines": 3,
+      "combo": 15
+    }
+  ]
+}
