@@ -154,6 +154,13 @@ class ResumeTest(unittest.TestCase):
         loop.resume(58)
         self.assertEqual(self.dispatched, [])
 
+    def test_nie_wznawia_gdy_park_ma_nowy_termin(self):
+        self.report("2026-09-25T12:30:00Z")
+        slept = self.slept.append
+        loop.time = type("T", (), {"sleep": staticmethod(lambda s: slept(s) or self.report("2026-09-25T16:00:00Z"))})
+        loop.resume(58)
+        self.assertEqual(self.launched, [])
+
     def test_nie_wznawia_gdy_park_zdjety(self):
         self.report("2026-09-25T11:00:00Z")
         loop.label_names = lambda i: set()

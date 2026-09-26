@@ -681,8 +681,17 @@ def crash_streak():
     return True
 
 
+def parked_until(n):
+    """`wznow_po` bieżącego parku albo None, gdy issue już nie jest zaparkowane."""
+    if "blocked:rate-limit" not in label_names(issue(n)):
+        return None
+    r = find_report(n)
+    return fields(r["body"]).get("wznow_po") if r else None
+
+
 def resume(n):
-    """Śpi do `wznow_po` i wznawia zaparkowane issue. Powtórka dozorcy jest nieszkodliwa: launch deduplikuje."""
+    """Śpi do `wznow_po` i wznawia zaparkowane issue. Powtórka dozorcy jest nieszkodliwa: launch deduplikuje.
+    Po przebudzeniu park musi być ten sam: nowy park (inny termin) ma własny przebieg resume z epilogu."""
     r = find_report(n)
     due = fields(r["body"]).get("wznow_po") if r else None
     if not due:
@@ -693,13 +702,13 @@ def resume(n):
         # termin dalej niż limit joba: śpij, ile wolno, i przekaż zegar następnemu przebiegowi
         say("#%s: termin %s poza limitem joba, śpię %s s i przekazuję zegar dalej" % (n, due, MAX_SLEEP_S))
         time.sleep(MAX_SLEEP_S)
-        if "blocked:rate-limit" in label_names(issue(n)):
+        if parked_until(n) == due:
             gh("workflow", "run", "resume.yml", "-f", "issue=%s" % n, check=False)
         return
     if wait > 0:
         say("#%s: śpię %s s do %s" % (n, int(wait), due))
         time.sleep(wait)
-    if "blocked:rate-limit" in label_names(issue(n)) and launch(n):
+    if parked_until(n) == due and launch(n):
         say("#%s: wznowiono o czasie" % n)
 
 
