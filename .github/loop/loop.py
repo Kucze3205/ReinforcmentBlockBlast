@@ -418,7 +418,33 @@ def machine_cause(exec_path, exit_code):
     if m:
         ts = int(m.group(1))
         reset = datetime.fromtimestamp(ts / 1000 if ts > 10**11 else ts, timezone.utc)
-    return " ".join(parts), limited, reset
+    return " ".join(parts), limited, reset or text_reset(raw)
+
+
+RESET_TEXT = re.compile(r"resets\s+(?:([A-Z][a-z]{2})\s+(\d{1,2}),?\s+(?:at\s+)?)?(\d{1,2})(?::(\d{2}))?\s*([ap]m)\s*(?:\(([^)]+)\))?", re.I)
+
+
+def text_reset(raw, ref=None):
+    """'resets 7:20am (UTC)' / 'resets Oct 2, 5am (Europe/Warsaw)': termin z tekstu CLI, gdy brak `resetsAt`."""
+    m = RESET_TEXT.search(raw)
+    if not m:
+        return None
+    mon, day, h, mi, ap, tz = m.groups()
+    try:
+        from zoneinfo import ZoneInfo
+        zone = ZoneInfo(tz) if tz else timezone.utc
+    except Exception:
+        zone = timezone.utc
+    ref = (ref or now()).astimezone(zone)
+    h = int(h) % 12 + (12 if ap.lower() == "pm" else 0)
+    t = ref.replace(hour=h, minute=int(mi or 0), second=0, microsecond=0)
+    if mon:
+        t = t.replace(month=datetime.strptime(mon[:3].title(), "%b").month, day=int(day))
+        if t < ref - timedelta(days=1):
+            t = t.replace(year=t.year + 1)
+    elif t <= ref:
+        t += timedelta(days=1)
+    return t.astimezone(timezone.utc)
 
 
 def run_verification(work, body):
@@ -676,8 +702,17 @@ def crash_streak():
     return True
 
 
+def parked_until(n):
+    """`wznow_po` bieżącego parku albo None, gdy issue już nie jest zaparkowane."""
+    if "blocked:rate-limit" not in label_names(issue(n)):
+        return None
+    r = find_report(n)
+    return fields(r["body"]).get("wznow_po") if r else None
+
+
 def resume(n):
-    """Śpi do `wznow_po` i wznawia zaparkowane issue. Powtórka dozorcy jest nieszkodliwa: launch deduplikuje."""
+    """Śpi do `wznow_po` i wznawia zaparkowane issue. Powtórka dozorcy jest nieszkodliwa: launch deduplikuje.
+    Po przebudzeniu park musi być ten sam: nowy park (inny termin) ma własny przebieg resume z epilogu."""
     r = find_report(n)
     due = fields(r["body"]).get("wznow_po") if r else None
     if not due:
@@ -688,13 +723,13 @@ def resume(n):
         # termin dalej niż limit joba: śpij, ile wolno, i przekaż zegar następnemu przebiegowi
         say("#%s: termin %s poza limitem joba, śpię %s s i przekazuję zegar dalej" % (n, due, MAX_SLEEP_S))
         time.sleep(MAX_SLEEP_S)
-        if "blocked:rate-limit" in label_names(issue(n)):
+        if parked_until(n) == due:
             gh("workflow", "run", "resume.yml", "-f", "issue=%s" % n, check=False)
         return
     if wait > 0:
         say("#%s: śpię %s s do %s" % (n, int(wait), due))
         time.sleep(wait)
-    if "blocked:rate-limit" in label_names(issue(n)) and launch(n):
+    if parked_until(n) == due and launch(n):
         say("#%s: wznowiono o czasie" % n)
 
 

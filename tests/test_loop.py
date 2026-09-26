@@ -84,6 +84,20 @@ class PrzyczynaTest(unittest.TestCase):
         _, _, r2 = self.cause('{"resets_at": 1790000000000}')
         self.assertEqual(r1, r2)
 
+    def test_termin_resetu_z_tekstu_cli(self):
+        ref = loop.parse_time("2026-09-26T06:24:22Z")
+        self.assertEqual(loop.text_reset("You've hit your session limit · resets 7:20am (UTC)", ref),
+                         loop.parse_time("2026-09-26T07:20:00Z"))
+        self.assertEqual(loop.text_reset("resets 5am (UTC)", ref), loop.parse_time("2026-09-27T05:00:00Z"))
+        self.assertEqual(loop.text_reset("resets 3pm (Europe/Warsaw)", ref), loop.parse_time("2026-09-26T13:00:00Z"))
+        self.assertEqual(loop.text_reset("resets Oct 2, 5am (UTC)", ref), loop.parse_time("2026-10-02T05:00:00Z"))
+        self.assertIsNone(loop.text_reset("brak terminu", ref))
+
+    def test_limit_z_terminem_w_tekscie(self):
+        _, limited, reset = self.cause({"is_error": True, "result": "You've hit your session limit · resets 11:59pm (UTC)"})
+        self.assertTrue(limited)
+        self.assertEqual((reset.hour, reset.minute), (23, 59))
+
     def test_zwykly_blad_zadania(self):
         c, limited, reset = self.cause({"is_error": False, "result": "ok"}, exit_code="124")
         self.assertEqual((c, limited, reset), ("exit=124", False, None))
@@ -139,6 +153,13 @@ class ResumeTest(unittest.TestCase):
         loop.label_names = lambda i: set()
         loop.resume(58)
         self.assertEqual(self.dispatched, [])
+
+    def test_nie_wznawia_gdy_park_ma_nowy_termin(self):
+        self.report("2026-09-25T12:30:00Z")
+        slept = self.slept.append
+        loop.time = type("T", (), {"sleep": staticmethod(lambda s: slept(s) or self.report("2026-09-25T16:00:00Z"))})
+        loop.resume(58)
+        self.assertEqual(self.launched, [])
 
     def test_nie_wznawia_gdy_park_zdjety(self):
         self.report("2026-09-25T11:00:00Z")
