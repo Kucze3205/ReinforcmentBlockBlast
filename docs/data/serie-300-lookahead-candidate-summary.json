@@ -1,0 +1,132 @@
+{
+  "policy": "lookahead",
+  "weights_file": "weights-lookahead.json",
+  "n_games": 300,
+  "salt": null,
+  "seed_file": "bench/seeds_fixed.json",
+  "score": {
+    "n": 300,
+    "mean": 5772.95,
+    "sigma": 5984.85,
+    "cv": 1.0367,
+    "sem": 345.54,
+    "sem_pct_of_mean": 5.99
+  },
+  "survival": {
+    "n": 300,
+    "mean": 106.28,
+    "sigma": 79.87,
+    "cv": 0.7515,
+    "sem": 4.61,
+    "sem_pct_of_mean": 4.34
+  },
+  "pearson_score_survival": 0.8953,
+  "spearman_score_survival": 0.9517,
+  "games_per_candidate": {
+    "score": [
+      {
+        "n_games": 6,
+        "sem": 2443.3,
+        "sem_pct_of_mean": 42.32,
+        "min_detectable_diff": 6910.71,
+        "min_detectable_diff_pct": 119.71
+      },
+      {
+        "n_games": 16,
+        "sem": 1496.21,
+        "sem_pct_of_mean": 25.92,
+        "min_detectable_diff": 4231.93,
+        "min_detectable_diff_pct": 73.31
+      },
+      {
+        "n_games": 32,
+        "sem": 1057.98,
+        "sem_pct_of_mean": 18.33,
+        "min_detectable_diff": 2992.43,
+        "min_detectable_diff_pct": 51.84
+      },
+      {
+        "n_games": 64,
+        "sem": 748.11,
+        "sem_pct_of_mean": 12.96,
+        "min_detectable_diff": 2115.96,
+        "min_detectable_diff_pct": 36.65
+      }
+    ],
+    "survival": [
+      {
+        "n_games": 6,
+        "sem": 32.61,
+        "sem_pct_of_mean": 30.68,
+        "min_detectable_diff": 92.23,
+        "min_detectable_diff_pct": 86.78
+      },
+      {
+        "n_games": 16,
+        "sem": 19.97,
+        "sem_pct_of_mean": 18.79,
+        "min_detectable_diff": 56.48,
+        "min_detectable_diff_pct": 53.14
+      },
+      {
+        "n_games": 32,
+        "sem": 14.12,
+        "sem_pct_of_mean": 13.28,
+        "min_detectable_diff": 39.94,
+        "min_detectable_diff_pct": 37.58
+      },
+      {
+        "n_games": 64,
+        "sem": 9.98,
+        "sem_pct_of_mean": 9.39,
+        "min_detectable_diff": 28.24,
+        "min_detectable_diff_pct": 26.57
+      }
+    ]
+  },
+  "combo": {
+    "n_games": 300,
+    "total_score": 1731886,
+    "placement_points_pct": 7.16,
+    "clear_points_pct": 92.84,
+    "clears_per_game": {
+      "n": 300,
+      "mean": 44.49,
+      "sigma": 35.46,
+      "cv": 0.7969,
+      "sem": 2.05,
+      "sem_pct_of_mean": 4.6
+    },
+    "max_combo_per_game": {
+      "n": 300,
+      "mean": 22.08,
+      "sigma": 12.22,
+      "cv": 0.5536,
+      "sem": 0.71,
+      "sem_pct_of_mean": 3.2
+    },
+    "mean_combo_at_clear_pooled": 11.1805,
+    "breaks_per_game": {
+      "n": 300,
+      "mean": 2.77,
+      "sigma": 2.51,
+      "cv": 0.9078,
+      "sem": 0.15,
+      "sem_pct_of_mean": 5.24
+    },
+    "break_causes": {
+      "total_breaks": 831,
+      "no_legal_clear": 825,
+      "policy_choice": 6,
+      "no_legal_clear_pct": 99.28,
+      "policy_choice_pct": 0.72
+    },
+    "chain_length": {
+      "n_broken": 831,
+      "n_censored_at_game_end": 278,
+      "median": 9,
+      "p90": 26.0,
+      "max": 66
+    }
+  }
+}
