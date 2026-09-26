@@ -190,12 +190,23 @@ class LookaheadPolicy:
         self.inner_depth = inner_depth if inner_depth is not None else self.DEFAULT_INNER_DEPTH
         self._seed = seed
         self.last_expanded = 0
+        # `None` = wartość liścia z `_weighted_features` (plansza + człon combo,
+        # zachowanie niezmienione). Alternatywne źródło (np. sieć N-tuple, #123)
+        # wpina się przez podklasę, która nadpisuje ten atrybut funkcją
+        # `(board, combo, combo_counter) -> float` — patrz `NTupleLookaheadPolicy`.
+        self._leaf_value = None
         self.reset(None)
 
     def reset(self, game_seed):
         # Własny generator próbek — gra swojego nie oddaje, a wspólny byłby
         # podglądaniem przyszłości zamiast losowania z rozkładu.
         self._sampler = Generator(seed="lookahead:%r:%r" % (self._seed, game_seed))
+
+    def _search(self, board, pieces, combo, combo_counter, beam, root_actions=None, depth=None):
+        return _tray_beam_search(
+            board, pieces, combo, combo_counter, self.weights, beam,
+            root_actions=root_actions, depth=depth, leaf_value=self._leaf_value,
+        )
 
     def act(self, game, actions):
         pieces0 = tuple(game.pieces)
@@ -204,9 +215,9 @@ class LookaheadPolicy:
         if depth == 0 or not actions:
             return actions[0]
 
-        frontier, expanded = _tray_beam_search(
+        frontier, expanded = self._search(
             game.board, pieces0, game.combo, game.combo_counter,
-            self.weights, self.beam, root_actions=actions,
+            self.beam, root_actions=actions,
         )
         self.last_expanded = expanded
 
@@ -219,9 +230,9 @@ class LookaheadPolicy:
         for state in candidates:
             total = 0.0
             for tray in trays:
-                inner, inner_expanded = _tray_beam_search(
+                inner, inner_expanded = self._search(
                     state["board"], tray, state["combo"], state["combo_counter"],
-                    self.weights, self.inner_beam, depth=self.inner_depth,
+                    self.inner_beam, depth=self.inner_depth,
                 )
                 self.last_expanded += inner_expanded
                 total += max(inner, key=lambda c: c["score"])["score"]
@@ -249,8 +260,47 @@ class LookaheadPolicy:
         return out
 
 
+class NTupleLookaheadPolicy(LookaheadPolicy):
+    """`LookaheadPolicy`, ale wartość liścia liczy sieć N-tuple (`ntuple.py`, #123)
+    zamiast `_weighted_features`.
+
+    Reszta — wiązka, drugi poziom nad wylosowaną tacką, próbkowanie — jest
+    dokładnie tym, co robi `LookaheadPolicy`; różnica siedzi wyłącznie w
+    `_leaf_value`, którym `_search` podmienia funkcję oceny liścia w
+    `_tray_beam_search`. Ocena N-tuple jest **alternatywnym, wybieralnym**
+    źródłem wartości liścia — `features.py` i `HeuristicPolicy`/`TrayPolicy`/
+    `LookaheadPolicy` na wagach ręcznych zostają nietknięte.
+
+    **Liść ocenia wyłącznie planszę, bez członu combo** (decyzja #125). `gain`
+    już niesie efekt combo dla ocenianego ruchu, a `V(board)` ma szacować
+    przyszłość samej planszy; jedyny pomiar combo w ocenie liścia wyszedł
+    ujemnie (#122: −6,6%, przeżycie 95,97 wobec 110,5), więc dosypanie tego
+    członu tutaj kopiowałoby zmierzony błąd. Adapter `_ntuple_leaf` dostaje
+    jednak **pełną trójkę** `(board, combo, combo_counter)` i dwa ostatnie
+    argumenty ignoruje — dosypanie combo później nie wymaga zmiany sygnatury
+    haka.
+    """
+
+    name = "lookahead-ntuple"
+
+    def __init__(self, ntuple, beam=None, samples=None, branch=None,
+                 inner_beam=None, inner_depth=None, seed=0):
+        # `weights` klasy bazowej nie jest tu używane (leaf_value je zastępuje),
+        # ale `LookaheadPolicy.__init__` go wymaga — wartość jest obojętna.
+        super().__init__(
+            weights=HeuristicPolicy.DEFAULT_WEIGHTS, beam=beam, samples=samples,
+            branch=branch, inner_beam=inner_beam, inner_depth=inner_depth, seed=seed,
+        )
+        self.ntuple = ntuple
+        self._leaf_value = self._ntuple_leaf
+
+    def _ntuple_leaf(self, board, combo, combo_counter):
+        """Wartość liścia z sieci N-tuple; `combo`/`combo_counter` świadomie bez wpływu."""
+        return self.ntuple.value(board)
+
+
 def _tray_beam_search(board, pieces, combo, combo_counter, weights, beam,
-                      root_actions=None, depth=None):
+                      root_actions=None, depth=None, leaf_value=None):
     """Wiązka po sekwencjach postawień z tacki `pieces` na kopii `board`.
 
     Serce `TrayPolicy` (#58) i obu poziomów `LookaheadPolicy` (#92) — wyniesione
@@ -263,7 +313,20 @@ def _tray_beam_search(board, pieces, combo, combo_counter, weights, beam,
     - `root_actions` — gotowa lista legalnych akcji na poziom 0 (gra już ją
       policzyła, nie ma po co liczyć jej drugi raz).
     - `depth` — ile poziomów rozwinąć; domyślnie tyle, ile klocków zostało w tacce.
+    - `leaf_value` — `None` (domyślnie) liczy wartość liścia przez
+      `_weighted_features` (plansza plus człon combo, zachowanie od #118 bez
+      zmian). Podanie funkcji `(board, combo, combo_counter) -> float`
+      zastępuje ją tym wywołaniem; `weights` jest wtedy ignorowane. Trójka
+      argumentów jest **dokładnie** tą, którą dostaje `_weighted_features`, żeby
+      każde źródło wartości liścia widziało ten sam stan; adapter, który combo
+      nie używa (`NTupleLookaheadPolicy`, #123/#125), po prostu ignoruje dwa
+      ostatnie argumenty — decyzja, żeby liść N-tuple oceniał samą planszę, jest
+      z #125 i stoi na pomiarze z #122 (człon combo w ocenie liścia wyszedł
+      −6,6%).
     """
+    value_fn = leaf_value if leaf_value is not None else (
+        lambda b, c, cc: _weighted_features(weights, b, c, cc)
+    )
     root = {
         "board": board.copy(),
         "pieces": tuple(pieces),
@@ -290,18 +353,16 @@ def _tray_beam_search(board, pieces, combo, combo_counter, weights, beam,
                 candidates.append(_expand(state, action))
         expanded += len(candidates)
         for candidate in candidates:
-            candidate["score"] = candidate["gain"] + _weighted_features(
-                weights, candidate["board"],
-                candidate["combo"], candidate["combo_counter"],
+            candidate["score"] = candidate["gain"] + value_fn(
+                candidate["board"], candidate["combo"], candidate["combo_counter"],
             )
         candidates.sort(key=lambda c: c["score"], reverse=True)
         frontier = candidates[:beam]
 
     if levels == 0:
         for candidate in frontier:
-            candidate["score"] = candidate["gain"] + _weighted_features(
-                weights, candidate["board"],
-                candidate["combo"], candidate["combo_counter"],
+            candidate["score"] = candidate["gain"] + value_fn(
+                candidate["board"], candidate["combo"], candidate["combo_counter"],
             )
     return frontier, expanded
 
