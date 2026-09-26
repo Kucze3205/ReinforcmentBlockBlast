@@ -240,3 +240,102 @@ seedów, zapis z #123). Ten pierwszy pilnuje, że sygnatura z combo nie ruszyła
 ruchów; ten drugi — że nie ruszył ich hak liścia. `test_leaf_value_hook.py`
 (#125) domyka sam hak: trójka argumentów u haka i u domyślnej oceny jest ta
 sama, a adapter N-tuple daje tę samą wartość przy combo 0, 1, 7 i 40.
+
+## Realny trening: 43 020 odcinków, krzywa uczenia (#126)
+
+Wznowienie przebiegu dymnego z #123 (`ntuple-state.json` na 20/20 odcinków,
+`--seed 1 --alpha 0.001 --move-cap 2000`), cel podniesiony do `--episodes 100000`.
+**Nie osiągnięto 100 000** — sesja skończyła na **43 020 odcinkach** (43 000
+nowych w tej sesji); cel z Cel #126 to "tyle, ile zmieści się w jednej sesji",
+nie literalnie 100 000. Pięć bloków na pierwszym planie, każdy `--episodes-per-run`
+tym samym poleceniem (`--state ntuple-state.json --out ntuple-weights.json
+--episodes 100000 --seed 1`), stan i wagi scommitowane po każdym:
+
+| blok | `--episodes-per-run` | odcinki po bloku | czas bloku (rzeczywisty) |
+|---|---|---|---|
+| 1 | 2000 | 2020 | 1m32.8s |
+| 2 | 20000 | 22020 | 46m4.6s |
+| 3 | 5000 | 27020 | 19m4.4s |
+| 4 | 8000 | 35020 | 36m12.1s |
+| 5 | 8000 | 43020 | 42m44.2s |
+
+Wszystkie pięć poniżej limitu 3400 s. Rozmiar bloku był zmniejszany między
+blokami 2→3, bo czas na odcinek rósł (patrz odkrycie I/O niżej) — blok 2 na
+tamtym tempie przy większym `--episodes-per-run` przekroczyłby 3400 s.
+
+**Przepustowość**: w całym logu (43 020 odcinków) `1 728 756` postawień w
+`1255,8 s` czasu obliczeń per-odcinek (`duration_s` ze stanu, suma czasu
+`run_episode`, nie czas procesu) → **≈ 1376,6 postawień/s**, tego samego rzędu
+co `≈ 1397 postawień/s` z przebiegu dymnego, ale mierzone osobno w pierwszym i
+ostatnim oknie po 2000 odcinków daje odpowiednio `≈ 931/s` i `≈ 970/s` — niżej
+niż w #123 o ok. 30%, najpewniej inny sprzęt sesji (ta wielkość jest tam wprost
+nazwana jako "ten sprzęt, ta sesja", nie stała). Średnio `40,18` postawień na
+odcinek w całym logu, `0,0292 s` na odcinek.
+
+### Krzywa uczenia (`docs/data/ntuple-krzywa.json`, okna po 2000 odcinków)
+
+| okno (odcinki) | n | średni wynik | średnie przeżycie |
+|---|---|---|---|
+| 1-2000 | 2000 | 506,45 | 28,41 |
+| 2001-4000 | 2000 | 634,69 | 31,48 |
+| 4001-6000 | 2000 | 761,28 | 34,33 |
+| 6001-8000 | 2000 | 848,86 | 37,32 |
+| 8001-10000 | 2000 | 967,36 | 40,13 |
+| 10001-12000 | 2000 | 1034,17 | 41,48 |
+| 12001-14000 | 2000 | 1099,04 | 42,72 |
+| 14001-16000 | 2000 | 1136,71 | 44,13 |
+| 16001-18000 | 2000 | 1165,19 | 44,47 |
+| 18001-20000 | 2000 | 1131,37 | 43,16 |
+| 20001-22000 | 2000 | 1144,41 | 43,84 |
+| 22001-24000 | 2000 | 1198,31 | 44,90 |
+| **24001-26000 (szczyt)** | 2000 | **1220,10** | **45,64** |
+| 26001-28000 | 2000 | 1155,01 | 44,55 |
+| 28001-30000 | 2000 | 1143,42 | 43,99 |
+| 30001-32000 | 2000 | 1055,27 | 41,27 |
+| 32001-34000 | 2000 | 1031,48 | 41,19 |
+| 34001-36000 | 2000 | 980,46 | 40,01 |
+| 36001-38000 | 2000 | 912,13 | 38,52 |
+| 38001-40000 | 2000 | 896,34 | 37,89 |
+| 40001-43020 (ostatnie) | 3020 | 819,42 | 36,39 |
+
+**Werdykt**: krzywa **nie jest płaska ani rosnąca na końcu przebiegu — spada**.
+Rośnie monotonicznie od okna 1 do okna 13 (24001-26000: wynik 1220,10,
+przeżycie 45,64), potem opada przez 8 kolejnych okien do ostatniego
+(40001-43020: wynik 819,42, przeżycie 36,39) — spadek z dwóch ostatnich okien
+do porównania: okno 20 (38001-40000) `896,34/37,89` → okno 21 (40001-43020)
+`819,42/36,39`, oba w dół. To gorszy wynik niż płaska krzywa: sieć nie tylko
+przestała się poprawiać, ona się cofa. Średni `|błąd_td|` na oknie (log)
+rośnie z `30,4` (okno 1) do szczytu `~78,8` (okno 13), potem tylko lekko opada
+do `~65,9` (okno 21) — nie maleje w stronę zera, co jest zgodne z krzywą wyniku:
+sieć nie zbiega, oscyluje/rozjeżdża się.
+
+**Przeżycie kontra wynik**: przeżycie **nie** rośnie szybciej niż wynik — jest
+odwrotnie. Od okna 1 do szczytu (okno 13): wynik ×2,41 (506→1220), przeżycie
+×1,61 (28,4→45,6). Od okna 1 do ostatniego okna (netto, po spadku): wynik ×1,62
+(506→819), przeżycie ×1,28 (28,4→36,4). W obu porównaniach wynik rośnie
+proporcjonalnie szybciej niż przeżycie — dokładnie ten wzorzec, przed którym
+ostrzega [#119](../../issues/119) ("poprzedni kandydat kupił tempo za
+przeżycie i przegrał"), tylko tutaj w nieukończonym, wciąż uczącym się
+przebiegu, nie w gotowym kandydacie do benchmarku.
+
+### Odkrycie: zapis pełnego stanu po każdym odcinku kosztuje coraz więcej (rozjazd, nie naprawiane)
+
+`write_json(args.state, state)` w `tools/train_ntuple.py` serializuje **cały**
+`state["log"]` (rosnącą listę wszystkich dotychczasowych odcinków) do pliku na
+dysku po **każdym** odcinku, nie tylko przyrost. Zmierzone w tej sesji: `blok 2`
+(20 000 odcinków, log rósł z ~2020 do ~22020 wpisów) trwał `46m4,6s` realnego
+czasu przy zaledwie `637,5 s` zsumowanego czasu `run_episode` (`duration_s`) —
+**różnica ~85% czasu bloku to zapis na dysk**, nie trening. Koszt na odcinek
+rósł z blokiem: `~0,046 s/odcinek` (blok 1, log ~2-4 tys. wpisów) →
+`~0,229 s/odcinek` (blok 3, log ~22-27 tys. wpisów) — w przybliżeniu liniowo z
+rozmiarem logu, więc łączny koszt do 100 000 odcinków rósłby w przybliżeniu
+kwadratowo. Ekstrapolacja z dwóch zmierzonych punktów: dobicie od 43 020 do
+100 000 odcinków kosztowałoby rzędu **10 godzin** realnego czasu przy obecnym
+tempie wzrostu kosztu zapisu, nie godzin przeliczonych z samej przepustowości
+symulatora (`docs/ntuple.md` sekcja wyżej). Plik `ntuple-state.json` ważył
+`4,2 MB` przy 22 020 odcinkach; przy 43 020 znacznie więcej. To jest dokładnie
+rodzaj rozjazdu, o którym mówi Cel #126 ("zaraportuj, nie naprawiaj") —
+nie zmieniam formatu zapisu (np. log w osobnym pliku append-only, albo bez
+przechowywania pełnego logu w state) w tym zadaniu; to osobna decyzja dla
+kolejnego cyklu, bo zmienia format `ntuple-state.json`, na którym opiera się
+wznawianie.
