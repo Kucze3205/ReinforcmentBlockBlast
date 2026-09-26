@@ -198,9 +198,38 @@ def resolve_policy_spec(argv, env):
     return env.get("BRIDGE_POLICY", "greedy")
 
 
-def main(max_moves, policy_spec="greedy"):
+def policy_spec_source(argv, env):
+    """Skąd wzięła się nazwa polityki wypisanej przez `resolve_policy_spec` (#103)."""
+    if len(argv) > 2:
+        return "argv"
+    if "BRIDGE_POLICY" in env:
+        return "BRIDGE_POLICY"
+    return "domyślna"
+
+
+def run_id(env):
+    """Identyfikator przebiegu do `policy.reset` — Actions daje `GITHUB_RUN_ID`,
+    lokalnie brak, więc `local` (#103: bez tego losowanie `LookaheadPolicy` nie jest
+    odtwarzalne)."""
+    return env.get("BRIDGE_RUN_ID") or env.get("GITHUB_RUN_ID") or "local"
+
+
+def make_game_stub(board, pieces, combo=0):
+    """Atrapa gry podawana `policy.act` — jedna wersja dla `bridge.main` i testów (#95, #103).
+
+    Niesie tylko pola, po które sięgają polityki z benchmarku (`combo_counter`
+    doszło w #95, gdy jego brak wywalił się dopiero na żywym emulatorze)."""
+    return SimpleNamespace(board=board, pieces=pieces, combo=combo, combo_counter=COMBO_COUNTER_BASE)
+
+
+def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
     os.makedirs(OUT, exist_ok=True)
     policy = build_policy(policy_spec, {"torch_seed": 0})
+    print(f"polityka: {policy.name} (źródło: {policy_source})", flush=True)
+    if hasattr(policy, "reset"):
+        seed = run_id(os.environ)
+        policy.reset(seed)
+        print(f"reset(seed={seed!r})", flush=True)
     log = open(os.path.join(OUT, "moves.jsonl"), "w")
     img, grid, slots = settled_state()
     ok_streak = best_streak = 0
@@ -223,8 +252,10 @@ def main(max_moves, policy_spec="greedy"):
             entry["end"] = "brak legalnego ruchu wg odczytu"
             log.write(json.dumps(entry) + "\n")
             break
-        game = SimpleNamespace(board=board, pieces=pieces, combo=0, combo_counter=COMBO_COUNTER_BASE)
+        game = make_game_stub(board, pieces)
+        t0 = time.perf_counter()
         i, x, y = policy.act(game, moves)
+        decision_ms = (time.perf_counter() - t0) * 1000
         expected = simulate(board, pieces[i], x, y)
         info, aim = drag(slots[i][1], pieces[i], x, y)
         Image.fromarray(aim.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_aim.png"))
@@ -233,7 +264,8 @@ def main(max_moves, policy_spec="greedy"):
         grid = observed
         ok_streak = ok_streak + 1 if ok else 0
         best_streak = max(best_streak, ok_streak)
-        entry.update(move={"slot": i, "x": x, "y": y}, drag=info, expected=expected, observed=observed, ok=ok)
+        entry.update(move={"slot": i, "x": x, "y": y}, drag=info, expected=expected, observed=observed, ok=ok,
+                      decision_ms=round(decision_ms, 2))
         log.write(json.dumps(entry) + "\n")
         log.flush()
         print(f"ruch {n}: slot {i} -> ({x},{y}) wynik {score} {'OK' if ok else 'ROZBIEŻNOŚĆ'}", flush=True)
@@ -244,4 +276,5 @@ def main(max_moves, policy_spec="greedy"):
 
 if __name__ == "__main__":
     main(int(sys.argv[1]) if len(sys.argv) > 1 else 30,
-         resolve_policy_spec(sys.argv, os.environ))
+         resolve_policy_spec(sys.argv, os.environ),
+         policy_spec_source(sys.argv, os.environ))
