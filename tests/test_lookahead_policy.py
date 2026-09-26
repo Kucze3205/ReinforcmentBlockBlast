@@ -134,16 +134,18 @@ class TestLookaheadDegeneratesToTray(unittest.TestCase):
 
 
 class TestLookaheadAvoidsTrapBoard(unittest.TestCase):
-    """Plansza-pułapka: jeden z dwóch równie punktowanych ruchów zostawia
-    planszę, na której prawie żadna następna tacka się nie zmieści.
+    """Plansza-pułapka: nie zabetonować jedynego miejsca na większy klocek.
 
     Plansza jest zapełniona poza dwoma obszarami: kwadratem 3×3 w lewym górnym
     rogu i rozproszonymi pojedynczymi dziurami. Tacka ma jeden klocek `1x1`.
     Postawienie go w kwadracie 3×3 psuje jedyne miejsce, w które wejdzie coś
     większego niż `1x1`; postawienie w pojedynczej dziurze zostawia kwadrat
-    nietknięty. Punktowo oba ruchy są identyczne (1 komórka, zero linii), więc
-    `TrayPolicy` rozstrzyga to samymi cechami — `LookaheadPolicy` ma dodatkowo
-    zobaczyć, że losowa tacka po pierwszym wariancie kończy partię.
+    nietknięty. Punktowo oba ruchy są identyczne (1 komórka, zero linii).
+
+    Uczciwie: **`TrayPolicy` wybiera tu tak samo** (sprawdzone), bo cecha
+    `placeable_shapes` już to widzi. Ten test jest zaporą na regresję
+    `LookaheadPolicy` do ruchów oczywiście złych, a **nie** dowodem, że drugi
+    poziom coś kupuje — dowodem na to jest tabela w `docs/lookahead.md`.
     """
 
     def _game(self):

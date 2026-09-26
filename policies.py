@@ -148,12 +148,13 @@ class LookaheadPolicy:
     czyli oczekiwana wartość po węźle losowym — expectimax z estymatorem Monte
     Carlo zamiast pełnej sumy po 15³ tackach.
 
-    Tacka, której **nie da się postawić**, kończy partię (`game._can_place_any`,
-    `game.py:103-111`); takie próbki dostają `death_penalty` do wartości. To jest
-    główny powód, dla którego ten poziom w ogóle ma coś kupić: pozwala odrzucić
-    planszę, która wygląda dobrze w cechach, a jest pułapką na losową tackę.
-    Kara jest wyłącznie wewnętrzną wyceną polityki — nagrody `game.step` nie
-    dotyka (#92).
+    Co ten poziom kupuje: planszę ocenia się przez to, jak radzi sobie z
+    **wylosowanymi** tackami, a nie przez statyczny zamiennik `placeable_shapes`.
+    Osobnej kary za tackę nie do postawienia **nie ma** — była zaimplementowana i
+    zmierzona (0, −50, −200, −500), i nie zmieniła ani jednej decyzji: stan, w
+    którym cała losowa tacka nie wchodzi, po opróżnieniu bieżącej tacki po prostu
+    nie występuje (0 trafień na 2488 ocen wewnętrznych). Szczegóły i liczby:
+    `docs/lookahead.md`.
 
     Losowanie jest deterministyczne względem `reset(game_seed)`: osobna instancja
     `Generator` z ziarnem wyprowadzonym z seeda partii, nigdy generator gry —
@@ -166,25 +167,23 @@ class LookaheadPolicy:
 
     DEFAULT_WEIGHTS = HeuristicPolicy.DEFAULT_WEIGHTS
     DEFAULT_BEAM = TrayPolicy.DEFAULT_BEAM
-    # Wartości domyślne wybrane z tabeli pomiarowej w docs/lookahead.md pod
-    # twardy limit 1800 s na ramię 600 partii (#92).
-    DEFAULT_SAMPLES = 3
-    DEFAULT_BRANCH = 3
+    # Wartości domyślne wybrane z tabeli pomiarowej w docs/lookahead.md pod twardy
+    # limit 1800 s na ramię 600 partii (#92): ramię `lookahead:weights.json` wychodzi
+    # na 1316,9 s. Więcej próbek, szerszy `branch` i głębszy drugi poziom zmierzono —
+    # wszystkie kosztują czas i żaden nie oddaje go w jakości.
+    DEFAULT_SAMPLES = 2
+    DEFAULT_BRANCH = 2
     DEFAULT_INNER_BEAM = 1
     DEFAULT_INNER_DEPTH = 1
-    DEFAULT_DEATH_PENALTY = -200.0
 
     def __init__(self, weights=None, beam=None, samples=None, branch=None,
-                 inner_beam=None, inner_depth=None, death_penalty=None, seed=0):
+                 inner_beam=None, inner_depth=None, seed=0):
         self.weights = tuple(weights) if weights is not None else self.DEFAULT_WEIGHTS
         self.beam = beam if beam is not None else self.DEFAULT_BEAM
         self.samples = samples if samples is not None else self.DEFAULT_SAMPLES
         self.branch = branch if branch is not None else self.DEFAULT_BRANCH
         self.inner_beam = inner_beam if inner_beam is not None else self.DEFAULT_INNER_BEAM
         self.inner_depth = inner_depth if inner_depth is not None else self.DEFAULT_INNER_DEPTH
-        self.death_penalty = (
-            death_penalty if death_penalty is not None else self.DEFAULT_DEATH_PENALTY
-        )
         self._seed = seed
         self.last_expanded = 0
         self.reset(None)
@@ -219,7 +218,6 @@ class LookaheadPolicy:
                 inner, inner_expanded = _tray_beam_search(
                     state["board"], tray, state["combo"], state["combo_counter"],
                     self.weights, self.inner_beam, depth=self.inner_depth,
-                    death_penalty=self.death_penalty,
                 )
                 self.last_expanded += inner_expanded
                 total += max(inner, key=lambda c: c["score"])["score"]
@@ -248,13 +246,12 @@ class LookaheadPolicy:
 
 
 def _tray_beam_search(board, pieces, combo, combo_counter, weights, beam,
-                      root_actions=None, depth=None, death_penalty=None):
+                      root_actions=None, depth=None):
     """Wiązka po sekwencjach postawień z tacki `pieces` na kopii `board`.
 
-    Serce `TrayPolicy` (#58) i pierwszego poziomu `LookaheadPolicy` (#92) —
-    wyniesione tutaj, żeby obie polityki liczyły **dokładnie to samo**, łącznie
-    z kolejnością kandydatów, od której zależy rozstrzyganie remisów
-    (`list.sort` jest stabilny).
+    Serce `TrayPolicy` (#58) i obu poziomów `LookaheadPolicy` (#92) — wyniesione
+    tutaj, żeby obie polityki liczyły **dokładnie to samo**, łącznie z kolejnością
+    kandydatów, od której zależy rozstrzyganie remisów (`list.sort` jest stabilny).
 
     Zwraca `(wiązka po ostatnim poziomie, liczba kandydatów rozwiniętych łącznie
     przed przycięciem)`. Każdy stan wiązki ma pole `score`.
@@ -262,9 +259,6 @@ def _tray_beam_search(board, pieces, combo, combo_counter, weights, beam,
     - `root_actions` — gotowa lista legalnych akcji na poziom 0 (gra już ją
       policzyła, nie ma po co liczyć jej drugi raz).
     - `depth` — ile poziomów rozwinąć; domyślnie tyle, ile klocków zostało w tacce.
-    - `death_penalty` — gdy podane, stan bez legalnego ruchu (a więc koniec
-      partii: `game._can_place_any`) dostaje tę karę do `score`. `None` = zachowanie
-      `TrayPolicy`, która o śmierci nie wie.
     """
     root = {
         "board": board.copy(),
@@ -273,7 +267,6 @@ def _tray_beam_search(board, pieces, combo, combo_counter, weights, beam,
         "combo_counter": combo_counter,
         "gain": 0,
         "first_action": None,
-        "dead": False,
     }
     frontier = [root]
     expanded = 0
@@ -287,35 +280,24 @@ def _tray_beam_search(board, pieces, combo, combo_counter, weights, beam,
                 state["board"], state["pieces"]
             )
             if not legal:
-                if any(p is not None for p in state["pieces"]):
-                    state["dead"] = True
                 candidates.append(state)
                 continue
             for action in legal:
                 candidates.append(_expand(state, action))
         expanded += len(candidates)
-        _score_all(candidates, weights, death_penalty)
-        candidates.sort(key=lambda c: c["score"], reverse=True)
-        frontier = candidates[:beam]
-
-    if levels == 0:
-        _score_all(frontier, weights, death_penalty)
-    return frontier, expanded
-
-
-def _score_all(candidates, weights, death_penalty):
-    if death_penalty is None:
         for candidate in candidates:
             candidate["score"] = candidate["gain"] + _weighted_features(
                 weights, candidate["board"]
             )
-        return
-    for candidate in candidates:
-        candidate["score"] = candidate["gain"] + _weighted_features(
-            weights, candidate["board"]
-        )
-        if candidate["dead"]:
-            candidate["score"] += death_penalty
+        candidates.sort(key=lambda c: c["score"], reverse=True)
+        frontier = candidates[:beam]
+
+    if levels == 0:
+        for candidate in frontier:
+            candidate["score"] = candidate["gain"] + _weighted_features(
+                weights, candidate["board"]
+            )
+    return frontier, expanded
 
 
 def _weighted_features(weights, board):
@@ -381,7 +363,6 @@ def _expand(state, action):
         "combo_counter": combo_counter,
         "gain": state["gain"] + gained,
         "first_action": state["first_action"] or action,
-        "dead": False,
     }
 
 
