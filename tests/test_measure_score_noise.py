@@ -4,15 +4,19 @@ Testy `tools/measure_score_noise.py` (#101): statystyki, korelacje, tabela
 `lookahead`; pelny pomiar jest osobnym, recznym uruchomieniem opisanym w
 `docs/szum-oceny-kandydata.md`.
 """
+import json
 import os
 import sys
+import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from tools.measure_score_noise import (
+    dump_series,
     games_per_candidate_table,
     load_bench_seeds,
+    load_seeds_from_file,
     play_series,
     spearman,
     summarize,
@@ -66,11 +70,56 @@ class TestPlaySeries(unittest.TestCase):
         seeds = training_seeds(5, bench_seeds, salt=101)
         self.assertFalse(set(seeds) & set(bench_seeds))
 
-        scores, survivals = play_series("heuristic", None, seeds, move_cap)
+        scores, survivals, capped = play_series("heuristic", None, seeds, move_cap)
         self.assertEqual(len(scores), 5)
         self.assertEqual(len(survivals), 5)
+        self.assertEqual(len(capped), 5)
         self.assertTrue(all(isinstance(s, (int, float)) for s in scores))
         self.assertTrue(all(p >= 0 for p in survivals))
+        self.assertTrue(all(isinstance(c, bool) for c in capped))
+
+
+class TestLoadSeedsFromFile(unittest.TestCase):
+    def test_reads_list_and_truncates_to_n_games(self):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as fh:
+            json.dump([11, 22, 33, 44, 55], fh)
+            path = fh.name
+        try:
+            seeds = load_seeds_from_file(path, 3)
+            self.assertEqual(seeds, [11, 22, 33])
+        finally:
+            os.remove(path)
+
+    def test_rejects_non_list(self):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as fh:
+            json.dump({"seeds": [1, 2, 3]}, fh)
+            path = fh.name
+        try:
+            with self.assertRaises(ValueError):
+                load_seeds_from_file(path, 3)
+        finally:
+            os.remove(path)
+
+    def test_uses_bench_seeds_fixed_file(self):
+        bench_seeds, _move_cap = load_bench_seeds("bench/config.json")
+        seeds = load_seeds_from_file("bench/seeds_fixed.json", 5)
+        self.assertEqual(seeds, bench_seeds[:5])
+
+
+class TestDumpSeries(unittest.TestCase):
+    def test_dumps_seed_score_survival_capped_rows(self):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as fh:
+            path = fh.name
+        try:
+            dump_series(path, [1, 2], [100, 200], [10, 20], [False, True])
+            with open(path, encoding="utf-8") as fh:
+                rows = json.load(fh)
+            self.assertEqual(rows, [
+                {"seed": 1, "score": 100, "survival": 10, "capped": False},
+                {"seed": 2, "score": 200, "survival": 20, "capped": True},
+            ])
+        finally:
+            os.remove(path)
 
 
 if __name__ == "__main__":
