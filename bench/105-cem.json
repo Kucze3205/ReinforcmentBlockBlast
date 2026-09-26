@@ -1,0 +1,48 @@
+{
+  "sha": "8511fafeda7ceb082f56fcf7042d98e9bbc75e59",
+  "dirty": false,
+  "issue": 105,
+  "status": "blocked",
+  "blocked_reason": "ramię `candidate`: brak pliku wag: weights-lookahead.json",
+  "config": {
+    "n_seeds": 300,
+    "move_cap": 2000,
+    "epsilon": 0.0,
+    "torch_seed": 0,
+    "threshold_pct": 10.0,
+    "fixed_seed_file": "bench/seeds_fixed.json",
+    "rotated_seed_salt": 2654435761
+  },
+  "source_hashes": {
+    "game.py": "9cad07d453c0ef7c",
+    "scoring.py": "1e4a1b8730243ce6",
+    "generator.py": "ea34c49f239035c4",
+    "pieces.py": "7241459a3cb11706",
+    "features.py": "43dadcc38ba3f522",
+    "policies.py": "916381a35bdac1d6",
+    "benchmark.py": "b3e22f166a01edd0"
+  },
+  "arms": {
+    "previous": {
+      "policy": "lookahead",
+      "fixed": {
+        "mean": 6171.04,
+        "median": 3894.5,
+        "p10": 609.5,
+        "survival_mean": 110.5,
+        "capped_pct": 0.0
+      },
+      "rotated": {
+        "mean": 7102.06,
+        "median": 3802.0,
+        "p10": 532.6,
+        "survival_mean": 112.09,
+        "capped_pct": 0.0
+      },
+      "overfit_gap_pct": -15.09,
+      "weights_hash": "b564fa274a73b627"
+    }
+  },
+  "deltas": {},
+  "duration_s": 1333.9
+}
