@@ -20,6 +20,7 @@ Pierwszy argument to liczba partii na wiersz; kolejne to **dokładne** etykiety 
 ciągiem tej samej deterministycznej sekwencji, więc 40-seedowa tabela jest
 prefiksem 100-seedowej.
 """
+import json
 import os
 import statistics
 import sys
@@ -33,13 +34,18 @@ from tools.measure_tray_cost import MOVE_CAP, N_GAMES, measurement_seeds, percen
 
 ARM_GAMES = 600  # 300 seedów stałych + 300 rotowanych, patrz bench/config.json
 
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+with open(os.path.join(_ROOT, "weights.json"), encoding="utf-8") as _fh:
+    # Ramieniem benchmarku będzie `lookahead:weights.json`, nie wagi domyślne;
+    # wagi strojone CEM (#87) grają dłuższe partie, a czas ramienia rośnie
+    # liniowo z długością partii — trzeba je zmierzyć osobno.
+    TUNED = tuple(json.load(_fh)["weights"])
+
 # (etykieta, fabryka polityki). Wiersz odniesienia to czysta TrayPolicy.
 CONFIGS = (
     ("tray beam=8 (odniesienie)", lambda: TrayPolicy(beam=8)),
     ("s=2 b=2 in=1x1", lambda: LookaheadPolicy(samples=2, branch=2, inner_beam=1, inner_depth=1)),
     ("s=3 b=3 in=1x1", lambda: LookaheadPolicy(samples=3, branch=3, inner_beam=1, inner_depth=1)),
-    ("s=3 b=3 in=1x1 kara=0", lambda: LookaheadPolicy(
-        samples=3, branch=3, inner_beam=1, inner_depth=1, death_penalty=0.0)),
     ("s=4 b=4 in=1x1", lambda: LookaheadPolicy(samples=4, branch=4, inner_beam=1, inner_depth=1)),
     ("s=3 b=3 in=2x2", lambda: LookaheadPolicy(samples=3, branch=3, inner_beam=2, inner_depth=2)),
     ("s=3 b=3 in=1x3", lambda: LookaheadPolicy(samples=3, branch=3, inner_beam=1, inner_depth=3)),
@@ -49,16 +55,16 @@ CONFIGS = (
     ("s=1 b=2 in=1x1", lambda: LookaheadPolicy(samples=1, branch=2, inner_beam=1, inner_depth=1)),
     ("s=3 b=2 in=1x1", lambda: LookaheadPolicy(samples=3, branch=2, inner_beam=1, inner_depth=1)),
     ("s=2 b=3 in=1x1", lambda: LookaheadPolicy(samples=2, branch=3, inner_beam=1, inner_depth=1)),
-    ("s=2 b=2 in=1x1 kara=0", lambda: LookaheadPolicy(
-        samples=2, branch=2, inner_beam=1, inner_depth=1, death_penalty=0.0)),
-    ("s=2 b=2 in=1x1 kara=-50", lambda: LookaheadPolicy(
-        samples=2, branch=2, inner_beam=1, inner_depth=1, death_penalty=-50.0)),
-    ("s=2 b=2 in=1x1 kara=-500", lambda: LookaheadPolicy(
-        samples=2, branch=2, inner_beam=1, inner_depth=1, death_penalty=-500.0)),
     ("beam=6 s=2 b=2 in=1x1", lambda: LookaheadPolicy(
         beam=6, samples=2, branch=2, inner_beam=1, inner_depth=1)),
     ("beam=12 s=2 b=2 in=1x1", lambda: LookaheadPolicy(
         beam=12, samples=2, branch=2, inner_beam=1, inner_depth=1)),
+    # Na wagach z weights.json — to jest ramię, które naprawdę pojedzie w benchmarku.
+    ("tray beam=8 @weights.json", lambda: TrayPolicy(weights=TUNED, beam=8)),
+    ("s=2 b=2 in=1x1 @weights.json", lambda: LookaheadPolicy(
+        weights=TUNED, samples=2, branch=2, inner_beam=1, inner_depth=1)),
+    ("beam=12 s=2 b=2 in=1x1 @weights.json", lambda: LookaheadPolicy(
+        weights=TUNED, beam=12, samples=2, branch=2, inner_beam=1, inner_depth=1)),
 )
 
 
@@ -113,7 +119,7 @@ def main(argv=None):
           % (len(seeds), min(n_games, N_GAMES)))
     print(seeds)
     print()
-    header = "{0:<26} {1:>9} {2:>9} {3:>9} {4:>9} {5:>10} {6:>12}".format(
+    header = "{0:<38} {1:>9} {2:>9} {3:>9} {4:>9} {5:>10} {6:>12}".format(
         "konfiguracja", "śr.ms", "p95 ms", "rozgał.", "wynik", "przeżycie", "ramię 600 s"
     )
     print(header)
@@ -123,7 +129,7 @@ def main(argv=None):
     for label, make_policy in configs:
         r = measure(label, make_policy, seeds)
         results.append(r)
-        print("{0:<26} {1:>9} {2:>9} {3:>9} {4:>9} {5:>10} {6:>12}".format(
+        print("{0:<38} {1:>9} {2:>9} {3:>9} {4:>9} {5:>10} {6:>12}".format(
             r["label"], r["mean_decision_ms"], r["p95_decision_ms"], r["mean_expanded"],
             r["mean_score"], r["mean_survival"], r["arm_600_s"],
         ))
