@@ -72,6 +72,14 @@ def patch_indices(bits, layout=PATCH_LAYOUT):
     return [_patch_index(bits, positions) for positions in layout]
 
 
+# Sygnał, na którym wagi się uczyły (#140). `score`: nagroda to `gain` gry, V
+# szacuje punkty; `survival`: nagroda 1 za postawienie, V szacuje liczbę
+# pozostałych postawień. Plik wag bez pola `reward` (sprzed #140) to `score`.
+REWARD_SCORE = "score"
+REWARD_SURVIVAL = "survival"
+REWARDS = (REWARD_SCORE, REWARD_SURVIVAL)
+
+
 def zero_weights(layout=PATCH_LAYOUT):
     return [[0.0] * (1 << len(positions)) for positions in layout]
 
@@ -85,7 +93,10 @@ class NTupleValue:
 
     layout = PATCH_LAYOUT
 
-    def __init__(self, weights=None):
+    def __init__(self, weights=None, reward=REWARD_SCORE):
+        if reward not in REWARDS:
+            raise ValueError("nieznany sygnal nagrody %r (dozwolone: %s)" % (reward, ", ".join(REWARDS)))
+        self.reward = reward
         self.weights = weights if weights is not None else zero_weights(self.layout)
         if len(self.weights) != len(self.layout):
             raise ValueError(
@@ -120,6 +131,7 @@ class NTupleValue:
 
     def to_dict(self):
         return {
+            "reward": self.reward,
             "patch_layout": [list(p) for p in self.layout],
             "weights": self.weights,
         }
@@ -139,4 +151,7 @@ class NTupleValue:
                 "lat jest jednym, ustalonym wariantem, plik z innym nie da sie "
                 "wczytac)" % path
             )
-        return cls(weights=[list(t) for t in data["weights"]])
+        return cls(
+            weights=[list(t) for t in data["weights"]],
+            reward=data.get("reward", REWARD_SCORE),
+        )

@@ -195,6 +195,10 @@ class LookaheadPolicy:
         # wpina się przez podklasę, która nadpisuje ten atrybut funkcją
         # `(board, combo, combo_counter) -> float` — patrz `NTupleLookaheadPolicy`.
         self._leaf_value = None
+        # Pole stanu wiązki sumowane po ścieżce: `gain` (punkty, zachowanie
+        # niezmienione) albo `placed` (liczba postawień, wagi N-tuple uczone na
+        # sygnale przeżycia, #140).
+        self._path_key = "gain"
         self.reset(None)
 
     def reset(self, game_seed):
@@ -206,6 +210,7 @@ class LookaheadPolicy:
         return _tray_beam_search(
             board, pieces, combo, combo_counter, self.weights, beam,
             root_actions=root_actions, depth=depth, leaf_value=self._leaf_value,
+            path_key=self._path_key,
         )
 
     def act(self, game, actions):
@@ -236,7 +241,7 @@ class LookaheadPolicy:
                 )
                 self.last_expanded += inner_expanded
                 total += max(inner, key=lambda c: c["score"])["score"]
-            value = state["gain"] + total / len(trays)
+            value = state[self._path_key] + total / len(trays)
             if best_value is None or value > best_value:
                 best_action, best_value = state["first_action"], value
         return best_action
@@ -279,6 +284,11 @@ class NTupleLookaheadPolicy(LookaheadPolicy):
     jednak **pełną trójkę** `(board, combo, combo_counter)` i dwa ostatnie
     argumenty ignoruje — dosypanie combo później nie wymaga zmiany sygnatury
     haka.
+
+    **Suma ścieżki idzie za sygnałem, na którym sieć się uczyła** (#140). Wagi
+    `reward == "survival"` szacują liczbę pozostałych postawień, więc składnik
+    ścieżki to liczba postawień (`placed`), nie punkty — inaczej przeszukanie
+    dodawałoby punkty do postawień. Wagi `score` sumują `gain` jak dotąd.
     """
 
     name = "lookahead-ntuple"
@@ -293,6 +303,8 @@ class NTupleLookaheadPolicy(LookaheadPolicy):
         )
         self.ntuple = ntuple
         self._leaf_value = self._ntuple_leaf
+        if getattr(ntuple, "reward", "score") == "survival":
+            self._path_key = "placed"
 
     def _ntuple_leaf(self, board, combo, combo_counter):
         """Wartość liścia z sieci N-tuple; `combo`/`combo_counter` świadomie bez wpływu."""
@@ -300,7 +312,7 @@ class NTupleLookaheadPolicy(LookaheadPolicy):
 
 
 def _tray_beam_search(board, pieces, combo, combo_counter, weights, beam,
-                      root_actions=None, depth=None, leaf_value=None):
+                      root_actions=None, depth=None, leaf_value=None, path_key="gain"):
     """Wiązka po sekwencjach postawień z tacki `pieces` na kopii `board`.
 
     Serce `TrayPolicy` (#58) i obu poziomów `LookaheadPolicy` (#92) — wyniesione
@@ -323,6 +335,8 @@ def _tray_beam_search(board, pieces, combo, combo_counter, weights, beam,
       ostatnie argumenty — decyzja, żeby liść N-tuple oceniał samą planszę, jest
       z #125 i stoi na pomiarze z #122 (człon combo w ocenie liścia wyszedł
       −6,6%).
+    - `path_key` — pole stanu sumowane po ścieżce i dodawane do liścia: `gain`
+      (domyślnie, punkty) albo `placed` (liczba postawień, sygnał przeżycia, #140).
     """
     value_fn = leaf_value if leaf_value is not None else (
         lambda b, c, cc: _weighted_features(weights, b, c, cc)
@@ -333,6 +347,7 @@ def _tray_beam_search(board, pieces, combo, combo_counter, weights, beam,
         "combo": combo,
         "combo_counter": combo_counter,
         "gain": 0,
+        "placed": 0,
         "first_action": None,
     }
     frontier = [root]
@@ -353,7 +368,7 @@ def _tray_beam_search(board, pieces, combo, combo_counter, weights, beam,
                 candidates.append(_expand(state, action))
         expanded += len(candidates)
         for candidate in candidates:
-            candidate["score"] = candidate["gain"] + value_fn(
+            candidate["score"] = candidate[path_key] + value_fn(
                 candidate["board"], candidate["combo"], candidate["combo_counter"],
             )
         candidates.sort(key=lambda c: c["score"], reverse=True)
@@ -361,7 +376,7 @@ def _tray_beam_search(board, pieces, combo, combo_counter, weights, beam,
 
     if levels == 0:
         for candidate in frontier:
-            candidate["score"] = candidate["gain"] + value_fn(
+            candidate["score"] = candidate[path_key] + value_fn(
                 candidate["board"], candidate["combo"], candidate["combo_counter"],
             )
     return frontier, expanded
@@ -446,6 +461,7 @@ def _expand(state, action):
         "combo": combo,
         "combo_counter": combo_counter,
         "gain": state["gain"] + gained,
+        "placed": state.get("placed", 0) + 1,
         "first_action": state["first_action"] or action,
     }
 

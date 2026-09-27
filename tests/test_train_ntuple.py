@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools"))
 
 from ntuple import NTupleValue
-from tools.train_ntuple import episode_seed, load_bench_seeds, main as train_main, run_episode
+from tools.train_ntuple import episode_seed, load_bench_seeds, main as train_main, read_log, run_episode
 
 CONFIG_PATH = "bench/config.json"
 
@@ -100,8 +100,9 @@ class TestResumableTraining(unittest.TestCase):
                 b = json.load(fh)
 
             self.assertEqual(a["weights"], b["weights"])
-            seeds_a = [entry["seed"] for entry in a["log"]]
-            seeds_b = [entry["seed"] for entry in b["log"]]
+            seeds_a = [entry["seed"] for entry in read_log(state_a)]
+            seeds_b = [entry["seed"] for entry in read_log(state_b)]
+            self.assertEqual(len(seeds_a), 2)
             self.assertEqual(seeds_a, seeds_b)
 
     def test_second_invocation_advances_one_episode(self):
