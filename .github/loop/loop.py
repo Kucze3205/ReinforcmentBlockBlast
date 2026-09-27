@@ -24,7 +24,7 @@ BOT = "github-actions[bot]"
 # Pola raportu pisane wyłącznie przez epilog i dozorcę; publikacja raportu agenta ich nie kasuje.
 OWNED = ("proby", "wznow_po", "kopniecia", "kopniete", "konflikty", "przyczyna", "weryfikacja")
 AGENT_STATUSES = {"done", "partial", "blocked", "rejected"}
-MODEL_LABELS = {"model:opus": "claude-opus-5-5"}       # lista zamknięta (#13); etykietę nadaje tylko orchestrator
+MODEL_LABELS = {"model:opus": "claude-opus-5-5"}       # lista zamknięta (#13); etykietę nadaje tylko orchestrator. Nowy model = sprawdź pin CLI w session.yml (#137)
 EFFORT_LABELS = {"effort:high": "high"}
 SECRETS = ("GH_TOKEN", "GITHUB_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN", "ASSETS_READ_TOKEN")
 BACKOFF_H = (1, 5, 24)                      # gdy w wyniku sesji nie ma terminu resetu limitu
@@ -690,8 +690,12 @@ def drive():
 
 
 def crash_streak():
+    # seria liczy się od zamknięcia ostatniej awarii: te same pady nie otwierają jej drugi raz (#137)
+    awarie = json.loads(gh("issue", "list", "--label", "awaria", "--state", "closed", "--json", "closedAt", "--limit", "5") or "[]")
+    since = max((a["closedAt"] for a in awarie), default="")
     closed = [x for x in api_list("repos/%s/issues?state=closed&sort=updated&direction=desc&per_page=30&labels=report:unread" % REPO)
-              if any(l["name"].startswith("rola:") and l["name"] != "rola:bench" for l in x["labels"])]
+              if x["closed_at"] > since
+              and any(l["name"].startswith("rola:") and l["name"] != "rola:bench" for l in x["labels"])]
     if len(closed) < CRASH_STREAK:
         return False
     for x in closed[:CRASH_STREAK]:
