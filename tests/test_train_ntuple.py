@@ -10,11 +10,12 @@ import os
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools"))
 
-from ntuple import NTupleValue
+from ntuple import REWARD_SCORE, NTupleValue
 from tools.train_ntuple import episode_seed, load_bench_seeds, main as train_main, read_log, run_episode
 
 CONFIG_PATH = "bench/config.json"
@@ -67,6 +68,42 @@ class TestRunEpisode(unittest.TestCase):
         stats = run_episode(ntuple, seed=7, move_cap=40, alpha=0.01)
         for key in ("seed", "score", "placements", "steps", "mean_abs_td_error"):
             self.assertIn(key, stats)
+
+    def test_td_target_uses_reward_of_current_step_not_previous(self):
+        """Atrapa dwoch ruchow o znanych gain (#153): cel dla `V(afterstate_1)`
+        musi byc `r_2 + V(afterstate_2)`, nie `r_1 + V(afterstate_2)`."""
+        ntuple = NTupleValue()
+        alpha = 1.0
+        idx1 = [0] * len(ntuple.weights)
+        idx2 = [1] * len(ntuple.weights)
+        script = iter([
+            ("action-1", idx1, 3.0),
+            ("action-2", idx2, 5.0),
+        ])
+
+        class FakeGame:
+            def __init__(self, seed):
+                self.done = False
+                self.score = 0
+                self.placements = 0
+
+            def available_actions(self):
+                return ["dummy"]
+
+            def step(self, action):
+                self.placements += 1
+
+        with mock.patch("tools.train_ntuple.Game", FakeGame), \
+                mock.patch("tools.train_ntuple._choose_action", lambda *a, **k: next(script)):
+            run_episode(ntuple, seed=1, move_cap=2, alpha=alpha, reward=REWARD_SCORE)
+
+        # Krok 2: target = r_2 + V(idx2) = 5 + 0 = 5; error = 5 - V(idx1) = 5;
+        # V(idx1) += alpha*5 = 5. Terminal: target=0; error = 0 - V(idx2) = 0
+        # (idx2 nietkniety wczesniej) -> V(idx2) bez zmian. Cel sprzed #153
+        # (r_1 + V(idx2) = 3) dalby V(idx1) = 3, nie 5.
+        for table in ntuple.weights:
+            self.assertAlmostEqual(table[0], 5.0)
+            self.assertAlmostEqual(table[1], 0.0)
 
 
 class TestResumableTraining(unittest.TestCase):
@@ -128,6 +165,43 @@ class TestResumableTraining(unittest.TestCase):
             train_main(["--state", state, "--out", out, "--episodes", "2", "--seed", "1", "--move-cap", "40"])
             with self.assertRaises(ValueError):
                 train_main(["--state", state, "--out", out, "--episodes", "2", "--seed", "2", "--move-cap", "40"])
+
+
+class TestTDTargetStateGuard(unittest.TestCase):
+    """Stan `score` sprzed poprawki #153 (bez `params.td_target`) nie wczytuje
+    sie do wznowienia — mieszanie starego i nowego celu TD bez sladu jest
+    niedopuszczalne. `survival` nie jest dotkniety (r ≡ 1)."""
+
+    @staticmethod
+    def _drop_td_target(state_path):
+        with open(state_path, encoding="utf-8") as fh:
+            state = json.load(fh)
+        del state["params"]["td_target"]
+        with open(state_path, "w", encoding="utf-8") as fh:
+            json.dump(state, fh)
+
+    def test_resuming_pre_153_score_state_raises(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = os.path.join(tmp, "state.json")
+            out = os.path.join(tmp, "out.json")
+            args = ["--state", state, "--out", out, "--episodes", "2", "--seed", "1",
+                     "--move-cap", "40", "--reward", "score"]
+            train_main(args)
+            self._drop_td_target(state)
+            with self.assertRaises(ValueError):
+                train_main(args)
+
+    def test_resuming_pre_153_survival_state_is_unaffected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = os.path.join(tmp, "state.json")
+            out = os.path.join(tmp, "out.json")
+            args = ["--state", state, "--out", out, "--episodes", "2", "--seed", "1",
+                     "--move-cap", "40", "--reward", "survival"]
+            train_main(args)
+            self._drop_td_target(state)
+            train_main(args)  # nie rzuca
+            with open(state, encoding="utf-8") as fh:
+                self.assertEqual(json.load(fh)["episode"], 2)
 
 
 class TestOutputLoadableByNTupleValue(unittest.TestCase):

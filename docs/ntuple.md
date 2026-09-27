@@ -195,6 +195,30 @@ treningu był tani. `combo`/`combo_counter` nie wchodzą do stanu wartościowane
 przez sieć: `gain` już niesie efekt combo dla *tego* ruchu, `V(board)` szacuje
 wartość *przyszłą* samej planszy.
 
+**Poprawka przesunięcia o jeden krok (#153).** Kod przed tą poprawką liczył cel
+jako `r_{t-1} + V(afterstate_t)` — nagrodę ruchu, który **doprowadził** do
+`afterstate_{t-1}`, nie ruchu wybranego **z** `afterstate_{t-1}`. Przy
+`--reward score` skutek to podwójne liczenie natychmiastowego `gain`: raz w
+`V` (bo `V` uczyło się zawierać `gain` ruchu, który do stanu doprowadził), raz
+wprost w polityce (`gain(akcja) + V(afterstate(akcja))` i liściu
+`NTupleLookaheadPolicy`). Wzór wyżej (`target = gain_t + V(afterstate_t)`) jest
+tym, co kod robi **po** poprawce; `tools/train_ntuple.run_episode` ma go
+wprost w docstringu. Przy `--reward survival` `r ≡ 1` niezależnie od
+przesunięcia, więc poprawka nie zmienia wag: 30 odcinków `--seed 1` daje
+bitowo ten sam hash wag SHA-256 przed i po (`ca04d709d771…2eed76`) —
+zmierzone, nie założone. Przy `--reward score`, te same 30 odcinków, hashe się
+różnią (przed: `e33eda63e163…bce6979`, po: `c018cd9a33a9…3acec84`).
+
+Stan `--reward score` zapisany przed #153 nie wczytuje się do wznowienia:
+`tools/train_ntuple.load_state` sprawdza pole `params.td_target` (ustawiane od
+#153 na `"r_t"`) i rzuca `ValueError`, gdy go brakuje — wybrana opcja to
+**odmowa**, nie jawna wersja celu w stanie, żeby nie utrzymywać w kodzie dwóch
+równoległych ścieżek TD na stałe. `ntuple/score-a0002-state.json` (40000/40000
+odcinków, dokończony przed #153) jest tym dotknięty: dalsze wznowienie
+wymagałoby nowego pliku stanu. `--reward survival` nie ma tego ograniczenia —
+stare stany survival wczytują się i wznawiają bez zmian, bo `r ≡ 1` czyni cel
+sprzed i po poprawce identycznym.
+
 Uwaga aktualizacyjna (#125): `_weighted_features` **ma** od #118 człon combo, więc
 zdanie „tak samo jak dziś w `HeuristicPolicy`/`TrayPolicy`" z pierwszej wersji
 tego dokumentu już nie jest prawdą — na `main` liść ręcznych wag może combo

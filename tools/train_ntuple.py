@@ -21,8 +21,18 @@ Aktualizacja TD(0) po każdym kroku (poza pierwszym):
     target = r_t + V(afterstate_t)
     V(afterstate_{t-1}) += alpha * (target - V(afterstate_{t-1}))
 
-i jedna dodatkowa po ostatnim kroku partii, z `target = 0` (stan terminalny —
-gra się skończyła, żadnej przyszłej nagrody nie będzie).
+gdzie `r_t` to nagroda ruchu wybranego z `afterstate_{t-1}` (ten, co prowadzi
+do `afterstate_t`), i jedna dodatkowa aktualizacja po ostatnim kroku partii, z
+`target = 0` (stan terminalny — gra się skończyła, żadnej przyszłej nagrody nie
+będzie).
+
+Stan `--reward score` zapisany przed poprawką #153 (cel liczony jako
+`r_{t-1} + V(afterstate_t)`) nie wczyta się do wznowienia: `load_state` sprawdza
+pole `params.td_target` i rzuca `ValueError`, żeby nie zmieszać w jednym
+przebiegu wag uczonych dwoma różnymi celami bez śladu (`docs/ntuple.md`, sekcja
+„Kształt nagrody użyty w TD"). `--reward survival` nie jest tym dotknięty:
+`r ≡ 1` niezależnie od przesunięcia, więc stare stany survival wczytują się
+bez zmian.
 
 Sygnał uczenia `r` wybiera `--reward` (#140) — to opcja treningu, nie nagroda
 środowiska; `Game.step` i punktacja są nietknięte:
@@ -68,6 +78,10 @@ DEFAULT_SAVE_EVERY = 100
 # Okno krzywej uczenia, jak w `docs/data/ntuple-krzywa.json` (#126).
 CURVE_WINDOW = 2000
 STATE_FORMAT = 2
+# Cel TD zapisywany w `params.td_target` (#153): odróżnia stan zapisany po
+# poprawce przesunięcia od stanu sprzed niej (brak pola — cel liczył
+# `r_{t-1} + V(afterstate_t)`, dziś `r_t + V(afterstate_t)`).
+TD_TARGET_VERSION = "r_t"
 
 # Seedy treningu (`episode_seed`) i rotowane seedy benchmarku
 # (`benchmark.rotated_seeds`) są z `[1, 2**31 - 1)`. Ewaluacja bierze seedy
@@ -147,10 +161,17 @@ def _choose_action(ntuple, game, actions, reward=REWARD_SCORE):
 def run_episode(ntuple, seed, move_cap, alpha, reward=REWARD_SCORE, learn=True):
     """Jedna partia; przy `learn` z aktualizacją TD(0) po każdym postawieniu.
 
+    Cel dla `V(afterstate_{t-1})` to `r_t + V(afterstate_t)`, gdzie `r_t` jest
+    nagrodą ruchu wybranego **z** `afterstate_{t-1}` (ten, który prowadzi do
+    `afterstate_t`) — to jest `r` policzone w bieżącej iteracji pętli, nie w
+    poprzedniej (#153: przed poprawką cel używał `r_{t-1}`, nagrody ruchu,
+    który dopiero doprowadził do `afterstate_{t-1}`, więc `gain` tego ruchu był
+    liczony do wartości dwa razy — raz w V, raz wprost w polityce).
+
     Zwraca statystyki partii (do logu) — same wagi `ntuple` są modyfikowane
     w miejscu. `learn=False` to ewaluacja: ta sama polityka, wagi nietknięte."""
     game = Game(seed=seed)
-    prev_idxs, prev_r = None, None
+    prev_idxs = None
     steps = 0
     td_errors = []
     while not game.done and steps < move_cap:
@@ -159,12 +180,12 @@ def run_episode(ntuple, seed, move_cap, alpha, reward=REWARD_SCORE, learn=True):
             break
         action, idxs, r = _choose_action(ntuple, game, actions, reward)
         if learn and prev_idxs is not None:
-            target = prev_r + ntuple.value_from_indices(idxs)
+            target = r + ntuple.value_from_indices(idxs)
             error = target - ntuple.value_from_indices(prev_idxs)
             ntuple.update(prev_idxs, alpha * error)
             td_errors.append(error)
         game.step(action)
-        prev_idxs, prev_r = idxs, r
+        prev_idxs = idxs
         steps += 1
 
     if learn and prev_idxs is not None:
@@ -235,6 +256,7 @@ def new_state(args, forbidden_seeds):
             "move_cap": args.move_cap,
             "reward": args.reward,
             "layout": args.layout,
+            "td_target": TD_TARGET_VERSION,
         },
         "bench_seeds_n": len(forbidden_seeds),
         "log_bytes": 0,
@@ -265,6 +287,16 @@ def load_state(path, args, forbidden_seeds):
     state["params"].setdefault("reward", REWARD_SCORE)
     # Stan sprzed #149 nie ma pola `layout` — trenował na wariancie A.
     state["params"].setdefault("layout", DEFAULT_LAYOUT)
+    # Stan `score` sprzed #153 liczyl cel TD jako r_{t-1} + V(afterstate_t) —
+    # nieporownywalny z dzisiejszym r_t + V(afterstate_t). `survival` ma r ≡ 1,
+    # wiec przesuniecie sie znosi i stare stany wczytuja sie bez zmian.
+    if state["params"]["reward"] == REWARD_SCORE and state["params"].get("td_target") != TD_TARGET_VERSION:
+        raise ValueError(
+            "stan {0}: cel TD zapisany przed #153 (r_t-1 + V(afterstate_t)) nie jest "
+            "porownywalny z poprawionym kodem (r_t + V(afterstate_t)) dla --reward score "
+            "— zacznij nowy plik stanu".format(path)
+        )
+    state["params"].setdefault("td_target", TD_TARGET_VERSION)
     # Wznowienie z innymi parametrami dalo by przebieg, ktorego log klamie o tym,
     # co mierzyl (wzor z tools/tune_weights.load_state, #104).
     expected = {
