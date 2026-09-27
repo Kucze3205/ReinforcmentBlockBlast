@@ -66,6 +66,33 @@ class TestIsSettingsScreen(unittest.TestCase):
         self.assertFalse(bridge.is_settings_screen(_load("44a8ea2", "p2e_stuck_settings_after_back.png")))
 
 
+class TestIsBrightAdScreen(unittest.TestCase):
+    """#154: reklama jasna/interaktywna (quiz, „Connect Words") — `is_ad_screen` (próg
+    ciemności) jej nie łapie."""
+
+    def test_positive_on_bright_ad_screenshots(self):
+        for name in ("p2_ad_video_before.png", "p2_ad_video_after_back.png",
+                     "p2_ad_video_after_back2.png", "p2b_ad_before.png", "p2b_ad_after_back.png"):
+            with self.subTest(name=name):
+                self.assertTrue(bridge.is_bright_ad_screen(_load("44a8ea2", name)))
+
+    def test_negative_on_board_screenshots(self):
+        for name in ("p2_after_play.png", "p2b_after_play.png",
+                     "p1a_before.png", "p1a_after_back.png",
+                     "p1b_before.png", "p1c_before.png"):
+            with self.subTest(name=name):
+                self.assertFalse(bridge.is_bright_ad_screen(_load("44a8ea2", name)))
+
+    def test_negative_on_settings_modal(self):
+        for name in ("p1a_settings.png", "p2e_stuck_settings_before.png",
+                     "p2c_real_ad_then_settings_before.png"):
+            with self.subTest(name=name):
+                self.assertFalse(bridge.is_bright_ad_screen(_load("44a8ea2", name)))
+
+    def test_negative_on_dark_interstitial_ad(self):
+        self.assertFalse(bridge.is_bright_ad_screen(_load("0d96333", "121_end.png")))
+
+
 class TestPressBack(unittest.TestCase):
     @mock.patch("bridge.time.sleep", lambda *_: None)
     @mock.patch("bridge.adb")
@@ -215,6 +242,29 @@ class TestMainRecoversFromSettingsWindow(unittest.TestCase):
         close_ad.assert_called_once()
         press_back.assert_called_once()
         self.assertEqual(best_streak, 0)  # jeden ruch bez porównania, ale partia nie skończyła się na Ustawieniach
+
+
+class TestMainStopsOnBrightAdWindow(unittest.TestCase):
+    """#154: jasna reklama miesza most odczyt planszy jako pełną (#145); most ma się
+    zatrzymać z oknem `reklama_jasna` zamiast fałszywego „brak legalnego ruchu"."""
+
+    def test_bright_ad_window_stops_without_false_end(self):
+        bright_ad_img = _load("44a8ea2", "p2b_ad_before.png")
+        full_grid = [[1] * 8 for _ in range(8)]  # most odczytuje reklamę jako pełną planszę
+
+        def fake_settled_state():
+            return bright_ad_img, full_grid, [None, None, None]
+
+        with mock.patch("bridge.settled_state", side_effect=fake_settled_state), \
+             mock.patch("bridge.in_game", return_value=True), \
+             mock.patch("bridge.read_score", return_value=None), \
+             mock.patch("bridge.annotate"), \
+             mock.patch("PIL.Image.Image.save"), \
+             mock.patch("bridge.os.makedirs"), \
+             mock.patch("builtins.open", mock.mock_open()):
+            best_streak = bridge.main(1, policy_spec="greedy")
+
+        self.assertEqual(best_streak, 0)
 
 
 if __name__ == "__main__":

@@ -38,6 +38,7 @@ AD_CLOSE = (285, 34)  # X reklamy międzyplanszowej, zmierzony na bridge/runs/0d
 AD_DARK_FRAC = 0.85  # 121_end.png: 0.95 czarnych pikseli; 120_state.png: 0.0; ekran główny po zabiciu procesu: 0.62
 SETTINGS_DARK_FRAC = (0.44, 0.85)  # przedział pikseli ciemniejszych niż 100 (patrz is_settings_screen)
 SETTINGS_BACK_TRIES = 2
+BRIGHT_AD_MIN_COLORS = 20000  # liczba unikalnych kolorów RGB, patrz is_bright_ad_screen
 RESTART_TRIES = 3
 RESTART_WAIT = 20
 
@@ -84,6 +85,26 @@ def is_settings_screen(img):
     lo, hi = SETTINGS_DARK_FRAC
     frac = (img.max(axis=-1) < 100).mean()
     return lo < frac < hi
+
+
+def is_bright_ad_screen(img):
+    """Jasna reklama interaktywna (quiz/„Connect Words", #154): za jasna i za ciemna nie jest —
+    `is_ad_screen` (próg ciemności) jej nie łapie, a most bez tego odczytuje planszę pod spodem
+    jako w pełni zapełnioną i kończy partię błędnym „brak legalnego ruchu" (#145).
+
+    Grafika reklamowa jest fotorealistyczna/gradientowa (dużo odcieni jednego koloru na
+    krzywiznach kul, cieniach, gradientach tła), gra ma płaski design z kilkoma stałymi
+    kolorami na plansze/UI. Liczba unikalnych kolorów RGB w kadrze rozdziela to bez cienia
+    wątpliwości na materiale z `bridge/runs/44a8ea2/`:
+    reklamy (`p2_ad_video_before.png`, `p2_ad_video_after_back.png`, `p2_ad_video_after_back2.png`,
+    `p2b_ad_before.png`, `p2b_ad_after_back.png`) mają 30 836–68 663 unikalnych kolorów;
+    plansza (`p2_after_play.png`, `p2b_after_play.png`, `p1{a,b,c}_before.png`,
+    `p1{a,b,c}_after_back.png`) i modal Ustawień (`p1a_settings.png`, `p2e_stuck_settings_before.png`,
+    `p2c_real_ad_then_settings_before.png`) mają najwyżej 1155. Próg 20 000 zostawia szeroki margines
+    z obu stron (dla porównania ekran główny po zabiciu procesu, `1bd38fa/111_state.png`, ma 13 697).
+    """
+    flat = img.reshape(-1, 3)
+    return len(np.unique(flat, axis=0)) > BRIGHT_AD_MIN_COLORS
 
 
 def board_and_tray_empty(grid, slots):
@@ -324,6 +345,13 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
                 continue
         else:
             settings_tries = 0
+        if is_bright_ad_screen(img):
+            entry = {"n": n, "policy": policy.name, "board": grid,
+                     "tray": [s[0] if s else None for s in slots], "score": score,
+                     "end": "okno: reklama_jasna"}
+            log.write(json.dumps(entry) + "\n")
+            print(entry["end"], flush=True)
+            break
         board = Board()
         board.grid = [row[:] for row in grid]
         pieces = [Piece(s[0], f"slot{i}", -1) if s else None for i, s in enumerate(slots)]
