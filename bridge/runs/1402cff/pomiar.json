@@ -3,25 +3,41 @@
   "cel": "Pomiar #164: jasna reklama (moment/X) i nowe okna z #163 (dialog_wyjscia, ustawienia_wstecz, petla_bez_postepu) na zywym moscie",
   "wersja_gry": "sprawdzic w bridge-out/version.txt",
   "kawalki": [
-    {"kawalek": 1, "ruchy": "0-19", "polityka": "lookahead:weights.json", "wynik": "20/20 ok, brak okien, brak reklam, zakonczono limitem tur (max_moves=20)"}
+    {"kawalek": 1, "ruchy": "0-19", "polityka": "lookahead:weights.json", "wynik": "20/20 ok, brak okien, brak reklam, zakonczono limitem tur (max_moves=20)"},
+    {"kawalek": 2, "ruchy": "0 (ROZBIEZNOSC) + 6x okno ustawienia_wstecz", "polityka": "lookahead:weights.json",
+     "wynik": "ruch 0: wynik przed 287, ROZBIEZNOSC (expected niepuste 6 pol w prawym gornym rogu, observed plansza pusta) — bo apka padla (logcat: 'Process com.block.juggle (pid 5200) has died: fg TOP', 'app died, no saved state') miedzy zrzutem stanu a odczytem po ruchu. Nastepnie 6x z rzedu 'okno: ustawienia_wstecz', po 6. bezpiecznik: 'okno: petla_bez_postepu'. n nie ruszyl sie z 1 przez cale 6 wpisow - partia NIE szla dalej, kawalek sam sie zakonczyl."}
   ],
   "jasne_reklamy": [],
   "okna_163": {
     "dialog_wyjscia": [],
-    "ustawienia_wstecz": [],
-    "petla_bez_postepu": []
+    "ustawienia_wstecz": [
+      {"kawalek": 2, "wystapien_pod_rzad": 6, "n_podczas_wystapien": 1,
+       "partia_szla_dalej": "nie (n bez zmian, kawalek zakonczony przez bezpiecznik po 6. wystapieniu)",
+       "prawdziwa_przyczyna": "to NIE byl modal Ustawien — apka padla do ekranu glownego launchera (home screen), a is_settings_screen (prog ciemnosci 0.44-0.85) falszywie sklasyfikowal ciemna tapete home screena jako modal Ustawien, wiec most bil sie 'wstecz' w launcher zamiast wywolac restart_app()"}
+    ],
+    "petla_bez_postepu": [
+      {"kawalek": 2, "n_przy_koncu": 1, "przyczyna": "6x falszywy 'ustawienia_wstecz' na ekranie home po padzie apki (patrz wyzej); bezpiecznik z #163 zadzialal poprawnie i zakonczyl kawalek zamiast kreconia sie bez konca (rozne od #159, gdzie stary licznik sie zerowal)"}
+    ]
   },
   "pytanie_1_jasna_reklama": {
     "odpowiedz": "w trakcie pomiaru",
-    "ruchy_partie_czas": "kawalek 1: 20 ruchow, 0 partii zakonczonych, jasna reklama nie wystapila"
+    "ruchy_partie_czas": "kawalek 1: 20 ruchow, 0 partii zakonczonych, jasna reklama nie wystapila; kawalek 2: 1 ruch (z rozbieznoscia, bo apka padla), potem 6 falszywych okien 'ustawienia_wstecz' (patrz odkrycie), jasna reklama nie wystapila"
   },
   "pytanie_2_okna_163": {
     "dialog_wyjscia": {"liczba": 0, "co_potem": "brak zdarzen"},
-    "ustawienia_wstecz": {"liczba": 0, "co_potem": "brak zdarzen"},
-    "petla_bez_postepu": {"liczba": 0, "co_potem": "brak zdarzen"}
+    "ustawienia_wstecz": {"liczba": 6, "co_potem": "partia NIE szla dalej (n=1 przez wszystkie 6 wpisow); w rzeczywistosci to falszywe rozpoznanie ekranu home po padzie apki, nie prawdziwy modal Ustawien — patrz Odkrycia w raporcie"},
+    "petla_bez_postepu": {"liczba": 1, "co_potem": "kawalek zakonczony przez bezpiecznik (#163), partia nie kontynuowana w tym kawalku"}
   },
   "co_odczytane_vs_wnioskowane": {
-    "odczytane_ze_zrzutow": [],
-    "wnioski": []
+    "odczytane_ze_zrzutow": [
+      "bridge-out/000_state.png (kawalek 2): prawdziwa plansza gry, wynik 287, klocki w prawym gornym rogu, dwa klocki w tacy.",
+      "bridge-out/001_state.png (kawalek 2, nadpisywany przez wszystkie 6 wpisow 'ustawienia_wstecz' bo n nie rosl): ekran glowny Androida (launcher, tapeta, data 'Sun, Sep 27', dolny pasek aplikacji) — NIE modal Ustawien gry ani prawdziwa plansza.",
+      "adb logcat: 'Process com.block.juggle (pid 5200) has died: fg TOP' i 'Force removing ActivityRecord ... app died, no saved state' w momencie miedzy ruchem 0 a odczytem stanu po nim.",
+      "final.png (kawalek 2) identyczny z ekranem home launchera — potwierdza, ze most zakonczyl kawalek nie w grze."
+    ],
+    "wnioski": [
+      "ROZBIEZNOSC na ruchu 0 kawalka 2 (expected niepuste, observed puste) tlumaczy sie padem apki w trakcie ruchu, nie bledem polityki ani odczytu planszy przed padem.",
+      "is_settings_screen (prog ciemnosci pikseli < 100, zakres 0.44-0.85) falszywie lapie rowniez ciemna tapete Androidowego home screena po padzie apki — kolejnosc sprawdzen w main() (najpierw is_exit_dialog_screen/is_settings_screen/is_bright_ad_screen, dopiero potem in_game()) sprawia, ze most probuje 'wstecz' zamiast wykryc brak gry na pierwszym planie i wywolac restart_app(). Bezpiecznik #163 (petla_bez_postepu) w tym przypadku uratowal kawalek przed nieskonczona petla, ale sam restart apki nie nastapil automatycznie — trzeba bylo recznie odpalic monkey (zrobione przez verifiera do dalszego pomiaru)."
+    ]
   }
 }
