@@ -18,10 +18,12 @@ ręcznie zaprojektowanych.
 Układ łat jest **danymi**, w jednym miejscu (`LAYOUTS`, nazwane warianty), nie
 rozsianymi po kodzie: wariant A z `docs/research/budzet-wyuczonej-oceny.md`
 (#120) — 8 wierszy + 8 kolumn, każda łata 8 komórek, `16 × 2**8 = 4096` wag —
-i wariant AD (#149): A plus wariant D (kwadraty 3×3 we wszystkich 36
-położeniach), `52` łaty. Uzasadnienie wyboru wariantu A jako domyślnego, i AD
-jako drugiego, jest w `docs/ntuple.md`, nie tutaj. `NTupleValue.load` przyjmuje
-plik z każdym układem z `LAYOUTS`; plik z nieznanym układem się nie wczyta.
+wariant AD (#149): A plus wariant D (kwadraty 3×3 we wszystkich 36
+położeniach), `52` łaty, i wariant ADC (#162): AD plus wariant C (prostokąty
+2×3 i 3×2 we wszystkich 84 położeniach), `136` łat. Uzasadnienie wyboru
+wariantu A jako domyślnego, i AD/ADC jako kolejnych, jest w `docs/ntuple.md`,
+nie tutaj. `NTupleValue.load` przyjmuje plik z każdym układem z `LAYOUTS`;
+plik z nieznanym układem się nie wczyta.
 """
 import json
 
@@ -42,6 +44,12 @@ def _col_patch(x):
 def _square_patch(x, y):
     """Kwadrat 3x3 z lewym-górnym rogiem `(x, y)` jako łata k=9 komórek (wariant D, #120)."""
     return tuple((y + dy) * WIDTH + (x + dx) for dy in range(3) for dx in range(3))
+
+
+def _rect_patch(x, y, height, width):
+    """Prostokąt `height`x`width` z lewym-górnym rogiem `(x, y)` jako łata
+    k=`height*width` komórek (wariant C, #162)."""
+    return tuple((y + dy) * WIDTH + (x + dx) for dy in range(height) for dx in range(width))
 
 
 # Wariant A (#120): 8 łat-wierszy + 8 łat-kolumn, k=8 komórek/łatę.
@@ -65,8 +73,23 @@ LAYOUT_A = PATCH_LAYOUT
 # docs/co-zabija-partie.md), 16 + 36 = 52 łaty.
 LAYOUT_AD = LAYOUT_A + LAYOUT_D
 
+# Wariant C (#162, docs/research/budzet-wyuczonej-oceny.md sekcja 3): prostokąty
+# 2x3 i 3x2 we wszystkich położeniach lewego-górnego rogu na planszy 8x8 —
+# 2x3 (2 wiersze, 3 kolumny): (HEIGHT-1) x (WIDTH-2) = 7x6 = 42 położenia;
+# 3x2 (3 wiersze, 2 kolumny): (HEIGHT-2) x (WIDTH-1) = 6x7 = 42 położenia;
+# razem 84 łaty, k=6 komórek/łatę — `rect23`, drugi zabójca partii po `square3`
+# (razem 76,9% partii wg docs/co-zabija-partie.md).
+LAYOUT_C = tuple(
+    _rect_patch(x, y, 2, 3) for y in range(HEIGHT - 1) for x in range(WIDTH - 2)
+) + tuple(
+    _rect_patch(x, y, 3, 2) for y in range(HEIGHT - 2) for x in range(WIDTH - 1)
+)
+
+# Wariant ADC (#162): AD plus C — 52 + 84 = 136 łat, `22528 + 5376 = 27904` wag.
+LAYOUT_ADC = LAYOUT_AD + LAYOUT_C
+
 # Nazwane układy łat — jedyne, które `NTupleValue.load` przyjmuje (#149).
-LAYOUTS = {"A": LAYOUT_A, "AD": LAYOUT_AD}
+LAYOUTS = {"A": LAYOUT_A, "AD": LAYOUT_AD, "ADC": LAYOUT_ADC}
 DEFAULT_LAYOUT = "A"
 
 

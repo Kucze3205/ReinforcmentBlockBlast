@@ -256,6 +256,15 @@ class TestLayoutFlag(unittest.TestCase):
                         "--layout", "AD"])
             self.assertEqual(len(NTupleValue.load(out).weights), 52)
 
+    def test_layout_adc_produces_136_weight_tables(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state, out = os.path.join(tmp, "s.json"), os.path.join(tmp, "o.json")
+            train_main(["--state", state, "--out", out, "--episodes", "1", "--move-cap", "30",
+                        "--layout", "ADC"])
+            with open(state, encoding="utf-8") as fh:
+                self.assertEqual(json.load(fh)["params"]["layout"], "ADC")
+            self.assertEqual(len(NTupleValue.load(out).weights), 136)
+
     def test_changing_layout_on_resume_raises(self):
         with tempfile.TemporaryDirectory() as tmp:
             state, out = os.path.join(tmp, "s.json"), os.path.join(tmp, "o.json")

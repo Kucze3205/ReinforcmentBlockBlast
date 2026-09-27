@@ -16,6 +16,8 @@ from board import Board
 from ntuple import (
     LAYOUT_A,
     LAYOUT_AD,
+    LAYOUT_ADC,
+    LAYOUT_C,
     LAYOUT_D,
     LAYOUTS,
     N_PATCHES,
@@ -136,6 +138,72 @@ class TestLayoutAD(unittest.TestCase):
             loaded = benchmark.load_ntuple_weights(path)
         self.assertEqual(loaded.layout, LAYOUT_AD)
         self.assertEqual(loaded.value(board), ntuple.value(board))
+
+
+class TestLayoutADC(unittest.TestCase):
+    """Uklad ADC (#162): AD plus C (prostokaty 2x3/3x2 we wszystkich 84 polozeniach)."""
+
+    def test_c_has_84_patches_of_six_cells(self):
+        self.assertEqual(len(LAYOUT_C), 84)
+        for positions in LAYOUT_C:
+            self.assertEqual(len(positions), 6)
+
+    def test_c_patches_are_2x3_or_3x2_rectangles_without_duplicates(self):
+        seen = set()
+        shapes = set()
+        for positions in LAYOUT_C:
+            key = tuple(sorted(positions))
+            self.assertNotIn(key, seen, "lata C powtorzona")
+            seen.add(key)
+            xs = [p % Board.WIDTH for p in positions]
+            ys = [p // Board.WIDTH for p in positions]
+            width = max(xs) - min(xs) + 1
+            height = max(ys) - min(ys) + 1
+            self.assertEqual(width * height, 6)
+            self.assertLess(max(xs), Board.WIDTH)
+            self.assertLess(max(ys), Board.HEIGHT)
+            shapes.add((height, width))
+        self.assertEqual(shapes, {(2, 3), (3, 2)})
+
+    def test_adc_is_ad_concatenated_with_c(self):
+        self.assertEqual(LAYOUT_ADC, LAYOUT_AD + LAYOUT_C)
+        self.assertEqual(len(LAYOUT_ADC), 52 + 84)
+        self.assertEqual(list(LAYOUT_ADC[:52]), list(LAYOUT_AD))
+        self.assertEqual(LAYOUTS["ADC"], LAYOUT_ADC)
+
+    def test_adc_covers_every_cell_at_least_once(self):
+        covered = set()
+        for positions in LAYOUT_ADC:
+            covered.update(positions)
+        self.assertEqual(covered, set(range(Board.WIDTH * Board.HEIGHT)))
+
+    def test_ntuple_value_with_adc_layout_has_136_weight_tables(self):
+        ntuple = NTupleValue(layout=LAYOUT_ADC)
+        self.assertEqual(len(ntuple.weights), 136)
+        self.assertEqual(ntuple.value(Board()), 0.0)
+
+    def test_adc_round_trips_through_save_load(self):
+        ntuple = NTupleValue(layout=LAYOUT_ADC)
+        board = Board()
+        board.grid[3] = [1, 0, 1, 1, 0, 0, 1, 0]
+        ntuple.update(ntuple.indices(board), 4.0)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "adc.json")
+            ntuple.save(path)
+            loaded = NTupleValue.load(path)
+        self.assertEqual(loaded.layout, LAYOUT_ADC)
+        self.assertEqual(loaded.weights, ntuple.weights)
+        self.assertEqual(loaded.value(board), ntuple.value(board))
+
+    def test_layout_adc_matches_reference_on_1000_random_boards(self):
+        rng = random.Random(162)
+        for _ in range(1000):
+            board = Board()
+            for y in range(Board.HEIGHT):
+                board.grid[y] = [1 if rng.random() < 0.5 else 0 for _ in range(Board.WIDTH)]
+            bits = board_bits(board)
+            expected = [_patch_index(bits, positions) for positions in LAYOUT_ADC]
+            self.assertEqual(patch_indices(bits, LAYOUT_ADC), expected)
 
 
 class TestBoardBits(unittest.TestCase):

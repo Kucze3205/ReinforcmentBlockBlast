@@ -43,8 +43,9 @@ Sygnał uczenia `r` wybiera `--reward` (#140) — to opcja treningu, nie nagroda
   postawień.
 
 Układ łat `--layout` (#149, domyślnie `A`) wybiera `ntuple.LAYOUTS` — `AD` dodaje
-kwadraty 3x3 do wierszy/kolumn wariantu `A`, patrz `docs/ntuple.md`. Wznowienie
-z innym układem niż zapisany w stanie rzuca `ValueError`, jak zmiana `--reward`.
+kwadraty 3x3 do wierszy/kolumn wariantu `A`, `ADC` (#162) dodaje do `AD` prostokąty
+2x3/3x2, patrz `docs/ntuple.md`. Wznowienie z innym układem niż zapisany w stanie
+rzuca `ValueError`, jak zmiana `--reward`.
 
 Seedy treningowe są rozłączne z `bench/seeds_fixed.json`, wymuszone asercją w
 `episode_seed()` — tak jak `tools/tune_weights.training_seeds()` (#59, #123).
@@ -507,7 +508,8 @@ def main(argv=None):
     parser.add_argument(
         "--layout", choices=sorted(LAYOUTS), default=DEFAULT_LAYOUT,
         help="uklad lat N-tuple: A = 8 wierszy+8 kolumn (domyslnie), "
-             "AD = A plus kwadraty 3x3 we wszystkich polozeniach (ntuple.LAYOUTS, #149)",
+             "AD = A plus kwadraty 3x3 we wszystkich polozeniach (ntuple.LAYOUTS, #149), "
+             "ADC = AD plus prostokaty 2x3/3x2 we wszystkich polozeniach (#162)",
     )
     parser.add_argument(
         "--save-every", type=int, default=DEFAULT_SAVE_EVERY,
