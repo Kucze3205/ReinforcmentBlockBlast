@@ -47,6 +47,9 @@ HASHED_SOURCES = [
     "features.py",
     "policies.py",
     "benchmark.py",
+    # Ocena liścia ramienia `lookahead-ntuple:` żyje w `ntuple.py` — bez niego
+    # odcisk źródeł nie widzi zmiany mierzonej polityki (#127, #140).
+    "ntuple.py",
 ]
 
 STATUS_OK = "ok"

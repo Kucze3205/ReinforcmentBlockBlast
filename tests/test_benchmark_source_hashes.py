@@ -30,6 +30,7 @@ REQUIRED_SOURCES = {
     "features.py",
     "policies.py",
     "benchmark.py",
+    "ntuple.py",
 }
 
 
