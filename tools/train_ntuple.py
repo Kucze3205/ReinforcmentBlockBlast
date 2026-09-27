@@ -446,7 +446,11 @@ def run_generational(args, config, forbidden_seeds):
 
         state["episode"] = episode
         state["games_played"] += 1
-        state["duration_s"] = round(state["duration_s"] + elapsed, 1)
+        # Suma bez zaokraglania po kazdym odcinku (#158, odkrycie #149):
+        # round() na skumulowanej wartosci gubil przyrosty krotsze niz ~0,05 s,
+        # bo kazdy kolejny dodawal do juz zaokraglonej (czesto z powrotem do 0.0)
+        # sumy zamiast do prawdziwego czasu dotychczas zmierzonego.
+        state["duration_s"] += elapsed
         entry = dict(stats)
         entry["episode"] = episode
         entry["duration_s"] = round(elapsed, 3)

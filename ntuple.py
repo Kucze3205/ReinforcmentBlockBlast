@@ -83,16 +83,70 @@ def board_bits(board):
 
 
 def _patch_index(bits, positions):
-    """Wzorzec łaty jako liczba 0..`2**k - 1`: bit `i` odczytu to bit `positions[i]` planszy."""
+    """Wzorzec łaty jako liczba 0..`2**k - 1`: bit `i` odczytu to bit `positions[i]` planszy.
+
+    Referencja bit-po-bicie: `patch_indices` liczy to samo szybciej (#158),
+    równoważność jest testowana wprost (`tests/test_ntuple.py`)."""
     idx = 0
     for i, pos in enumerate(positions):
         idx |= ((bits >> pos) & 1) << i
     return idx
 
 
+ROW_BYTE_SIZE = 1 << WIDTH
+
+_row_tables_cache = {}
+
+
+def _row_tables(layout):
+    """Tablice odczytu po bajtach wierszy dla `layout`, przygotowane raz (#158).
+
+    Dla każdej łaty: lista `(nr_wiersza, tabela)`, gdzie `tabela[bajt_wiersza]`
+    to wkład bitów tego wiersza do indeksu łaty, już przesuniętych na właściwą
+    pozycję — `patch_indices` sumuje (OR-em) wkłady z wierszy, które łata
+    faktycznie dotyka, zamiast odczytywać każdy bit osobno jak `_patch_index`.
+    Wynik jest identyczny, bo każdy bit indeksu pochodzi z dokładnie jednego
+    wiersza planszy."""
+    cached = _row_tables_cache.get(layout)
+    if cached is not None:
+        return cached
+    tables = []
+    for positions in layout:
+        by_row = {}
+        for i, pos in enumerate(positions):
+            row, col = divmod(pos, WIDTH)
+            by_row.setdefault(row, []).append((col, i))
+        row_tables = []
+        for row, cols in by_row.items():
+            table = [0] * ROW_BYTE_SIZE
+            for byte_val in range(ROW_BYTE_SIZE):
+                contrib = 0
+                for col, i in cols:
+                    if (byte_val >> col) & 1:
+                        contrib |= 1 << i
+                table[byte_val] = contrib
+            row_tables.append((row, tuple(table)))
+        tables.append(tuple(row_tables))
+    result = tuple(tables)
+    _row_tables_cache[layout] = result
+    return result
+
+
 def patch_indices(bits, layout=PATCH_LAYOUT):
-    """Indeksy wszystkich łat naraz, z jednej maski bitowej planszy."""
-    return [_patch_index(bits, positions) for positions in layout]
+    """Indeksy wszystkich łat naraz, z jednej maski bitowej planszy.
+
+    Bity są odczytywane po całych bajtach wiersza przez tablice `_row_tables`
+    (przygotowane raz na `layout`), nie bit po bicie jak `_patch_index` — ten
+    sam wynik, mniej pracy Pythona na ocenę (#158)."""
+    row_mask = ROW_BYTE_SIZE - 1
+    row_bytes = tuple((bits >> (row * WIDTH)) & row_mask for row in range(HEIGHT))
+    result = []
+    for row_tables in _row_tables(layout):
+        idx = 0
+        for row, table in row_tables:
+            idx |= table[row_bytes[row]]
+        result.append(idx)
+    return result
 
 
 # Sygnał, na którym wagi się uczyły (#140). `score`: nagroda to `gain` gry, V
