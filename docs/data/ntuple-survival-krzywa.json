@@ -7,7 +7,7 @@
     "reward": "survival"
   },
   "seed": 3,
-  "n_odcinkow_lacznie": 2000,
+  "n_odcinkow_lacznie": 12000,
   "rozmiar_okna": 2000,
   "okna": [
     {
@@ -17,6 +17,46 @@
       "sredni_wynik": 347.43,
       "srednie_przezycie": 24.75,
       "sredni_abs_blad_td": 1.2959
+    },
+    {
+      "od_odcinka": 2001,
+      "do_odcinka": 4000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 524.01,
+      "srednie_przezycie": 30.64,
+      "sredni_abs_blad_td": 1.6142
+    },
+    {
+      "od_odcinka": 4001,
+      "do_odcinka": 6000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 672.67,
+      "srednie_przezycie": 34.76,
+      "sredni_abs_blad_td": 1.8907
+    },
+    {
+      "od_odcinka": 6001,
+      "do_odcinka": 8000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 742.35,
+      "srednie_przezycie": 37.0,
+      "sredni_abs_blad_td": 2.0187
+    },
+    {
+      "od_odcinka": 8001,
+      "do_odcinka": 10000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 865.91,
+      "srednie_przezycie": 39.62,
+      "sredni_abs_blad_td": 2.181
+    },
+    {
+      "od_odcinka": 10001,
+      "do_odcinka": 12000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 961.39,
+      "srednie_przezycie": 42.39,
+      "sredni_abs_blad_td": 2.2664
     }
   ],
   "ewaluacja": {
@@ -34,12 +74,72 @@
         "sredni_wynik": 438.15,
         "srednie_przezycie": 27.91,
         "n_partii": 100
+      },
+      {
+        "odcinki": 3000,
+        "sredni_wynik": 527.83,
+        "srednie_przezycie": 30.47,
+        "n_partii": 100
+      },
+      {
+        "odcinki": 4000,
+        "sredni_wynik": 662.17,
+        "srednie_przezycie": 35.58,
+        "n_partii": 100
+      },
+      {
+        "odcinki": 5000,
+        "sredni_wynik": 640.38,
+        "srednie_przezycie": 34.87,
+        "n_partii": 100
+      },
+      {
+        "odcinki": 6000,
+        "sredni_wynik": 604.94,
+        "srednie_przezycie": 32.94,
+        "n_partii": 100
+      },
+      {
+        "odcinki": 7000,
+        "sredni_wynik": 827.31,
+        "srednie_przezycie": 39.19,
+        "n_partii": 100
+      },
+      {
+        "odcinki": 8000,
+        "sredni_wynik": 745.86,
+        "srednie_przezycie": 37.53,
+        "n_partii": 100
+      },
+      {
+        "odcinki": 9000,
+        "sredni_wynik": 976.34,
+        "srednie_przezycie": 43.1,
+        "n_partii": 100
+      },
+      {
+        "odcinki": 10000,
+        "sredni_wynik": 991.49,
+        "srednie_przezycie": 40.84,
+        "n_partii": 100
+      },
+      {
+        "odcinki": 11000,
+        "sredni_wynik": 874.57,
+        "srednie_przezycie": 40.36,
+        "n_partii": 100
+      },
+      {
+        "odcinki": 12000,
+        "sredni_wynik": 784.89,
+        "srednie_przezycie": 38.7,
+        "n_partii": 100
       }
     ],
     "najlepszy": {
-      "odcinki": 2000,
-      "sredni_wynik": 438.15,
-      "srednie_przezycie": 27.91,
+      "odcinki": 10000,
+      "sredni_wynik": 991.49,
+      "srednie_przezycie": 40.84,
       "n_partii": 100
     }
   }
