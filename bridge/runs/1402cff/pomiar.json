@@ -5,7 +5,13 @@
   "kawalki": [
     {"kawalek": 1, "ruchy": "0-19", "polityka": "lookahead:weights.json", "wynik": "20/20 ok, brak okien, brak reklam, zakonczono limitem tur (max_moves=20)"},
     {"kawalek": 2, "ruchy": "0 (ROZBIEZNOSC) + 6x okno ustawienia_wstecz", "polityka": "lookahead:weights.json",
-     "wynik": "ruch 0: wynik przed 287, ROZBIEZNOSC (expected niepuste 6 pol w prawym gornym rogu, observed plansza pusta) — bo apka padla (logcat: 'Process com.block.juggle (pid 5200) has died: fg TOP', 'app died, no saved state') miedzy zrzutem stanu a odczytem po ruchu. Nastepnie 6x z rzedu 'okno: ustawienia_wstecz', po 6. bezpiecznik: 'okno: petla_bez_postepu'. n nie ruszyl sie z 1 przez cale 6 wpisow - partia NIE szla dalej, kawalek sam sie zakonczyl."}
+     "wynik": "ruch 0: wynik przed 287, ROZBIEZNOSC (expected niepuste 6 pol w prawym gornym rogu, observed plansza pusta) — bo apka padla (logcat: 'Process com.block.juggle (pid 5200) has died: fg TOP', 'app died, no saved state') miedzy zrzutem stanu a odczytem po ruchu. Nastepnie 6x z rzedu 'okno: ustawienia_wstecz', po 6. bezpiecznik: 'okno: petla_bez_postepu'. n nie ruszyl sie z 1 przez cale 6 wpisow - partia NIE szla dalej, kawalek sam sie zakonczyl."},
+    {"kawalek": 3, "ruchy": "0-19", "polityka": "lookahead:weights.json", "wynik": "20/20 ok (po recznym monkey restart), brak okien, brak reklam, wynik do 1214"},
+    {"kawalek": 4, "ruchy": "0-19", "polityka": "lookahead:weights.json", "wynik": "20/20 ok, brak okien, brak reklam, wynik do 6931"},
+    {"kawalek": 5, "ruchy": "0-19", "polityka": "lookahead:weights.json", "wynik": "20/20 ok, brak okien, brak reklam, wynik do 7345"},
+    {"kawalek": 6, "ruchy": "0-19", "polityka": "lookahead:weights.json", "wynik": "20/20 ok, brak okien, brak reklam, wynik do 8414"},
+    {"kawalek": 7, "ruchy": "0-9 ok, ruch 9 ROZBIEZNOSC + koniec partii + reklama_interstitial", "polityka": "lookahead:weights.json",
+     "wynik": "ruchy 0-8 ok; ruch 9 (slot0->3,4, wynik 8529): ROZBIEZNOSC — bridge-out/009_state.png pokazuje plansze niemal calkowicie zapelniona (prawdziwy stan tuz przed koniec gry, zmiana skorki na rozowa w tej sesji gry), 'observed' po ruchu juz nie pasowal do 'expected' (prawdopodobnie realny koniec gry/reset planszy w tej samej klatce). Zaraz potem most wykryl is_ad_screen=true, zamknal reklame AD_CLOSE (285,34) - 'okno: reklama_interstitial zamknieta' - i odslonil PRAWDZIWY ekran konca gry '\"Can you Top that? Score 8532\"' (bridge-out/010_state.png), ktory most odczytal jako plansze bez legalnego ruchu i zakonczyl kawalek 'brak legalnego ruchu wg odczytu' (n=10). To zgodne z rzeczywistoscia (gra faktycznie sie skonczyla), nie falszywy alarm. Verifier recznie tapnal Play (160,456) zeby zaczac nowa partie do dalszego pomiaru — bridge nie ma automatycznej obslugi tego ekranu koncowego."}
   ],
   "jasne_reklamy": [],
   "okna_163": {
@@ -21,7 +27,7 @@
   },
   "pytanie_1_jasna_reklama": {
     "odpowiedz": "w trakcie pomiaru",
-    "ruchy_partie_czas": "kawalek 1: 20 ruchow, 0 partii zakonczonych, jasna reklama nie wystapila; kawalek 2: 1 ruch (z rozbieznoscia, bo apka padla), potem 6 falszywych okien 'ustawienia_wstecz' (patrz odkrycie), jasna reklama nie wystapila"
+    "ruchy_partie_czas": "kawalki 1-7 (lacznie 90 wywolanych ruchow polityki, ~10 minut gry): 1 partia realnie zakonczona (kawalek 7, wynik 8532) + 1 pad apki (kawalek 2, bez zwiazku z reklama); jasna reklama (is_bright_ad_screen, quiz/Connect Words) nie wystapila ani razu — jedyna reklama napotkana byla ciemna (is_ad_screen=true, 'reklama_interstitial'), zamknieta jednym tapnieciem AD_CLOSE"
   },
   "pytanie_2_okna_163": {
     "dialog_wyjscia": {"liczba": 0, "co_potem": "brak zdarzen"},
@@ -33,11 +39,15 @@
       "bridge-out/000_state.png (kawalek 2): prawdziwa plansza gry, wynik 287, klocki w prawym gornym rogu, dwa klocki w tacy.",
       "bridge-out/001_state.png (kawalek 2, nadpisywany przez wszystkie 6 wpisow 'ustawienia_wstecz' bo n nie rosl): ekran glowny Androida (launcher, tapeta, data 'Sun, Sep 27', dolny pasek aplikacji) — NIE modal Ustawien gry ani prawdziwa plansza.",
       "adb logcat: 'Process com.block.juggle (pid 5200) has died: fg TOP' i 'Force removing ActivityRecord ... app died, no saved state' w momencie miedzy ruchem 0 a odczytem stanu po nim.",
-      "final.png (kawalek 2) identyczny z ekranem home launchera — potwierdza, ze most zakonczyl kawalek nie w grze."
+      "final.png (kawalek 2) identyczny z ekranem home launchera — potwierdza, ze most zakonczyl kawalek nie w grze.",
+      "bridge-out/009_state.png (kawalek 7): prawdziwa plansza gry (skorka rozowa), wynik 8529, plansza niemal calkowicie zapelniona.",
+      "bridge-out/010_state.png (kawalek 7, po zamknieciu reklamy interstitial): ekran 'Can you Top that? Score 8532' z przyciskiem Play — natywny ekran konca gry, nie modal Ustawien ani jasna reklama.",
+      "Po recznym tapnieciu (160,456) na tym ekranie: plansza czysta, wynik 0, nowe 3 klocki w tacy — nowa partia wystartowala."
     ],
     "wnioski": [
       "ROZBIEZNOSC na ruchu 0 kawalka 2 (expected niepuste, observed puste) tlumaczy sie padem apki w trakcie ruchu, nie bledem polityki ani odczytu planszy przed padem.",
-      "is_settings_screen (prog ciemnosci pikseli < 100, zakres 0.44-0.85) falszywie lapie rowniez ciemna tapete Androidowego home screena po padzie apki — kolejnosc sprawdzen w main() (najpierw is_exit_dialog_screen/is_settings_screen/is_bright_ad_screen, dopiero potem in_game()) sprawia, ze most probuje 'wstecz' zamiast wykryc brak gry na pierwszym planie i wywolac restart_app(). Bezpiecznik #163 (petla_bez_postepu) w tym przypadku uratowal kawalek przed nieskonczona petla, ale sam restart apki nie nastapil automatycznie — trzeba bylo recznie odpalic monkey (zrobione przez verifiera do dalszego pomiaru)."
+      "is_settings_screen (prog ciemnosci pikseli < 100, zakres 0.44-0.85) falszywie lapie rowniez ciemna tapete Androidowego home screena po padzie apki — kolejnosc sprawdzen w main() (najpierw is_exit_dialog_screen/is_settings_screen/is_bright_ad_screen, dopiero potem in_game()) sprawia, ze most probuje 'wstecz' zamiast wykryc brak gry na pierwszym planie i wywolac restart_app(). Bezpiecznik #163 (petla_bez_postepu) w tym przypadku uratowal kawalek przed nieskonczona petla, ale sam restart apki nie nastapil automatycznie — trzeba bylo recznie odpalic monkey (zrobione przez verifiera do dalszego pomiaru).",
+      "Prawdziwy koniec partii (plansza pelna, brak legalnego ruchu) w tej grze prowadzi przez: ostatni ruch z ROZBIEZNOSCIA -> reklama interstitial ciemna -> po jej zamknieciu ekran 'Can you Top that?' z wynikiem i przyciskiem Play. Most poprawnie rozpoznaje brak legalnego ruchu na tym ekranie i konczy kawalek (bez falszywego alarmu), ale nie ma automatycznej obslugi przycisku Play — zeby kontynuowac pomiar nastepnym kawalkiem, trzeba recznie zaczac nowa partie. To odrebne od jasnej reklamy (#154) i od okien #163 (dialog_wyjscia/ustawienia_wstecz), ale warto to zapisac jako kontekst dla implementera/orchestratora."
     ]
   }
 }
