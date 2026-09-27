@@ -37,10 +37,18 @@ LIFT = 80.6  # środek podniesionego klocka jest tyle px nad środkiem klocka na
 AD_CLOSE = (285, 34)  # X reklamy międzyplanszowej, zmierzony na bridge/runs/0d96333/121_end.png (#129)
 AD_DARK_FRAC = 0.85  # 121_end.png: 0.95 czarnych pikseli; 120_state.png: 0.0; ekran główny po zabiciu procesu: 0.62
 SETTINGS_DARK_FRAC = (0.44, 0.85)  # przedział pikseli ciemniejszych niż 100 (patrz is_settings_screen)
-SETTINGS_BACK_TRIES = 2
 BRIGHT_AD_MIN_COLORS = 20000  # liczba unikalnych kolorów RGB, patrz is_bright_ad_screen
 RESTART_TRIES = 3
 RESTART_WAIT = 20
+# Dialog wyjścia „Are you sure you want to leave?" (#150/#163): punkty i kolory zmierzone na
+# bridge/runs/495cd91/loop2_after_no.png i after_back4.png. Tło dialogu (90,130,230), przycisk
+# „No" (8,154,214), przycisk „Yes" (41,170,25) — trójka nie występuje razem na modalu Ustawień
+# ani na prawdziwej planszy z tego samego przebiegu.
+EXIT_DIALOG_BG = ((160, 300), (90, 130, 230))
+EXIT_DIALOG_NO = ((97, 360), (8, 154, 214))
+EXIT_DIALOG_YES = ((225, 360), (41, 170, 25))
+EXIT_DIALOG_TOL = 20
+PROGRESS_SAFEGUARD_TRIES = 6  # K wpisów okienkowych z rzędu bez wykonanego ruchu, #163
 
 
 def adb(*args):
@@ -71,6 +79,26 @@ def is_ad_screen(img):
     return (img.max(axis=-1) < 30).mean() > AD_DARK_FRAC
 
 
+def _pixel_close(img, point, color, tol=EXIT_DIALOG_TOL):
+    x, y = point
+    return bool((np.abs(img[y, x].astype(int) - np.asarray(color)) <= tol).all())
+
+
+def is_exit_dialog_screen(img):
+    """Natywny dialog wyjścia z gry „Are you sure you want to leave?" (#150/#163): otwiera go
+    „wstecz" naciśnięte na prawdziwej planszy (bez modalu Ustawień), a `is_settings_screen`
+    (próg ciemności) go z tym modalem myli, bo oba przyciemniają tło podobnym stopniem.
+
+    Rozpoznanie po kolorach w stałych punktach zamiast progu jasności: tło dialogu i przyciski
+    „No"/„Yes" mają barwy, których nie widać ani na modalu Ustawień, ani na prawdziwej planszy
+    (zmierzone na `bridge/runs/495cd91/loop2_after_no.png`, `after_back4.png` — dialog;
+    `before_retry.png` — Ustawienia; `loop_after_back.png`, `before_retry2.png` — plansza).
+    """
+    return (_pixel_close(img, *EXIT_DIALOG_BG)
+            and _pixel_close(img, *EXIT_DIALOG_NO)
+            and _pixel_close(img, *EXIT_DIALOG_YES))
+
+
 def is_settings_screen(img):
     """Modal Ustawień (ikona (285,34) trafiona na normalnej planszy zamiast reklamy, #130/#145):
     tło przyciemnione pod białym oknem dialogowym, mniej niż pełnoekranowa reklama.
@@ -81,7 +109,12 @@ def is_settings_screen(img):
     i `p2e_stuck_settings_after_back.png` (bez modalu, w tym tuż po „wstecz") mają najwyżej 0,40.
     Górna granica 0,85 wyklucza reklamę międzyplanszową (`0d96333/121_end.png`: 0,96) —
     ciemniejszą niż Ustawienia, bo bez prześwitującej planszy pod spodem.
+
+    Próg samej jasności myli ten modal z dialogiem wyjścia (`bridge/runs/495cd91/loop2_after_no.png`:
+    0,77, w przedziale) — dialog wyklucza się jawnie przez `is_exit_dialog_screen` (#163).
     """
+    if is_exit_dialog_screen(img):
+        return False
     lo, hi = SETTINGS_DARK_FRAC
     frac = (img.max(axis=-1) < 100).mean()
     return lo < frac < hi
@@ -131,6 +164,15 @@ def close_ad(tries=3):
 def press_back():
     """KEYCODE_BACK: zamyka modal Ustawień bez ruszania punktu (285,34) reklamy (#150)."""
     adb("shell", "input", "keyevent", "KEYCODE_BACK")
+    time.sleep(2)
+
+
+def close_exit_dialog():
+    """Zamyka dialog wyjścia stuknięciem w „No" (#163): `press_back` go nie zamyka — to
+    natywny dialog Androida, nie modal Ustawień w webview gry."""
+    (x, y), _ = EXIT_DIALOG_NO
+    touch("DOWN", x, y)
+    touch("UP", x, y)
     time.sleep(2)
 
 
@@ -326,25 +368,42 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
     img, grid, slots = settled_state()
     ok_streak = best_streak = 0
     n = 0
-    settings_tries = 0
+    window_streak = 0
+
+    def windowed_entry(okno):
+        """Wpis okienkowy bez ruchu: liczy się do bezpiecznika postępu (#163), a po
+        osiągnięciu `PROGRESS_SAFEGUARD_TRIES` z rzędu kończy partię zamiast kręcić się
+        bez końca (materiał #159: >130 wpisów `ustawienia_wstecz`/`reklama_interstitial`
+        na stałym `n`, bo stary licznik zerował się na każdej nieokienkowej klatce)."""
+        nonlocal window_streak
+        window_streak += 1
+        entry = {"n": n, "policy": policy.name, "board": grid,
+                 "tray": [s[0] if s else None for s in slots], "score": score, "okno": okno}
+        if window_streak >= PROGRESS_SAFEGUARD_TRIES:
+            entry["end"] = "okno: petla_bez_postepu"
+        log.write(json.dumps(entry) + "\n")
+        log.flush()
+        print(f"okno: {okno}" + (f", {entry['end']}" if "end" in entry else ""), flush=True)
+        return entry
+
     while n < max_moves:
         score = read_score(img)
         Image.fromarray(img.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_state.png"))
         annotate(img, grid, os.path.join(OUT, f"{n:03d}_read.png"))
+        if is_exit_dialog_screen(img):
+            close_exit_dialog()
+            entry = windowed_entry("dialog_wyjscia")
+            if "end" in entry:
+                break
+            img, grid, slots = stable_state()
+            continue
         if is_settings_screen(img):
-            if settings_tries < SETTINGS_BACK_TRIES:
-                settings_tries += 1
-                press_back()
-                entry = {"n": n, "policy": policy.name, "board": grid,
-                         "tray": [s[0] if s else None for s in slots], "score": score,
-                         "okno": "ustawienia_wstecz"}
-                log.write(json.dumps(entry) + "\n")
-                log.flush()
-                print("okno Ustawień, wstecz", flush=True)
-                img, grid, slots = stable_state()
-                continue
-        else:
-            settings_tries = 0
+            press_back()
+            entry = windowed_entry("ustawienia_wstecz")
+            if "end" in entry:
+                break
+            img, grid, slots = stable_state()
+            continue
         if is_bright_ad_screen(img):
             entry = {"n": n, "policy": policy.name, "board": grid,
                      "tray": [s[0] if s else None for s in slots], "score": score,
@@ -371,11 +430,19 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
             print(entry["end"], flush=True)
             break
         if not moves and (is_ad_screen(img) or board_and_tray_empty(grid, slots)):
+            if not is_ad_screen(img):
+                # `board_and_tray_empty` na przejściowej klatce prawdziwej planszy: nie jest
+                # reklamą, więc stuknięcie w AD_CLOSE trafiłoby w ikonę Ustawień (#163) —
+                # tylko odczyt ponownie, bez dotykania ekranu.
+                entry = windowed_entry("plansza_pusta_przejsciowo")
+                if "end" in entry:
+                    break
+                img, grid, slots = stable_state()
+                continue
             if close_ad():
-                entry["okno"] = "reklama_interstitial zamknięta"
-                log.write(json.dumps(entry) + "\n")
-                log.flush()
-                print("reklama zamknięta, kontynuacja partii", flush=True)
+                entry = windowed_entry("reklama_interstitial zamknięta")
+                if "end" in entry:
+                    break
                 img, grid, slots = stable_state()
                 continue
             entry["end"] = "okno: reklama_interstitial"
@@ -386,6 +453,7 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
             entry["end"] = "brak legalnego ruchu wg odczytu"
             log.write(json.dumps(entry) + "\n")
             break
+        window_streak = 0
         game = make_game_stub(board, pieces)
         t0 = time.perf_counter()
         i, x, y = policy.act(game, moves)
