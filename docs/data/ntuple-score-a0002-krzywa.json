@@ -1,0 +1,46 @@
+{
+  "opis": "Sredni wynik i srednie przezycie polityki behawioralnej (zachlanna, N-tuple) w kolejnych oknach treningu oraz punkty ewaluacji bez uczenia (#140)",
+  "params": {
+    "seed": 2,
+    "alpha": 0.0002,
+    "move_cap": 2000,
+    "reward": "score"
+  },
+  "seed": 2,
+  "n_odcinkow_lacznie": 2000,
+  "rozmiar_okna": 2000,
+  "okna": [
+    {
+      "od_odcinka": 1,
+      "do_odcinka": 2000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 474.57,
+      "srednie_przezycie": 28.22,
+      "sredni_abs_blad_td": 20.9799
+    }
+  ],
+  "ewaluacja": {
+    "co_ile_odcinkow": 1000,
+    "n_partii": 100,
+    "punkty": [
+      {
+        "odcinki": 1000,
+        "sredni_wynik": 471.95,
+        "srednie_przezycie": 28.37,
+        "n_partii": 100
+      },
+      {
+        "odcinki": 2000,
+        "sredni_wynik": 451.59,
+        "srednie_przezycie": 27.47,
+        "n_partii": 100
+      }
+    ],
+    "najlepszy": {
+      "odcinki": 1000,
+      "sredni_wynik": 471.95,
+      "srednie_przezycie": 28.37,
+      "n_partii": 100
+    }
+  }
+}
