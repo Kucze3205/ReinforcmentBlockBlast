@@ -1,0 +1,78 @@
+{
+  "sha": "fb1b161c0dd210ab00be258a11dbeed64acb3990",
+  "dirty": false,
+  "issue": 151,
+  "status": "ok",
+  "blocked_reason": null,
+  "config": {
+    "n_seeds": 30,
+    "move_cap": 2000,
+    "epsilon": 0.0,
+    "torch_seed": 0,
+    "threshold_pct": 10.0,
+    "fixed_seed_file": "bench/seeds_fixed.json",
+    "rotated_seed_salt": 2654435761
+  },
+  "source_hashes": {
+    "game.py": "9cad07d453c0ef7c",
+    "scoring.py": "1e4a1b8730243ce6",
+    "generator.py": "ea34c49f239035c4",
+    "pieces.py": "7241459a3cb11706",
+    "features.py": "3e4c45d8cafa246c",
+    "policies.py": "a170fd33b5d5c55c",
+    "benchmark.py": "0e093e402956ac78",
+    "ntuple.py": "48b0e709098eae3f"
+  },
+  "arms": {
+    "candidate": {
+      "policy": "lookahead-ntuple",
+      "fixed": {
+        "mean": 7309.8,
+        "median": 3632.0,
+        "p10": 978.2,
+        "survival_mean": 132.53,
+        "capped_pct": 0.0
+      },
+      "rotated": {
+        "mean": 6679.87,
+        "median": 4293.5,
+        "p10": 1216.1,
+        "survival_mean": 131.8,
+        "capped_pct": 0.0
+      },
+      "overfit_gap_pct": 8.62,
+      "weights_hash": "fe4209055bf7a60b"
+    },
+    "previous": {
+      "policy": "lookahead",
+      "fixed": {
+        "mean": 6204.9,
+        "median": 4037.0,
+        "p10": 900.6,
+        "survival_mean": 112.67,
+        "capped_pct": 0.0
+      },
+      "rotated": {
+        "mean": 5437.07,
+        "median": 3999.0,
+        "p10": 517.5,
+        "survival_mean": 103.2,
+        "capped_pct": 0.0
+      },
+      "overfit_gap_pct": 12.37,
+      "weights_hash": "b564fa274a73b627"
+    }
+  },
+  "deltas": {
+    "kandydat vs previous": {
+      "mean_diff": 1104.9,
+      "pct": 17.81,
+      "sd_diff": 12598.37,
+      "se_diff": 2300.14,
+      "se_pct": 37.07,
+      "mean_diff_over_se": 0.48,
+      "label": "poprawa"
+    }
+  },
+  "duration_s": 66.2
+}
