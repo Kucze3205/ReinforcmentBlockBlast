@@ -3,6 +3,7 @@ Testy `ntuple.py` (#123): uklad lat jako dana, odczyt z masek bitowych, zapis/od
 """
 import json
 import os
+import random
 import sys
 import tempfile
 import time
@@ -23,6 +24,7 @@ from ntuple import (
     PATCH_SIZE,
     TABLE_SIZE,
     NTupleValue,
+    _patch_index,
     board_bits,
     patch_indices,
 )
@@ -172,6 +174,30 @@ class TestPatchIndices(unittest.TestCase):
         indices = patch_indices(board_bits(board))
         # PATCH_LAYOUT[8 + x] jest lata-kolumna x.
         self.assertEqual(indices[8 + 4], 0b10001001)
+
+
+class TestPatchIndicesMatchesBitwiseReference(unittest.TestCase):
+    """`patch_indices` liczy po bajtach wierszy (#158); wynik musi zostac bitowo
+    taki sam jak referencja bit-po-bicie `_patch_index`, na losowych planszach."""
+
+    def _random_board(self, rng):
+        board = Board()
+        for y in range(Board.HEIGHT):
+            board.grid[y] = [1 if rng.random() < 0.5 else 0 for _ in range(Board.WIDTH)]
+        return board
+
+    def _check_layout(self, layout):
+        rng = random.Random(158)
+        for _ in range(1000):
+            bits = board_bits(self._random_board(rng))
+            expected = [_patch_index(bits, positions) for positions in layout]
+            self.assertEqual(patch_indices(bits, layout), expected)
+
+    def test_layout_a_matches_reference_on_1000_random_boards(self):
+        self._check_layout(LAYOUT_A)
+
+    def test_layout_ad_matches_reference_on_1000_random_boards(self):
+        self._check_layout(LAYOUT_AD)
 
 
 class TestNTupleValueZeroWeights(unittest.TestCase):

@@ -215,6 +215,29 @@ class TestOutputLoadableByNTupleValue(unittest.TestCase):
                 self.assertEqual(loaded.weights, json.load(fh)["weights"])
 
 
+class TestDurationAccumulation(unittest.TestCase):
+    """`state["duration_s"]` nie gubi przyrostow krotszych niz ~0,05 s (#158,
+    odkrycie #149): kazdy poprzedni kod rounowal skumulowana wartosc po kazdym
+    odcinku, wiec dodawanie do juz zaokraglonej (czesto z powrotem do 0.0) sumy
+    nigdy nie ruszalo sie z miejsca dla krotkich partii."""
+
+    def test_short_episodes_still_accumulate_duration(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = os.path.join(tmp, "state.json")
+            out = os.path.join(tmp, "out.json")
+            args = ["--state", state, "--out", out, "--episodes", "5",
+                     "--episodes-per-run", "5", "--seed", "1", "--move-cap", "40"]
+            # 5 odcinkow x (started, elapsed) = 10 odczytow zegara, kazdy odcinek
+            # trwa dokladnie 0.01 s — ponizej progu zaokraglenia do 0.1 s, wiec
+            # stary kod (round po kazdym dodaniu) zatrzymywalby sume na 0.0.
+            ticks = iter(i * 0.01 for i in range(10))
+            with mock.patch("tools.train_ntuple.time.time", side_effect=ticks):
+                train_main(args)
+            with open(state, encoding="utf-8") as fh:
+                duration = json.load(fh)["duration_s"]
+            self.assertAlmostEqual(duration, 0.05, places=6)
+
+
 class TestLayoutFlag(unittest.TestCase):
     """`--layout` (#149): domyslnie A, bez zmiany zachowania; AD wybieralny osobno."""
 
