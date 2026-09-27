@@ -46,6 +46,90 @@ szkieletu. Zmiana wariantu wymaga tylko zmiany `PATCH_LAYOUT` w jednym miejscu
 (`ntuple.py`) i przetrenowania od zera — pliki wag z jednym układem nie wczytują
 się z innym (`NTupleValue.load` sprawdza to asercją).
 
+### Drugi układ: `AD` (#149)
+
+`square3` zabija **54,7%** partii (`docs/co-zabija-partie.md`), a wariant `A`
+z konstrukcji nie widzi kwadratów 3×3 — łata-wiersz/łata-kolumna czyta pełną
+linię, nie lokalny kwadrat. `ntuple.LAYOUTS["AD"]` dodaje do `A` wariant `D`
+z #120 (kwadraty 3×3, `k=9`) **we wszystkich 36 położeniach** lewego-górnego
+rogu na planszy 8×8 (`(8-2) × (8-2) = 36`): `16 + 36 = 52` łaty, `16 × 2**8 +
+36 × 2**9 = 4096 + 18432 = 22528` wag. `A` (dzisiejszy `PATCH_LAYOUT`) zostaje
+bez zmian — `AD` jest drugim, wybieralnym układem, nie zamiennikiem.
+
+`NTupleValue(layout=...)` przyjmuje uklad jawnie (domyślnie `LAYOUTS["A"]`);
+`NTupleValue.load` rozpoznaje układ **z zawartości** pola `patch_layout` pliku
+— dopasowuje go do jednego z `ntuple.LAYOUTS`, nie do jednego ustalonego
+`cls.layout` jak przed #149 — więc plik z `AD` wczytuje się bez żadnej nowej
+składni po stronie wołającego (`benchmark.load_ntuple_weights` woła
+`NTupleValue.load` bez zmian). Plik z układem, którego nie ma w `LAYOUTS`,
+nadal się nie wczyta (`ValueError`). `tools/train_ntuple.py --layout A|AD`
+(domyślnie `A`) zapisuje wybrany układ w stanie tak jak `--alpha`/`--reward`;
+wznowienie z innym układem rzuca `ValueError` z tego samego powodu — inny
+układ dałby przebieg, którego log kłamie o tym, co mierzył.
+
+**Krok TD dla `AD`.** `NTupleValue.update` (nietknięty) dopisuje `alpha·błąd`
+do **każdej aktywnej łaty** — jednej na łatę, czyli do `N_PATCHES` wag na
+krok. Efektywna zmiana `V(afterstate)` po jednym kroku jest więc z grubsza
+`alpha · N_PATCHES` (każda z aktywnych łat wnosi ten sam błąd raz), rosnąca
+liniowo z liczbą łat: `A` ma 16, `AD` ma 52. Żeby krok efektywny dla `AD` był
+równoważny `alpha=0.001` dla `A`, `alpha` dla `AD` powinno być
+`0.001 · 16 / 52 ≈ 0.000308` — inaczej sieć `AD` uczyłaby się przy tym samym
+`--alpha` z krokiem ok. 3,25× większym niż `A`, na innej liczbie wag, więc
+krzywe obu układów nie byłyby porównywalne przy tym samym `--alpha`.
+
+### Przebieg dymny `AD`/`survival` i czas na odcinek (#149)
+
+Dwa polecenia, 300 odcinków każde, ten sam seed (`--seed 1`), pliki poza tym
+repo (`/tmp`), ewaluacja co 100 odcinków na 20 partiach:
+
+```
+python tools/train_ntuple.py --state /tmp/ntuple149-a-state.json --out /tmp/ntuple149-a-weights.json \
+    --episodes 300 --episodes-per-run 300 --seed 1 --reward survival --layout A \
+    --eval-every 100 --eval-episodes 20 --best-out /tmp/ntuple149-a-best.json
+
+python tools/train_ntuple.py --state /tmp/ntuple149-ad-state.json --out /tmp/ntuple149-ad-weights.json \
+    --episodes 300 --episodes-per-run 300 --seed 1 --reward survival --layout AD \
+    --eval-every 100 --eval-episodes 20 --best-out /tmp/ntuple149-ad-best.json
+```
+
+Czas na odcinek, zmierzony z `<stan>.log.jsonl` (suma `duration_s` z logu / liczba
+odcinków — **nie** z pola `duration_s` w samym stanie, patrz odkrycie niżej),
+na tych samych 300 odcinkach, ten sam sprzęt/sesja:
+
+| układ | łat | wag | s/odcinek | odcinków/min | postawień/s |
+|---|---|---|---|---|---|
+| `A`  | 16 | 4096  | 0,01534 | 3910,5 | 1269,0 |
+| `AD` | 52 | 22528 | 0,04695 | 1278,0 |  623,7 |
+
+`AD` kosztuje **≈3,06×** więcej czasu na odcinek niż `A` (blisko stosunku
+liczby łat 52/16 ≈ 3,25 — `patch_indices` odczytuje każdą łatę raz, więc
+koszt na odcinek rośnie w przybliżeniu liniowo z liczbą łat) i daje **≈2,03×**
+mniej postawień/s (partie `AD` w tym przebiegu żyją dłużej — więcej
+postawień na odcinek — więc spadek postawień/s jest mniejszy niż spadek
+odcinków/min). Do doboru rozmiaru bloku `--episodes-per-run` pod limit
+3400 s kolejnego zadania: przy `≈0,047 s/odcinek` (górna, bezpieczna granica
+z tego pomiaru) blok 3400 s to **≈72 000 odcinków** dla `AD`, dla `A`
+(`≈0,015 s/odcinek`) **≈220 000 odcinków** — obie liczby będą mniejsze przy
+dłużej żyjących, dojrzałych partiach (patrz analogiczna uwaga dla `A` w
+sekcji "Ile odcinków po 3600 s potrzeba" niżej).
+
+Wynik ewaluacji po 300 odcinkach (jedynie dowód, że coś się uczy na tym
+budżecie, nie zmierzona krzywa — to zadanie `rola:bench`): `A`
+`wynik_sr=190,25 przezycie_sr=18,85`, `AD` `wynik_sr=616,2 przezycie_sr=37,45`.
+Nie jest to porównanie wariantów (300 odcinków to szum, nie krzywa uczenia,
+patrz #126) — samo `AD` uczy się (błąd TD i wynik ewaluacji nie stoją na
+zerze), nic więcej.
+
+**Odkrycie (poza zadaniem, nie naprawiane):** `state["duration_s"]`
+(`tools/train_ntuple.py:run_generational`, `state["duration_s"] =
+round(state["duration_s"] + elapsed, 1)`) zaokrągla **skumulowaną** sumę do
+0,1 s po każdym odcinku — dla partii krótszych niż ~0,05 s (jak w tym
+przebiegu `A`) każdy pojedynczy przyrost gubi się w zaokrągleniu i pole
+zostaje `0.0` mimo 300 zmierzonych odcinków (wall-clock `time` na to samo
+wywołanie: `5,565 s`, nie `0.0`). `<stan>.log.jsonl` ma poprawny,
+niezaokrąglany `duration_s` per odcinek — tabela wyżej liczy z niego, nie z
+pola stanu.
+
 ## Gdzie się wpina
 
 `ntuple.NTupleValue.value(board)` zastępuje `policies._weighted_features(weights,
