@@ -44,6 +44,36 @@ class TestIsAdScreen(unittest.TestCase):
         self.assertFalse(bridge.is_ad_screen(_load("1bd38fa", "111_state.png")))
 
 
+class TestIsSettingsScreen(unittest.TestCase):
+    """#150: modal Ustawień, w który most trafia po pomyłce `close_ad` (#130/#145)."""
+
+    def test_positive_on_settings_opened_mid_game(self):
+        for name in ("p1a_settings.png", "p1b_settings.png", "p1c_settings.png"):
+            with self.subTest(name=name):
+                self.assertTrue(bridge.is_settings_screen(_load("44a8ea2", name)))
+
+    def test_positive_on_settings_reached_by_mistaken_close_ad(self):
+        self.assertTrue(bridge.is_settings_screen(_load("44a8ea2", "p2e_stuck_settings_before.png")))
+
+    def test_negative_before_and_after_manual_back(self):
+        for name in ("p1a_before.png", "p1a_after_back.png",
+                     "p1b_before.png", "p1b_after_back.png",
+                     "p1c_before.png", "p1c_after_back.png"):
+            with self.subTest(name=name):
+                self.assertFalse(bridge.is_settings_screen(_load("44a8ea2", name)))
+
+    def test_negative_after_back_from_mistaken_close_ad(self):
+        self.assertFalse(bridge.is_settings_screen(_load("44a8ea2", "p2e_stuck_settings_after_back.png")))
+
+
+class TestPressBack(unittest.TestCase):
+    @mock.patch("bridge.time.sleep", lambda *_: None)
+    @mock.patch("bridge.adb")
+    def test_sends_keycode_back(self, adb):
+        bridge.press_back()
+        adb.assert_called_once_with("shell", "input", "keyevent", "KEYCODE_BACK")
+
+
 class TestBoardAndTrayEmpty(unittest.TestCase):
     def test_both_empty_is_suspicious(self):
         grid = [[0] * 8 for _ in range(8)]
@@ -136,6 +166,55 @@ class TestMainSurvivesAdWindow(unittest.TestCase):
 
         close_ad.assert_called_once()
         self.assertEqual(best_streak, 0)  # jeden ruch bez porównania (drag zwraca atrapę), ale partia nie skończyła się na oknie
+
+
+class TestMainRecoversFromSettingsWindow(unittest.TestCase):
+    """#150: `close_ad` zamyka reklamę, ale trafia w Ustawienia (#130/#145) — most ma nacisnąć
+    „wstecz" i wrócić do prawdziwej planszy zamiast uznać partię za skończoną."""
+
+    def test_settings_window_after_close_ad_does_not_end_the_game(self):
+        settings_img = _load("44a8ea2", "p2e_stuck_settings_before.png")
+        empty_grid = [[0] * 8 for _ in range(8)]
+        ad_img = _load("0d96333", "121_end.png")
+
+        board = Board()
+        board.grid = [row[:] for row in empty_grid]
+        board.place_piece(BEAM2, 0, 0)
+        playable_grid = board.grid
+        playable_slot = ([[1, 1]], (20, 460))
+        playable_slots = [playable_slot, None, None]
+        game_img = _load("0d96333", "120_state.png")
+
+        states = [(ad_img, empty_grid, [None, None, None])]
+
+        def fake_settled_state():
+            return states[0]
+
+        stable_results = [
+            (settings_img, empty_grid, [None, None, None]),  # zaraz po close_ad: Ustawienia
+            (game_img, playable_grid, playable_slots),        # po wstecz: prawdziwa plansza
+        ]
+
+        def fake_stable_state(tries=6):
+            # ostatni stan powtarza się po odczycie potwierdzającym ruch (jak w drag()).
+            return stable_results.pop(0) if len(stable_results) > 1 else stable_results[0]
+
+        with mock.patch("bridge.settled_state", side_effect=fake_settled_state), \
+             mock.patch("bridge.stable_state", side_effect=fake_stable_state), \
+             mock.patch("bridge.in_game", return_value=True), \
+             mock.patch("bridge.close_ad", return_value=True) as close_ad, \
+             mock.patch("bridge.press_back") as press_back, \
+             mock.patch("bridge.read_score", return_value=None), \
+             mock.patch("bridge.drag", return_value=({"finger": [0, 0]}, game_img)), \
+             mock.patch("bridge.annotate"), \
+             mock.patch("PIL.Image.Image.save"), \
+             mock.patch("bridge.os.makedirs"), \
+             mock.patch("builtins.open", mock.mock_open()):
+            best_streak = bridge.main(1, policy_spec="greedy")
+
+        close_ad.assert_called_once()
+        press_back.assert_called_once()
+        self.assertEqual(best_streak, 0)  # jeden ruch bez porównania, ale partia nie skończyła się na Ustawieniach
 
 
 if __name__ == "__main__":

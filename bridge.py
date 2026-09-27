@@ -36,6 +36,8 @@ DRAG_GAIN = 1.5  # zmierzone: klocek przesuwa się 1,5 px na 1 px palca
 LIFT = 80.6  # środek podniesionego klocka jest tyle px nad środkiem klocka na tacce
 AD_CLOSE = (285, 34)  # X reklamy międzyplanszowej, zmierzony na bridge/runs/0d96333/121_end.png (#129)
 AD_DARK_FRAC = 0.85  # 121_end.png: 0.95 czarnych pikseli; 120_state.png: 0.0; ekran główny po zabiciu procesu: 0.62
+SETTINGS_DARK_FRAC = (0.44, 0.85)  # przedział pikseli ciemniejszych niż 100 (patrz is_settings_screen)
+SETTINGS_BACK_TRIES = 2
 RESTART_TRIES = 3
 RESTART_WAIT = 20
 
@@ -68,6 +70,22 @@ def is_ad_screen(img):
     return (img.max(axis=-1) < 30).mean() > AD_DARK_FRAC
 
 
+def is_settings_screen(img):
+    """Modal Ustawień (ikona (285,34) trafiona na normalnej planszy zamiast reklamy, #130/#145):
+    tło przyciemnione pod białym oknem dialogowym, mniej niż pełnoekranowa reklama.
+
+    `bridge/runs/44a8ea2/p1{a,b,c}_settings.png` (modal otwarty ręcznie w trakcie partii) i
+    `p2e_stuck_settings_before.png` (modal, w który trafił most przez pomyłkę `close_ad`) mają
+    0,44-0,68 pikseli ciemniejszych niż próg 100; `p1{a,b,c}_before.png`, `p1{a,b,c}_after_back.png`
+    i `p2e_stuck_settings_after_back.png` (bez modalu, w tym tuż po „wstecz") mają najwyżej 0,40.
+    Górna granica 0,85 wyklucza reklamę międzyplanszową (`0d96333/121_end.png`: 0,96) —
+    ciemniejszą niż Ustawienia, bo bez prześwitującej planszy pod spodem.
+    """
+    lo, hi = SETTINGS_DARK_FRAC
+    frac = (img.max(axis=-1) < 100).mean()
+    return lo < frac < hi
+
+
 def board_and_tray_empty(grid, slots):
     """Plansza bez klocków i pusta tacka razem to odczyt podejrzany, nie koniec partii:
 
@@ -87,6 +105,12 @@ def close_ad(tries=3):
         if not is_ad_screen(screenshot()):
             return True
     return False
+
+
+def press_back():
+    """KEYCODE_BACK: zamyka modal Ustawień bez ruszania punktu (285,34) reklamy (#150)."""
+    adb("shell", "input", "keyevent", "KEYCODE_BACK")
+    time.sleep(2)
 
 
 def restart_app(tries=RESTART_TRIES, wait=RESTART_WAIT):
@@ -281,10 +305,25 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
     img, grid, slots = settled_state()
     ok_streak = best_streak = 0
     n = 0
+    settings_tries = 0
     while n < max_moves:
         score = read_score(img)
         Image.fromarray(img.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_state.png"))
         annotate(img, grid, os.path.join(OUT, f"{n:03d}_read.png"))
+        if is_settings_screen(img):
+            if settings_tries < SETTINGS_BACK_TRIES:
+                settings_tries += 1
+                press_back()
+                entry = {"n": n, "policy": policy.name, "board": grid,
+                         "tray": [s[0] if s else None for s in slots], "score": score,
+                         "okno": "ustawienia_wstecz"}
+                log.write(json.dumps(entry) + "\n")
+                log.flush()
+                print("okno Ustawień, wstecz", flush=True)
+                img, grid, slots = stable_state()
+                continue
+        else:
+            settings_tries = 0
         board = Board()
         board.grid = [row[:] for row in grid]
         pieces = [Piece(s[0], f"slot{i}", -1) if s else None for i, s in enumerate(slots)]
