@@ -1,0 +1,106 @@
+{
+  "sha": "cc2afc0e0950bfd6d1a2a3893088e5dee3547185",
+  "dirty": false,
+  "issue": 143,
+  "status": "ok",
+  "blocked_reason": null,
+  "config": {
+    "n_seeds": 300,
+    "move_cap": 2000,
+    "epsilon": 0.0,
+    "torch_seed": 0,
+    "threshold_pct": 10.0,
+    "fixed_seed_file": "bench/seeds_fixed.json",
+    "rotated_seed_salt": 2654435761
+  },
+  "source_hashes": {
+    "game.py": "9cad07d453c0ef7c",
+    "scoring.py": "1e4a1b8730243ce6",
+    "generator.py": "ea34c49f239035c4",
+    "pieces.py": "7241459a3cb11706",
+    "features.py": "3e4c45d8cafa246c",
+    "policies.py": "a170fd33b5d5c55c",
+    "benchmark.py": "e50ac4e57116330c",
+    "ntuple.py": "eab62b59f16f8123"
+  },
+  "arms": {
+    "candidate": {
+      "policy": "lookahead-ntuple",
+      "fixed": {
+        "mean": 4571.95,
+        "median": 2210.5,
+        "p10": 349.6,
+        "survival_mean": 77.26,
+        "capped_pct": 0.0
+      },
+      "rotated": {
+        "mean": 3698.97,
+        "median": 2074.5,
+        "p10": 361.4,
+        "survival_mean": 68.98,
+        "capped_pct": 0.0
+      },
+      "overfit_gap_pct": 19.09,
+      "weights_hash": "b3a78f087fd83c6a"
+    },
+    "previous": {
+      "policy": "lookahead",
+      "fixed": {
+        "mean": 6171.04,
+        "median": 3894.5,
+        "p10": 609.5,
+        "survival_mean": 110.5,
+        "capped_pct": 0.0
+      },
+      "rotated": {
+        "mean": 5299.96,
+        "median": 2887.5,
+        "p10": 572.4,
+        "survival_mean": 97.03,
+        "capped_pct": 0.0
+      },
+      "overfit_gap_pct": 14.12,
+      "weights_hash": "b564fa274a73b627"
+    },
+    "record": {
+      "policy": "lookahead",
+      "fixed": {
+        "mean": 6171.04,
+        "median": 3894.5,
+        "p10": 609.5,
+        "survival_mean": 110.5,
+        "capped_pct": 0.0
+      },
+      "rotated": {
+        "mean": 5299.96,
+        "median": 2887.5,
+        "p10": 572.4,
+        "survival_mean": 97.03,
+        "capped_pct": 0.0
+      },
+      "overfit_gap_pct": 14.12,
+      "weights_hash": "b564fa274a73b627"
+    }
+  },
+  "deltas": {
+    "kandydat vs previous": {
+      "mean_diff": -1599.09,
+      "pct": -25.91,
+      "sd_diff": 9698.52,
+      "se_diff": 559.94,
+      "se_pct": 9.07,
+      "mean_diff_over_se": -2.86,
+      "label": "regresja"
+    },
+    "kandydat vs record": {
+      "mean_diff": -1599.09,
+      "pct": -25.91,
+      "sd_diff": 9698.52,
+      "se_diff": 559.94,
+      "se_pct": 9.07,
+      "mean_diff_over_se": -2.86,
+      "label": "regresja"
+    }
+  },
+  "duration_s": 3124.6
+}
