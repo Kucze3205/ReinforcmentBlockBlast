@@ -1,0 +1,86 @@
+{
+  "run": "44a8ea2",
+  "cel": "Jednorazowy pomiar klawisza wstecz (KEYCODE_BACK) na oknie Ustawien (gear, 285,34) i na reklamie interstitial (#145, strata_okna 2, okno: reklama_interstitial)",
+  "wersja_gry": "10.7.5",
+  "pytanie_1_ustawienia": {
+    "opis": "Stuk (285,34) w trakcie partii, zrzut, wstecz, zrzut. Czy wraca ta sama plansza/taca/wynik?",
+    "proby": [
+      {
+        "nr": 1,
+        "ruch": 15,
+        "wynik_przed": 254,
+        "przed": "p1a_before.png",
+        "po_stuknieciu_w_ustawienia": "p1a_settings.png",
+        "po_wstecz": "p1a_after_back.png",
+        "odpowiedz": "tak",
+        "obserwacja": "plansza, taca i wynik (254) identyczne przed stukiem w (285,34) i po wstecz; po stuku widoczne okno Settings (Sound/BGM/Vibration, More Games, More Settings, Replay, Default Skin)"
+      },
+      {
+        "nr": 2,
+        "ruch": 25,
+        "wynik_przed": 399,
+        "przed": "p1b_before.png",
+        "po_stuknieciu_w_ustawienia": "p1b_settings.png",
+        "po_wstecz": "p1b_after_back.png",
+        "odpowiedz": "tak",
+        "obserwacja": "plansza, taca (3 klocki) i wynik (399) identyczne przed i po; okno Ustawien jak w probie 1"
+      },
+      {
+        "nr": 3,
+        "ruch": 35,
+        "wynik_przed": 671,
+        "przed": "p1c_before.png",
+        "po_stuknieciu_w_ustawienia": "p1c_settings.png",
+        "po_wstecz": "p1c_after_back.png",
+        "odpowiedz": "tak",
+        "obserwacja": "plansza, taca i wynik (671) identyczne przed i po"
+      }
+    ],
+    "wniosek": "3/3 tak: wstecz na oknie Ustawien zamyka je i przywraca dokladnie ten sam stan partii (plansza, taca, wynik) bez utraty postepu."
+  },
+  "pytanie_2_reklama_interstitial": {
+    "opis": "Gra mostem w krotkich kawalkach (python3 bridge.py N greedy), miedzy kawalkami zrzut + is_ad_screen (frac czarnych pikseli > 0.85). Gdy reklama - wstecz zamiast kolejnego kawalka.",
+    "czas_pomiaru_s": 1008,
+    "ruchow_lacznie_od_startu_pomiaru": "ok. 140 (10-20-ruchowe kawalki, patrz bridge-out/moves.jsonl z kazdego kawalka, nadpisywany co kawalek — nie zachowany caly log)",
+    "zdarzenia": [
+      {
+        "typ": "reklama_niedostepna_dla_is_ad_screen (interaktywna, jasne tlo, przycisk Skip/X)",
+        "moment": "po smierci partii (plansza pelna, brak legalnego ruchu), poza kawalkiem mierzonym is_ad_screen — most sam odczytal plansze jako w pelni zapelnioną (bledny odczyt nasyconych pikseli reklamy jako klockow) i zakonczyl kawalek",
+        "zrzuty": ["p2_ad_video_before.png (quiz USA, dark_frac niski, NIE wykryte przez is_ad_screen)",
+                   "p2_ad_video_after_back.png (po 1x wstecz: ta sama reklama, inna klatka mini-gry - wstecz nic nie zrobil)",
+                   "p2_ad_video_after_back2.png (po 2x wstecz: PRZESZLO na inna reklame - Connect Words/Magnet - wstecz tez jej nie zamknal)",
+                   "p2_ad_video_closed.png (dopiero stuk w X (287,34) zamknal reklame i odslonil ekran 'Can you Top that? Score 964' - ekran konca gry)"],
+        "odpowiedz_wstecz": "nie",
+        "obserwacja": "2x KEYCODE_BACK nie zamknelo tej reklamy (ani pierwszej, ani przypadkiem otwartej po niej drugiej); zamknal ja dopiero stuk w widoczny przycisk X w rogu (287,34)."
+      },
+      {
+        "typ": "reklama_interstitial (ciemny ekran, is_ad_screen=true) — most sam ja zamknal (AD_CLOSE) i trafil w Ustawienia, dokladnie jak w #130",
+        "ruch": 16,
+        "log_entry": "bridge-out/moves.jsonl: {\"okno\": \"reklama_interstitial zamknięta\"} nastepnie {\"end\": \"brak legalnego ruchu wg odczytu\"}",
+        "zrzuty": ["p2c_real_ad_then_settings_before.png (okno Settings, wynik 606 widoczny pod przyciemnieniem)",
+                   "p2c_real_ad_then_settings_after_back.png (po wstecz: prawdziwa plansza, pusta, wynik 606, taca z 2 klockami)"],
+        "odpowiedz_wstecz": "tak — na wynikowym oknie Ustawien",
+        "obserwacja": "most wykryl is_ad_screen=true, tapnal AD_CLOSE (285,34), ciemnosc zniknela, ale pod spodem bylo okno Ustawien (identycznie jak w #130/b4a7d26). Wstecz zamknelo Ustawienia i przywrocilo prawdziwa plansze bez utraty wyniku (606) ani klockow na tacy."
+      },
+      {
+        "typ": "powtorzenie: most ponownie utknal w Ustawieniach przy kolejnym starcie kawalka (board_and_tray_empty odczytane na oknie Ustawien -> close_ad 'sukces' trywialnie, bo ekran i tak nie byl ciemny)",
+        "zrzuty": ["p2d_check.png / p2e_stuck_settings_before.png (Ustawienia)", "p2e_stuck_settings_after_back.png (po wstecz: znow prawdziwa plansza, wynik 606, taca identyczna)"],
+        "odpowiedz_wstecz": "tak",
+        "obserwacja": "drugie, niezalezne potwierdzenie: wstecz zamyka Ustawienia i wraca do dokladnie tego samego stanu partii, niezaleznie od tego, czy Ustawienia zostaly otwarte przez most (przez pomylke AD_CLOSE) czy pozostaly otwarte z poprzedniej iteracji."
+      }
+    ],
+    "wniosek": "Reklama_interstitial (ciemny ekran wg is_ad_screen) pojawila sie raz w ok. 140 ruchach / ~17 minutach mierzonej gry; most automatycznie 'zamknal' ja tapnieciem AD_CLOSE i - tak jak w #130 - trafil w okno Ustawien (ten sam punkt = ikona Ustawien na normalnej planszy). Wstecz nacisniete na tym oknie (2 niezalezne wystapienia) za kazdym razem przywracalo dokladnie ten sam stan partii. Osobno napotkano dwa razy inny typ reklamy (jasna, interaktywna, z przyciskiem Skip/X) — is_ad_screen jej nie wykrywa (nie jest ciemna), a wstecz jej NIE zamyka; zamyka ja tylko stuk w widoczny X."
+  },
+  "co_odczytane_vs_wnioskowane": {
+    "odczytane_ze_zrzutow": [
+      "Stuk (285,34) na normalnej planszy zawsze otwiera modal 'Settings' z przyciskami Sound/BGM/Vibration/More Games/More Settings/Home lub Replay/Default Skin.",
+      "Po KEYCODE_BACK na oknie Settings ekran wraca do planszy z identycznym ukladem klockow, taca i wynikiem (3 rozne momenty partii + 2 razy w trakcie automatycznej gry po realnym zdarzeniu #130).",
+      "Reklama typu 'quiz/Connect Words' (jasne tlo) nie znika po KEYCODE_BACK (2 proby, w tym przejscie do kolejnej reklamy w lancuchu), znika dopiero po stuku w widoczny przycisk X.",
+      "W jednym z kawalkow automatycznej gry most sam wykryl is_ad_screen=true, zamknal reklame tapnieciem AD_CLOSE i trafil w okno Ustawien (odczyt planszy pokazal sztuczny, symetryczny wzor pasujacy do przyciskow menu, nie do realnych klockow)."
+    ],
+    "wnioski": [
+      "Wstecz jest bezpiecznym uniwersalnym 'wyjsciem' z okna Ustawien niezaleznie od tego, jak most w nie trafil (recznie czy przez pomylke AD_CLOSE) — nie wymaga zgadywania wspolrzednych zamkniecia.",
+      "Reklama ciemna (is_ad_screen) i reklama jasna/interaktywna to dwa rozne zdarzenia w tej samej grze; obecny most rozpoznaje tylko pierwsza. Druga (jasna) psuje odczyt inaczej (odczytuje plansze jako w pelni zapelniona, konczy partie z 'brak legalnego ruchu' zamiast prawdziwego konca gry) — to sygnal dla implementera/orchestratora, nie nasza poprawka."
+    ]
+  }
+}
