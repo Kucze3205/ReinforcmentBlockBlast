@@ -1,0 +1,27 @@
+{
+  "run": "1402cff",
+  "cel": "Pomiar #164: jasna reklama (moment/X) i nowe okna z #163 (dialog_wyjscia, ustawienia_wstecz, petla_bez_postepu) na zywym moscie",
+  "wersja_gry": "sprawdzic w bridge-out/version.txt",
+  "kawalki": [
+    {"kawalek": 1, "ruchy": "0-19", "polityka": "lookahead:weights.json", "wynik": "20/20 ok, brak okien, brak reklam, zakonczono limitem tur (max_moves=20)"}
+  ],
+  "jasne_reklamy": [],
+  "okna_163": {
+    "dialog_wyjscia": [],
+    "ustawienia_wstecz": [],
+    "petla_bez_postepu": []
+  },
+  "pytanie_1_jasna_reklama": {
+    "odpowiedz": "w trakcie pomiaru",
+    "ruchy_partie_czas": "kawalek 1: 20 ruchow, 0 partii zakonczonych, jasna reklama nie wystapila"
+  },
+  "pytanie_2_okna_163": {
+    "dialog_wyjscia": {"liczba": 0, "co_potem": "brak zdarzen"},
+    "ustawienia_wstecz": {"liczba": 0, "co_potem": "brak zdarzen"},
+    "petla_bez_postepu": {"liczba": 0, "co_potem": "brak zdarzen"}
+  },
+  "co_odczytane_vs_wnioskowane": {
+    "odczytane_ze_zrzutow": [],
+    "wnioski": []
+  }
+}
