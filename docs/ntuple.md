@@ -79,10 +79,11 @@ domyślna ocena, a wartość liścia N-tuple nie zmienia się przy combo 0, 1, 7
 `features.py` i sześć ręcznych cech nie są ruszone — ocena N-tuple jest
 alternatywnym, wybieralnym źródłem wartości liścia, nie zamiennikiem.
 
-`benchmark.HASHED_SOURCES` **nie zawiera** `ntuple.py` — decyzja świadoma, nie
-przeoczenie: to ramię jest szkieletem, nie zmierzonym w tym cyklu; czy dopisać
-`ntuple.py` do odcisku źródeł (#102) rozstrzyga `rola:bench` przy pierwszym
-realnym pomiarze `lookahead-ntuple:`.
+`benchmark.HASHED_SOURCES` **zawiera** `ntuple.py` od [#140](../../issues/140)
+(osobny commit): ocena liścia ramienia `lookahead-ntuple:` żyje w tym pliku, więc
+odcisk źródeł bez niego nie widział zmiany mierzonej polityki — to wywróciło
+pomiar [#127](../../issues/127). Wcześniej (#123) plik był z odcisku świadomie
+wyłączony, bo ramię było tylko szkieletem.
 
 ## Kształt nagrody użyty w TD
 
@@ -134,9 +135,9 @@ jest zablokowana asercją (`ValueError`) — inny parametr dałby przebieg, któ
 log kłamie o tym, co mierzył (wzór z `tools/tune_weights.load_state`, #104).
 
 `--episodes-per-run N` liczy `N` odcinków w jednym wywołaniu, zamiast jednego —
-przydatne, gdy jedna sesja ma czas na więcej niż jeden odcinek na raz; stan i
-wagi są zapisywane po **każdym** odcinku niezależnie od tego parametru, nie
-tylko na końcu wywołania.
+przydatne, gdy jedna sesja ma czas na więcej niż jeden odcinek na raz. Od #140
+stan i wagi nie idą na dysk po każdym odcinku, tylko co `--save-every`
+odcinków — patrz sekcja „Sygnał, ewaluacja, zapis przyrostowy (#140)” niżej.
 
 Seedy partii są wyprowadzone z `(--seed, numer_odcinka)` (`train_ntuple.episode_seed`)
 i sprawdzone asercją na rozłączność z `bench/seeds_fixed.json` — ten sam wzór co
@@ -146,7 +147,82 @@ testem `tests/test_train_ntuple.py::TestResumableTraining::
 test_resumed_run_matches_continuous_run`: wagi i seedy identyczne dla "2 odcinki
 w jednym wywołaniu" vs "2 wywołania po jednym").
 
-## Przebieg dymny (ten zrobiony w tym zadaniu)
+## Sygnał, ewaluacja, zapis przyrostowy (#140)
+
+Narzędzie pod dwa równoległe treningi porównujące sygnał uczenia. Trzy zmiany,
+każda wznawialna tym samym poleceniem co dotąd.
+
+**`--reward score|survival`** (domyślnie `score`). `score` to `gain` gry, bez
+zmian (bitowo te same wagi co przed #140). `survival` to nagroda `1` za każde
+postawienie i `target = 0` po stanie terminalnym, więc V szacuje liczbę
+pozostałych postawień. To opcja sygnału treningu, nie nagrody środowiska —
+`game.py`/`scoring.py` są nietknięte. Wartość siedzi w stanie (`params.reward`)
+i w pliku wag (pole `reward`); wznowienie z inną rzuca `ValueError`, jak zmiana
+`--seed`/`--alpha`/`--move-cap`. Stan i plik wag bez pola `reward` (sprzed #140,
+m.in. `ntuple-weights.json`/`ntuple-state.json` w korzeniu repo) czyta się jako
+`score`.
+
+`NTupleLookaheadPolicy` maksymalizuje ten sam zwrot, na którym sieć się uczyła:
+przy wagach `survival` suma ścieżki w `_tray_beam_search` to liczba postawień
+(`placed`), nie punkty; przy wagach `score` — `gain`, jak dotąd.
+
+**`--eval-every N --eval-episodes M --best-out PLIK`**. Co `N` odcinków treningu
+narzędzie gra `M` partii zachłanną polityką treningu **bez uczenia** i zapisuje
+punkt (odcinki, średni wynik, średnie przeżycie) w stanie. `PLIK` jest
+nadpisywany wagami (plus pole `ewaluacja` z punktem), gdy średni wynik jest
+najlepszy dotąd — kryterium to wynik dla obu sygnałów. Seedy ewaluacji
+(`train_ntuple.eval_seeds`) są te same w każdym punkcie i niezależne od
+`--seed`, więc oba treningi grają na tych samych partiach; leżą w
+`[2**31, 2**32)`, poza zakresem seedów treningu i rotowanych seedów benchmarku
+(`[1, 2**31 - 1)` — rozłączne dla każdego numeru issue), i są asercją rozłączne
+z `bench/seeds_fixed.json`. Zmiana `--eval-every`/`--eval-episodes` przy
+wznowieniu stanu, który ma już punkty ewaluacji, rzuca `ValueError` —
+najlepszy punkt z innego zestawu partii nie byłby porównywalny.
+
+**`--curve-out PLIK`**: krzywa w formacie `docs/data/ntuple-krzywa.json` (okna
+po 2000 odcinków, z dodatkowym `sredni_abs_blad_td`) plus sekcja `ewaluacja`
+(punkty i najlepszy). Okna są liczone przyrostowo w stanie, nie z logu.
+
+**Zapis przyrostowy.** Stan nie trzyma już logu odcinków: log jest dopisywany
+do `<stan>.log.jsonl` (np. `ntuple-state.log.jsonl`), a stan (wagi + małe
+liczniki, stały rozmiar) i wagi idą na dysk co `--save-every` odcinków
+(domyślnie 100), przy każdej ewaluacji i na końcu wywołania. **Przerwany blok
+traci najwyżej `--save-every − 1` odcinków (domyślnie 99)**; wznowienie
+powtarza je z tych samych seedów i daje te same wagi co przebieg nieprzerwany.
+Log dopisany za ostatnim zapisem stanu jest przy wznowieniu obcinany
+(`log_bytes` w stanie). Stan w starym formacie (z `log` w środku) jest przy
+pierwszym wznowieniu jednorazowo przenoszony do `.log.jsonl`.
+
+Zmierzone (ten sprzęt, te same odcinki 301–500 wznowione z tego samego stanu,
+różni się tylko rozmiar logu, czas procesu / 200):
+
+| kod | log 300 wpisów | log 100 300 wpisów |
+|---|---|---|
+| przed #140 (pełny stan po każdym odcinku) | 0,0395 s/odc. | 0,7217 s/odc. |
+| #140, `--save-every 100` (domyślnie) | 0,0288 s/odc. | 0,0292 s/odc. |
+| #140, `--save-every 1` | 0,0373 s/odc. | 0,0369 s/odc. |
+
+Polecenie wznawiania dwóch treningów (każde wywołanie jednym poleceniem na
+pierwszym planie; `--episodes-per-run` dobrać pod limit czasu bloku):
+
+```
+python tools/train_ntuple.py --state ntuple-score-state.json --out ntuple-score-weights.json \
+    --episodes 100000 --episodes-per-run 20000 --seed 1 --alpha 0.001 --reward score \
+    --eval-every 1000 --eval-episodes 100 --best-out ntuple-score-best.json \
+    --curve-out ntuple-score-krzywa.json
+
+python tools/train_ntuple.py --state ntuple-survival-state.json --out ntuple-survival-weights.json \
+    --episodes 100000 --episodes-per-run 20000 --seed 1 --alpha 0.001 --reward survival \
+    --eval-every 1000 --eval-episodes 100 --best-out ntuple-survival-best.json \
+    --curve-out ntuple-survival-krzywa.json
+```
+
+Kolejny blok to to samo polecenie. Liczby `--eval-every`/`--eval-episodes`
+wyżej są przykładem, nie decyzją; raz wybrane trzeba trzymać do końca
+przebiegu. Plik `--best-out` wchodzi do benchmarku jako
+`lookahead-ntuple:<plik>`.
+
+## Przebieg dymny (#123)
 
 Dwa polecenia na pierwszym planie, `ntuple-state.json`/`ntuple-weights.json`
 scommitowane w tym repo jako dowód, że stan naprawdę się wznawia:
@@ -319,6 +395,9 @@ przeżycie i przegrał"), tylko tutaj w nieukończonym, wciąż uczącym się
 przebiegu, nie w gotowym kandydacie do benchmarku.
 
 ### Odkrycie: zapis pełnego stanu po każdym odcinku kosztuje coraz więcej (rozjazd, nie naprawiane)
+
+*Usunięte w [#140](../../issues/140): zapis przyrostowy, patrz sekcja „Sygnał,
+ewaluacja, zapis przyrostowy (#140)”. Opis niżej zostaje jako zapis pomiaru z #126.*
 
 `write_json(args.state, state)` w `tools/train_ntuple.py` serializuje **cały**
 `state["log"]` (rosnącą listę wszystkich dotychczasowych odcinków) do pliku na
