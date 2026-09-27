@@ -141,5 +141,49 @@ class TestOutputLoadableByNTupleValue(unittest.TestCase):
                 self.assertEqual(loaded.weights, json.load(fh)["weights"])
 
 
+class TestLayoutFlag(unittest.TestCase):
+    """`--layout` (#149): domyslnie A, bez zmiany zachowania; AD wybieralny osobno."""
+
+    def test_default_layout_is_a_and_stored_in_state_and_weights(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state, out = os.path.join(tmp, "s.json"), os.path.join(tmp, "o.json")
+            train_main(["--state", state, "--out", out, "--episodes", "1", "--move-cap", "30"])
+            with open(state, encoding="utf-8") as fh:
+                self.assertEqual(json.load(fh)["params"]["layout"], "A")
+            self.assertEqual(len(NTupleValue.load(out).weights), 16)
+
+    def test_layout_ad_produces_52_weight_tables(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state, out = os.path.join(tmp, "s.json"), os.path.join(tmp, "o.json")
+            train_main(["--state", state, "--out", out, "--episodes", "1", "--move-cap", "30",
+                        "--layout", "AD"])
+            self.assertEqual(len(NTupleValue.load(out).weights), 52)
+
+    def test_changing_layout_on_resume_raises(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state, out = os.path.join(tmp, "s.json"), os.path.join(tmp, "o.json")
+            base = ["--state", state, "--out", out, "--episodes", "2", "--move-cap", "30"]
+            train_main(base)  # domyslnie A
+            with self.assertRaises(ValueError):
+                train_main(base + ["--layout", "AD"])
+
+    def test_layout_a_run_matches_run_without_layout_flag_bit_for_bit(self):
+        # Wynik jawnego "--layout A" musi byc bitowo identyczny z domyslnym
+        # zachowaniem sprzed #149 (kryterium akceptacji #149).
+        with tempfile.TemporaryDirectory() as tmp:
+            state_default = os.path.join(tmp, "default.state.json")
+            out_default = os.path.join(tmp, "default.out.json")
+            state_explicit = os.path.join(tmp, "explicit.state.json")
+            out_explicit = os.path.join(tmp, "explicit.out.json")
+            common = ["--episodes", "30", "--episodes-per-run", "30", "--seed", "11", "--move-cap", "60"]
+            train_main(["--state", state_default, "--out", out_default] + common)
+            train_main(["--state", state_explicit, "--out", out_explicit] + common + ["--layout", "A"])
+            with open(state_default, encoding="utf-8") as fh:
+                default_weights = json.load(fh)["weights"]
+            with open(state_explicit, encoding="utf-8") as fh:
+                explicit_weights = json.load(fh)["weights"]
+            self.assertEqual(default_weights, explicit_weights)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

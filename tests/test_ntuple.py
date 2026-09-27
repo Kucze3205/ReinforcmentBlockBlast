@@ -10,8 +10,13 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import benchmark
 from board import Board
 from ntuple import (
+    LAYOUT_A,
+    LAYOUT_AD,
+    LAYOUT_D,
+    LAYOUTS,
     N_PATCHES,
     N_WEIGHTS,
     PATCH_LAYOUT,
@@ -49,6 +54,86 @@ class TestPatchLayout(unittest.TestCase):
     def test_layout_is_single_source_of_truth_not_scattered(self):
         # Modul eksponuje jedna liste, z ktorej liczba i rozmiar lat sa wyprowadzone.
         self.assertEqual(len(PATCH_LAYOUT), N_PATCHES)
+
+
+class TestLayoutAD(unittest.TestCase):
+    """Uklad AD (#149): A (dzisiejszy PATCH_LAYOUT) plus D (kwadraty 3x3, 36 polozen)."""
+
+    def test_a_is_unchanged_patch_layout(self):
+        self.assertEqual(LAYOUT_A, PATCH_LAYOUT)
+        self.assertEqual(LAYOUTS["A"], PATCH_LAYOUT)
+
+    def test_d_has_36_patches_of_nine_cells(self):
+        self.assertEqual(len(LAYOUT_D), 36)
+        for positions in LAYOUT_D:
+            self.assertEqual(len(positions), 9)
+
+    def test_ad_is_a_concatenated_with_d(self):
+        self.assertEqual(LAYOUT_AD, LAYOUT_A + LAYOUT_D)
+        self.assertEqual(len(LAYOUT_AD), 16 + 36)
+        self.assertEqual(LAYOUTS["AD"], LAYOUT_AD)
+
+    def test_ad_covers_every_cell_at_least_once(self):
+        covered = set()
+        for positions in LAYOUT_AD:
+            covered.update(positions)
+        self.assertEqual(covered, set(range(Board.WIDTH * Board.HEIGHT)))
+
+    def test_default_ntuple_value_uses_layout_a(self):
+        ntuple = NTupleValue()
+        self.assertEqual(ntuple.layout, LAYOUT_A)
+        self.assertEqual(len(ntuple.weights), 16)
+
+    def test_ntuple_value_with_ad_layout_has_52_weight_tables(self):
+        ntuple = NTupleValue(layout=LAYOUT_AD)
+        self.assertEqual(len(ntuple.weights), 52)
+        self.assertEqual(ntuple.value(Board()), 0.0)
+
+    def test_ad_round_trips_through_save_load(self):
+        ntuple = NTupleValue(layout=LAYOUT_AD)
+        board = Board()
+        board.grid[3] = [1, 0, 1, 1, 0, 0, 1, 0]
+        ntuple.update(ntuple.indices(board), 4.0)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "ad.json")
+            ntuple.save(path)
+            loaded = NTupleValue.load(path)
+        self.assertEqual(loaded.layout, LAYOUT_AD)
+        self.assertEqual(loaded.weights, ntuple.weights)
+        self.assertEqual(loaded.value(board), ntuple.value(board))
+
+    def test_files_without_layout_change_load_as_a_with_same_values(self):
+        # Plik zapisany dawnym kodem (patch_layout = PATCH_LAYOUT, bez wiedzy o AD)
+        # wczytuje sie jako A z tymi samymi wartosciami (#149).
+        ntuple = NTupleValue()
+        board = Board()
+        board.grid[0] = [1, 1, 0, 0, 0, 0, 0, 0]
+        ntuple.update(ntuple.indices(board), 1.5)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "old.json")
+            with open(path, "w", encoding="utf-8") as fh:
+                json.dump({
+                    "patch_layout": [list(p) for p in PATCH_LAYOUT],
+                    "weights": ntuple.weights,
+                }, fh)
+            loaded = NTupleValue.load(path)
+        self.assertEqual(loaded.layout, LAYOUT_A)
+        self.assertEqual(loaded.reward, "score")
+        self.assertEqual(loaded.value(board), ntuple.value(board))
+
+    def test_benchmark_load_ntuple_weights_reads_ad_layout_unchanged(self):
+        # Kryterium #149: benchmark.load_ntuple_weights (bez zmian w benchmark.py)
+        # dziala dla pliku z ukladem AD tak samo jak dla A.
+        ntuple = NTupleValue(layout=LAYOUT_AD)
+        board = Board()
+        board.grid[5] = [0, 1, 0, 1, 1, 0, 1, 0]
+        ntuple.update(ntuple.indices(board), 2.0)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "ad.json")
+            ntuple.save(path)
+            loaded = benchmark.load_ntuple_weights(path)
+        self.assertEqual(loaded.layout, LAYOUT_AD)
+        self.assertEqual(loaded.value(board), ntuple.value(board))
 
 
 class TestBoardBits(unittest.TestCase):

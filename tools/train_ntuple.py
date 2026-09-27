@@ -32,6 +32,10 @@ Sygnał uczenia `r` wybiera `--reward` (#140) — to opcja treningu, nie nagroda
 - `survival`: `r = 1` za każde postawienie, więc V szacuje liczbę pozostałych
   postawień.
 
+Układ łat `--layout` (#149, domyślnie `A`) wybiera `ntuple.LAYOUTS` — `AD` dodaje
+kwadraty 3x3 do wierszy/kolumn wariantu `A`, patrz `docs/ntuple.md`. Wznowienie
+z innym układem niż zapisany w stanie rzuca `ValueError`, jak zmiana `--reward`.
+
 Seedy treningowe są rozłączne z `bench/seeds_fixed.json`, wymuszone asercją w
 `episode_seed()` — tak jak `tools/tune_weights.training_seeds()` (#59, #123).
 Seedy ewaluacji (`--eval-every`) leżą w przedziale `[2**31, 2**32)`, poza
@@ -54,7 +58,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from game import Game
-from ntuple import REWARD_SCORE, REWARD_SURVIVAL, REWARDS, NTupleValue
+from ntuple import DEFAULT_LAYOUT, LAYOUTS, REWARD_SCORE, REWARD_SURVIVAL, REWARDS, NTupleValue
 from policies import _simulate_placement
 
 BENCH_CONFIG = "bench/config.json"
@@ -230,6 +234,7 @@ def new_state(args, forbidden_seeds):
             "alpha": args.alpha,
             "move_cap": args.move_cap,
             "reward": args.reward,
+            "layout": args.layout,
         },
         "bench_seeds_n": len(forbidden_seeds),
         "log_bytes": 0,
@@ -258,10 +263,13 @@ def load_state(path, args, forbidden_seeds):
         state = json.load(fh)
     # Stan sprzed #140 nie ma pola `reward` — trenował na `gain`.
     state["params"].setdefault("reward", REWARD_SCORE)
+    # Stan sprzed #149 nie ma pola `layout` — trenował na wariancie A.
+    state["params"].setdefault("layout", DEFAULT_LAYOUT)
     # Wznowienie z innymi parametrami dalo by przebieg, ktorego log klamie o tym,
     # co mierzyl (wzor z tools/tune_weights.load_state, #104).
     expected = {
         "seed": args.seed, "alpha": args.alpha, "move_cap": args.move_cap, "reward": args.reward,
+        "layout": args.layout,
     }
     for key, value in expected.items():
         if state["params"][key] != value:
@@ -372,17 +380,18 @@ def run_eval(args, state, ntuple, seeds):
 
 
 def run_generational(args, config, forbidden_seeds):
+    layout = LAYOUTS[args.layout]
     if os.path.exists(args.state):
         state = load_state(args.state, args, forbidden_seeds)
-        ntuple = NTupleValue(weights=state["weights"], reward=args.reward) if state["weights"] \
-            else NTupleValue(reward=args.reward)
+        ntuple = NTupleValue(weights=state["weights"], reward=args.reward, layout=layout) if state["weights"] \
+            else NTupleValue(reward=args.reward, layout=layout)
         print(
             "Wznawiam {0}: odcinek {1}/{2}".format(args.state, state["episode"], args.episodes),
             file=sys.stderr,
         )
     else:
         state = new_state(args, forbidden_seeds)
-        ntuple = NTupleValue(reward=args.reward)
+        ntuple = NTupleValue(reward=args.reward, layout=layout)
         lp = log_path(args.state)
         if os.path.exists(lp):
             os.remove(lp)  # log osierocony po stanie, ktorego juz nie ma
@@ -458,6 +467,11 @@ def main(argv=None):
     parser.add_argument(
         "--reward", choices=REWARDS, default=REWARD_SCORE,
         help="sygnal uczenia: score = gain gry, survival = 1 za postawienie (domyslnie score)",
+    )
+    parser.add_argument(
+        "--layout", choices=sorted(LAYOUTS), default=DEFAULT_LAYOUT,
+        help="uklad lat N-tuple: A = 8 wierszy+8 kolumn (domyslnie), "
+             "AD = A plus kwadraty 3x3 we wszystkich polozeniach (ntuple.LAYOUTS, #149)",
     )
     parser.add_argument(
         "--save-every", type=int, default=DEFAULT_SAVE_EVERY,

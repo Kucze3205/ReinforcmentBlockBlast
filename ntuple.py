@@ -15,11 +15,13 @@ liniowa względem tych binarnych cech, tak jak `features.py`, tylko z cechami
 dobranymi automatycznie (każdy wzorzec na łacie to osobna waga) zamiast sześciu
 ręcznie zaprojektowanych.
 
-Układ łat jest **danymi**, w jednym miejscu (`PATCH_LAYOUT`), nie rozsianymi po
-kodzie: wariant A z `docs/research/budzet-wyuczonej-oceny.md` (#120) — 8 wierszy
-+ 8 kolumn, każda łata 8 komórek, `16 × 2**8 = 4096` wag. Uzasadnienie wyboru
-tego wariantu spośród czterech zmierzonych tam (A: 4096, B: 784, C: 5376,
-D: 18432 wag) jest w `docs/ntuple.md`, nie tutaj.
+Układ łat jest **danymi**, w jednym miejscu (`LAYOUTS`, nazwane warianty), nie
+rozsianymi po kodzie: wariant A z `docs/research/budzet-wyuczonej-oceny.md`
+(#120) — 8 wierszy + 8 kolumn, każda łata 8 komórek, `16 × 2**8 = 4096` wag —
+i wariant AD (#149): A plus wariant D (kwadraty 3×3 we wszystkich 36
+położeniach), `52` łaty. Uzasadnienie wyboru wariantu A jako domyślnego, i AD
+jako drugiego, jest w `docs/ntuple.md`, nie tutaj. `NTupleValue.load` przyjmuje
+plik z każdym układem z `LAYOUTS`; plik z nieznanym układem się nie wczyta.
 """
 import json
 
@@ -37,6 +39,11 @@ def _col_patch(x):
     return tuple(y * WIDTH + x for y in range(HEIGHT))
 
 
+def _square_patch(x, y):
+    """Kwadrat 3x3 z lewym-górnym rogiem `(x, y)` jako łata k=9 komórek (wariant D, #120)."""
+    return tuple((y + dy) * WIDTH + (x + dx) for dy in range(3) for dx in range(3))
+
+
 # Wariant A (#120): 8 łat-wierszy + 8 łat-kolumn, k=8 komórek/łatę.
 PATCH_LAYOUT = tuple(_row_patch(y) for y in range(HEIGHT)) + tuple(
     _col_patch(x) for x in range(WIDTH)
@@ -45,6 +52,22 @@ N_PATCHES = len(PATCH_LAYOUT)
 PATCH_SIZE = len(PATCH_LAYOUT[0])
 TABLE_SIZE = 1 << PATCH_SIZE
 N_WEIGHTS = N_PATCHES * TABLE_SIZE
+
+# Wariant D (#120): kwadraty 3x3 we wszystkich położeniach na planszy 8x8,
+# k=9 komórek/łatę — (WIDTH-2) * (HEIGHT-2) = 36 położeń lewego-górnego rogu.
+LAYOUT_D = tuple(
+    _square_patch(x, y) for y in range(HEIGHT - 2) for x in range(WIDTH - 2)
+)
+
+LAYOUT_A = PATCH_LAYOUT
+# Wariant AD (#149): A i D razem — wiersze/kolumny (kompletność linii) plus
+# kwadraty 3x3 (fragmentacja lokalna, `square3` zabija 54,7% partii wg
+# docs/co-zabija-partie.md), 16 + 36 = 52 łaty.
+LAYOUT_AD = LAYOUT_A + LAYOUT_D
+
+# Nazwane układy łat — jedyne, które `NTupleValue.load` przyjmuje (#149).
+LAYOUTS = {"A": LAYOUT_A, "AD": LAYOUT_AD}
+DEFAULT_LAYOUT = "A"
 
 
 def board_bits(board):
@@ -85,18 +108,17 @@ def zero_weights(layout=PATCH_LAYOUT):
 
 
 class NTupleValue:
-    """Ocena stanu jako suma odczytów z tablic LUT po łatach `PATCH_LAYOUT`.
+    """Ocena stanu jako suma odczytów z tablic LUT po łatach danego układu (domyślnie `A`).
 
     Wagi same-zera dają ocenę 0 na każdej planszy (odczyt z tabeli zainicjalizowanej
     zerami), zgodnie z kryterium akceptacji #123.
     """
 
-    layout = PATCH_LAYOUT
-
-    def __init__(self, weights=None, reward=REWARD_SCORE):
+    def __init__(self, weights=None, reward=REWARD_SCORE, layout=None):
         if reward not in REWARDS:
             raise ValueError("nieznany sygnal nagrody %r (dozwolone: %s)" % (reward, ", ".join(REWARDS)))
         self.reward = reward
+        self.layout = layout if layout is not None else LAYOUTS[DEFAULT_LAYOUT]
         self.weights = weights if weights is not None else zero_weights(self.layout)
         if len(self.weights) != len(self.layout):
             raise ValueError(
@@ -145,13 +167,14 @@ class NTupleValue:
         with open(path, encoding="utf-8") as fh:
             data = json.load(fh)
         layout = tuple(tuple(p) for p in data["patch_layout"])
-        if layout != cls.layout:
+        if layout not in LAYOUTS.values():
             raise ValueError(
-                "plik %s ma inny uklad lat niz ntuple.PATCH_LAYOUT (#123: uklad "
-                "lat jest jednym, ustalonym wariantem, plik z innym nie da sie "
-                "wczytac)" % path
+                "plik %s ma uklad lat, ktory nie jest zadnym z nazwanych "
+                "wariantow ntuple.LAYOUTS (%s) — #149: load przyjmuje kazdy "
+                "znany uklad, nie jeden ustalony" % (path, ", ".join(sorted(LAYOUTS)))
             )
         return cls(
             weights=[list(t) for t in data["weights"]],
             reward=data.get("reward", REWARD_SCORE),
+            layout=layout,
         )
