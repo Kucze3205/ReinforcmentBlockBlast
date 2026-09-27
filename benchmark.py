@@ -16,6 +16,7 @@ import argparse
 import hashlib
 import json
 import math
+import multiprocessing
 import os
 import random
 import statistics
@@ -227,10 +228,37 @@ def play_game(policy, seed, move_cap):
     return game.score, game.placements, False
 
 
-def run_set(policy, seeds, move_cap):
+# Globalne, żeby `Pool` mógł zdalnie zbudować politykę raz na proces roboczy
+# (`_worker_init`), a nie raz na partię: koszt `build_policy` (np. `torch.load`)
+# powtórzony przy każdym seedzie zdominowałby czas symulacji.
+_worker_policy = None
+_worker_move_cap = None
+
+
+def _worker_init(spec, config, move_cap):
+    global _worker_policy, _worker_move_cap
+    _worker_policy = build_policy(spec, config)
+    _worker_move_cap = move_cap
+
+
+def _worker_play(seed):
+    return play_game(_worker_policy, seed, _worker_move_cap)
+
+
+def run_set(policy, seeds, move_cap, jobs=1, spec=None, config=None):
+    if jobs > 1:
+        # Partie zależą tylko od swojego seeda (#148), więc `Pool.map` — który
+        # zwraca wyniki w kolejności zadań, niezależnie od kolejności ukończenia
+        # — daje ten sam plik wyjściowy co pętla sekwencyjna.
+        with multiprocessing.Pool(
+            jobs, initializer=_worker_init, initargs=(spec, config, move_cap)
+        ) as pool:
+            results = pool.map(_worker_play, seeds)
+    else:
+        results = [play_game(policy, seed, move_cap) for seed in seeds]
+
     scores, survivals, capped = [], [], 0
-    for seed in seeds:
-        score, placements, was_capped = play_game(policy, seed, move_cap)
+    for score, placements, was_capped in results:
         scores.append(score)
         survivals.append(placements)
         capped += was_capped
@@ -283,9 +311,9 @@ def paired_delta(candidate_scores, baseline_scores, threshold_pct):
     }
 
 
-def measure_arm(policy, seeds_fixed, seeds_rotated, move_cap):
-    fixed = run_set(policy, seeds_fixed, move_cap)
-    rotated = run_set(policy, seeds_rotated, move_cap)
+def measure_arm(policy, seeds_fixed, seeds_rotated, move_cap, jobs=1, spec=None, config=None):
+    fixed = run_set(policy, seeds_fixed, move_cap, jobs=jobs, spec=spec, config=config)
+    rotated = run_set(policy, seeds_rotated, move_cap, jobs=jobs, spec=spec, config=config)
     base = fixed["mean"]
     gap = round(100.0 * (base - rotated["mean"]) / base, 2) if base else 0.0
     return {
@@ -368,6 +396,10 @@ def main(argv=None):
     parser.add_argument("--config", default=CONFIG_PATH)
     parser.add_argument("--n-seeds", type=int, help="nadpisuje n_seeds z konfiguracji")
     parser.add_argument("--out", help="ścieżka rekordu; domyślnie bench/<sha>.json")
+    parser.add_argument(
+        "--jobs", type=int, default=1,
+        help="partie (seed x ramię) liczone w N procesach; wynik bitowo ten sam co --jobs 1",
+    )
     args = parser.parse_args(argv)
 
     config = load_config(args.config)
@@ -411,7 +443,10 @@ def main(argv=None):
             record["status"] = STATUS_BLOCKED
             record["blocked_reason"] = "ramię `" + name + "`: " + str(exc)
             continue
-        arm = measure_arm(policy, seeds_f, seeds_r, config["move_cap"])
+        arm = measure_arm(
+            policy, seeds_f, seeds_r, config["move_cap"],
+            jobs=args.jobs, spec=spec, config=config,
+        )
         weights_path = weights_file_for_spec(spec)
         if weights_path:
             arm["weights_hash"] = file_hash(weights_path)
