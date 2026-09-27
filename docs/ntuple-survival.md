@@ -96,3 +96,60 @@ ostatnim oknie #126 (po którym krzywa `score` spadła do 819,42/36,39) krzywa
 #142: trening wprost na przeżyciu nie tylko żyje dłużej, ale w tym budżecie
 odcinków daje też wyższy wynik niż trening na `gain`, bez odpowiednika spadku
 widocznego w #126.
+
+**Aktualizacja (#147):** ciąg dalszy do 100 000 odcinków (sekcja niżej)
+przesunął najlepszy punkt ewaluacji z 39 000 na **66 000** — powyższy opis
+`ntuple/survival-best.json` (zapisany przy odcinku 39 000) jest więc
+nieaktualny, plik nadpisano wagami z odcinka 66 000.
+
+## Ciąg dalszy do 100 000 (#147)
+
+Wznowienie tym samym poleceniem od 40 000 do **100 000 odcinków**, trzy bloki
+na pierwszym planie, stan/wagi/krzywa commitowane po każdym:
+
+| blok | `--episodes-per-run` | odcinki po bloku | czas bloku (rzeczywisty) |
+|---|---|---|---|
+| 1 | 15000 | 55000 | 16m23.3s |
+| 2 | 25000 | 80000 | 27m38.6s |
+| 3 | 20000 | 100000 (KONIEC) | 21m44.9s |
+
+Wszystkie trzy poniżej limitu 3400 s (0,065–0,066 s/odcinek average).
+
+### Punkty ewaluacji co 5000 odcinków
+
+| odcinki | średni wynik | średnie przeżycie |
+|---|---|---|
+| 5 000 | 640,38 | 34,87 |
+| 10 000 | 991,49 | 40,84 |
+| 15 000 | 1006,19 | 45,28 |
+| 20 000 | 1174,85 | 46,58 |
+| 25 000 | 1375,97 | 53,59 |
+| 30 000 | 1416,37 | 49,52 |
+| 35 000 | 1595,77 | 56,43 |
+| 40 000 | 1677,31 | 56,99 |
+| 45 000 | 1514,34 | 55,46 |
+| 50 000 | 1432,85 | 54,42 |
+| 55 000 | 1720,20 | 62,29 |
+| 60 000 | 1555,69 | 57,90 |
+| 65 000 | 1815,78 | 58,66 |
+| 70 000 | 1632,67 | 58,44 |
+| 75 000 | 1509,20 | 56,93 |
+| 80 000 | 1665,08 | 60,01 |
+| 85 000 | 1595,38 | 56,14 |
+| 90 000 | 1490,63 | 53,85 |
+| 95 000 | 1305,88 | 51,35 |
+| **ostatni (100 000)** | 1482,90 | 52,50 |
+
+Najlepszy punkt (kryterium: średni wynik) leży poza siatką co 5000, przy
+odcinku **66 000**: średni wynik **2225,73**, średnie przeżycie **64,92**
+(100 partii). `ntuple/survival-best.json` nadpisano tymi wagami.
+
+### Werdykt
+
+Krzywa **rośnie z szumem do odcinka 66 000** (najlepszy punkt ewaluacji), a
+od odcinka **~70 000 wypłaszcza się**: średnie w oknach po 10 000 odcinków
+idą 1364 (21–30k) → 1611 (31–40k) → 1556 (41–50k) → 1662 (51–60k) → **1740
+(61–70k, szczyt)** → 1565 (71–80k) → 1577 (81–90k) → 1575 (91–100k) — po
+szczycie trzy kolejne okna po 10 000 odcinków stoją w wąskim paśmie
+1565–1577 bez dalszego wzrostu, ale też bez trwałego spadku jak w #126 (tam
+osiem okien z rzędu w dół po szczycie). Odczyt: plateau, nie zawrót.
