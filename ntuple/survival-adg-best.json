@@ -23191,5 +23191,11 @@
       0.5448189578401978,
       1.382278018176316
     ]
-  ]
+  ],
+  "ewaluacja": {
+    "odcinki": 130000,
+    "sredni_wynik": 5857.41,
+    "srednie_przezycie": 116.2,
+    "n_partii": 200
+  }
 }
