@@ -210,6 +210,7 @@ class TestMainEndsOnGameOverScreen(unittest.TestCase):
 
         with mock.patch("bridge.settled_state", side_effect=fake_settled_state), \
              mock.patch("bridge.in_game", return_value=True), \
+             mock.patch("bridge.screenshot", return_value=gameover_img), \
              mock.patch("bridge.read_score", return_value=8532), \
              mock.patch("bridge.tap_play") as tap_play, \
              mock.patch("bridge.annotate"), \
@@ -222,6 +223,8 @@ class TestMainEndsOnGameOverScreen(unittest.TestCase):
         entries = [json.loads(c.args[0]) for c in handle.write.call_args_list]
         self.assertTrue(entries[0]["koniec_partii"])
         self.assertEqual(entries[0]["wynik_koncowy"], 8532)
+        self.assertEqual(entries[0]["wynik_koncowy_odczyty"], [8532, 8532])
+        self.assertEqual(entries[0]["zrzut_konca"], "000_end.png")
         self.assertEqual(entries[0]["nowa_partia"], 2)
         self.assertTrue(tap_play.called)
         self.assertEqual(entries[-1]["end"], "okno: petla_bez_postepu")
@@ -272,6 +275,7 @@ class TestMainClosesStaticAdWithBack(unittest.TestCase):
 
         with mock.patch("bridge.settled_state", side_effect=fake_settled_state), \
              mock.patch("bridge.in_game", return_value=True), \
+             mock.patch("bridge.screenshot", return_value=gameover_img), \
              mock.patch("bridge.press_back") as press_back, \
              mock.patch("bridge.tap_play"), \
              mock.patch("bridge.read_score", return_value=None), \

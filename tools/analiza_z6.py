@@ -123,14 +123,14 @@ def power_normal_approx(probs, alpha=0.05, delta=None, target_power=0.80):
     """Moc przybliżeniem normalnym (CLT dla sumy niejednakowych Bernoulliego).
 
     Zwraca: przy podanym `delta` (jednolity wzrost p_i, przycięty do [0,1]) —
-    moc wykrycia tego efektu przy `alpha` (test jednostronny, z=1.645).
+    moc wykrycia tego efektu przy `alpha` (test jednostronny).
     Jeśli `delta` nie podano, szuka najmniejszego delta dającego `target_power`.
     """
     n = len(probs)
     mean0 = sum(probs)
     var0 = sum(p * (1 - p) for p in probs)
     sd0 = math.sqrt(var0)
-    z_alpha = 1.6448536269514722  # jednostronne alpha=0.05
+    z_alpha = norm_ppf(1 - alpha)  # jednostronne; #198 — dawniej na sztywno dla alpha=0.05
 
     def power_for(d):
         shifted = [min(1.0, p + d) for p in probs]

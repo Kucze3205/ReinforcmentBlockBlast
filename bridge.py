@@ -4,8 +4,13 @@ Most do oryginału (#18): zrzut ekranu -> stan -> ruch -> przeciągnięcie -> po
 Działa na emulatorze w Actions (ekran 320x640). Stan planszy i trzech klocków
 czytany z pikseli, ruch wybiera polityka z benchmarku (domyślnie zachłanna,
 wybór przez argv[2]/`BRIDGE_POLICY`, #95), wykonanie przez
-`adb shell input motionevent`. Każdy ruch trafia do bridge-out/moves.jsonl
-(stan, trójka, ruch, wynik — wejście z #9 dla dopasowania symulatora).
+`adb shell input motionevent`. Każdy ruch trafia do pliku w `bridge-out/` wybranego przez
+`next_moves_path` — `moves.jsonl` przy pierwszym wywołaniu w katalogu, `moves.1.jsonl`,
+`moves.2.jsonl`, ... przy kolejnych, żeby jedno wywołanie nigdy nie nadpisało pliku
+poprzedniego (#198; dokładne polecenie kopiowania dla verifiera: `docs/most-zapis-ruchow.md`).
+Wpis (stan, trójka, ruch, wynik — wejście z #9 dla dopasowania symulatora); wpis
+`koniec_partii` niesie też nazwę zrzutu ekranu końca partii (zapisanego przed stuknięciem
+"Play") i listę wszystkich odczytów wyniku aż do ich ustabilizowania (#198).
 
 Geometria zmierzona na zrzutach z sondy #14 — aktualizacja gry może ją zepsuć.
 """
@@ -482,6 +487,36 @@ def run_id(env):
     return env.get("BRIDGE_RUN_ID") or env.get("GITHUB_RUN_ID") or "local"
 
 
+def next_moves_path(out_dir):
+    """Numeruje plik ruchów tak, że kolejne wywołanie `bridge.py` nigdy nie nadpisze
+    poprzedniego (#198): most przy każdym starcie dostawał `moves.jsonl` w trybie `"w"`,
+    a gdy verifier nie zdążył skopiować pliku przed kolejnym wywołaniem, trajektoria
+    przepadała bez śladu (sesja cb91077, `chunk3_moves.jsonl` z #191). Pierwsze wywołanie
+    w danym katalogu dostaje `moves.jsonl`, kolejne `moves.1.jsonl`, `moves.2.jsonl`, ...
+    — verifier kopiuje/przenosi plik o najwyższym numerze po każdym wywołaniu (patrz
+    `docs/most-zapis-ruchow.md`)."""
+    n = 0
+    while True:
+        path = os.path.join(out_dir, "moves.jsonl" if n == 0 else f"moves.{n}.jsonl")
+        if not os.path.exists(path):
+            return path
+        n += 1
+
+
+def stable_score(img, box, tries=6):
+    """Czyta wynik końca partii, aż dwa kolejne odczyty się zgodzą (limit `tries`, #198):
+    licznik bywa jeszcze animowany tuż po wykryciu ekranu końca partii, więc pierwszy
+    odczyt bywa błędny (kawałek 12 z #190, `bridge/runs/cb91077/pomiar.json`) i prowadził
+    do przedwczesnego stuknięcia "Play" z niecelnym wynikiem w logu. Pierwszy odczyt bierze
+    ze zrzutu już zrobionego przez wywołującego (`img`); kolejne robią nowy zrzut. Zwraca
+    ostatni odczyt i listę wszystkich odczytów (do logu, żeby niestabilność było widać post
+    factum)."""
+    reads = [read_score(img, box)]
+    while len(reads) < tries and (len(reads) < 2 or reads[-1] != reads[-2]):
+        reads.append(read_score(screenshot(), box))
+    return reads[-1], reads
+
+
 def make_game_stub(board, pieces, combo=0):
     """Atrapa gry podawana `policy.act` — jedna wersja dla `bridge.main` i testów (#95, #103).
 
@@ -498,7 +533,9 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
         seed = run_id(os.environ)
         policy.reset(seed)
         print(f"reset(seed={seed!r})", flush=True)
-    log = open(os.path.join(OUT, "moves.jsonl"), "w")
+    moves_path = next_moves_path(OUT)
+    print(f"log ruchów: {moves_path}", flush=True)
+    log = open(moves_path, "x")
     img, grid, slots = settled_state()
     ok_streak = best_streak = 0
     n = 0
@@ -554,12 +591,16 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
             print(entry["end"], flush=True)
             break
         if is_game_over_screen(img):
-            final_score = read_score(img, game_over_score_box(img))
+            end_path = os.path.join(OUT, f"{n:03d}_end.png")
+            Image.fromarray(img.astype(np.uint8)).save(end_path)
+            final_score, score_reads = stable_score(img, game_over_score_box(img))
             game_number += 1
             window_streak += 1
             entry = {"n": n, "policy": policy.name, "board": grid,
                      "tray": [s[0] if s else None for s in slots], "score": score,
-                     "koniec_partii": True, "wynik_koncowy": final_score, "nowa_partia": game_number}
+                     "koniec_partii": True, "wynik_koncowy": final_score,
+                     "wynik_koncowy_odczyty": score_reads,
+                     "zrzut_konca": os.path.basename(end_path), "nowa_partia": game_number}
             if window_streak >= PROGRESS_SAFEGUARD_TRIES:
                 entry["end"] = "okno: petla_bez_postepu"
             log.write(json.dumps(entry) + "\n")
