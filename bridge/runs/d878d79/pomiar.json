@@ -8,7 +8,8 @@
     {"kawalek": 3, "ruchy": "0-9", "polityka": "lookahead-ntuple", "wynik": "10/10 ok, brak okien, brak reklam, wynik do 2619 (OCR wyniku chwilowo niestabilny na ruchu 2: '75' zamiast rosnacego - ok liczone z porownania plansz, nie z OCR)"},
     {"kawalek": 4, "ruchy": "0-9", "polityka": "lookahead-ntuple", "wynik": "10/10 ok, brak okien, brak reklam, wynik do 9261"},
     {"kawalek": 5, "ruchy": "0-9", "polityka": "lookahead-ntuple", "wynik": "10/10 ok, brak okien, brak reklam, wynik do 10307"},
-    {"kawalek": 6, "ruchy": "0-9", "polityka": "lookahead-ntuple", "wynik": "10/10 ok, brak okien, brak reklam, wynik do 10614"}
+    {"kawalek": 6, "ruchy": "0-9", "polityka": "lookahead-ntuple", "wynik": "10/10 ok, brak okien, brak reklam, wynik do 10614"},
+    {"kawalek": 7, "ruchy": "0-9", "polityka": "lookahead-ntuple", "wynik": "10/10 ok, brak okien, brak reklam, wynik do 11477 (OCR chwilowo niestabilny na ruchu 4: '16983' zamiast ~10743 - ok liczone z porownania plansz, nie z OCR)"}
   ],
   "pytanie_1_naprawy_na_zywo": {
     "reklama_statyczna": {"liczba": 0, "bez_reki": "nie dotyczy (brak wystapien dotad)"},
@@ -24,7 +25,8 @@
       "bridge-out/chunk3.log: 10/10 ruchow OK, wynik do 2619 (chwilowy blad OCR na ruchu 2, '75'), brak wpisow 'okno:' i brak 'koniec_partii'.",
       "bridge-out/chunk4.log: 10/10 ruchow OK, wynik do 9261, brak wpisow 'okno:' i brak 'koniec_partii'.",
       "bridge-out/chunk5.log: 10/10 ruchow OK, wynik do 10307, brak wpisow 'okno:' i brak 'koniec_partii'.",
-      "bridge-out/chunk6.log: 10/10 ruchow OK, wynik do 10614, brak wpisow 'okno:' i brak 'koniec_partii'."
+      "bridge-out/chunk6.log: 10/10 ruchow OK, wynik do 10614, brak wpisow 'okno:' i brak 'koniec_partii'.",
+      "bridge-out/chunk7.log: 10/10 ruchow OK, wynik do 11477 (chwilowy blad OCR na ruchu 4, '16983'), brak wpisow 'okno:' i brak 'koniec_partii'."
     ],
     "wnioski": [
       "Za wczesnie na ocene napraw #180 - w kawalkach 1-2 nie wystapilo zadne z obserwowanych okien ani koniec partii.",
