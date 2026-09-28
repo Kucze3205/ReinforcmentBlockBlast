@@ -174,7 +174,10 @@ def main(argv=None):
     }
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
     with open(args.out, "w", encoding="utf-8") as fh:
-        json.dump(data, fh, indent=2)
+        # Bez wciecia: przy dziesiatkach tysiecy plansz `indent=2` pompuje plik
+        # ~4x bez zysku dla czytelnosci (plik jest wejsciem dla load_start_states,
+        # nie do recznej lektury).
+        json.dump(data, fh)
 
     print(
         "Zebrano {0} plansz z {1} partii (dlugosc partii: srednia={2}, mediana={3}) -> {4}".format(
