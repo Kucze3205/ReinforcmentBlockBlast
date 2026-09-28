@@ -93,3 +93,65 @@ Bez werdyktu: to zadanie nie porównuje tego ramienia z ramieniem A ani nie ocen
 ewaluacją zachłanną z pustej planszy jako miarą docelową (ta z założenia nie widzi stanów
 późnej gry, które ten start ma nauczyć) — porównanie obu ramion w przeszukiwaniu robi
 benchmark w kolejnym cyklu.
+
+## Ciąg dalszy do 100 000 (#179)
+
+Tym samym poleceniem co wyżej (zmienione tylko `--episodes`/`--episodes-per-run`),
+wznowienie od 70 000, trzy bloki na pierwszym planie, stan/wagi/krzywa commitowane po
+każdym:
+
+| blok | `--episodes-per-run` | odcinki po bloku | czas bloku (rzeczywisty) |
+|---|---|---|---|
+| 1 | 10000 | 80000 | 31m13,7s (1873,7 s) |
+| 2 | 12000 | 92000 | 37m57,6s (2277,6 s) |
+| 3 | 8000 | 100000 (KONIEC) | 25m1,6s (1501,6 s) |
+
+Wszystkie trzy poniżej limitu 3400 s. Tempo mierzone z bloku poprzedniego: `0,1874
+s/odcinek` po bloku 1, `0,1898 s/odcinek` po bloku 2 — bliskie tempu z zakresu 40k-70k
+(`0,1699-0,1749 s/odcinek`), lekko wyższe, bez wyraźnego trendu w obrębie tego zakresu.
+
+Plik `ntuple/survival-adc-ss-100k.json` (kopia `ntuple/survival-adc-ss-weights.json` po
+100 000 odcinkach, 136 łat) ma sha256 `5beb3ef59a33553e`.
+
+### Okna treningu po 5000 odcinków, start z pustej planszy kontra start z pliku (70 000-100 000)
+
+Te same zasady liczenia co w tabeli wyżej (polityka behawioralna w trakcie uczenia, nie
+ewaluacja zachłanna):
+
+| okno (odcinki) | n (pusta) | wynik (pusta) | przeżycie (pusta) | n (plik) | wynik (plik) | przeżycie (plik) |
+|---|---|---|---|---|---|---|
+| 70001-75000 | 2513 | 3310,12 | 96,22 | 2487 | 3199,63 | 88,49 |
+| 75001-80000 | 2510 | 3378,85 | 98,71 | 2490 | 3086,96 | 86,99 |
+| 80001-85000 | 2520 | 3389,02 | 99,09 | 2480 | 3181,23 | 88,54 |
+| 85001-90000 | 2485 | 3441,72 | 99,59 | 2515 | 3252,48 | 88,48 |
+| 90001-95000 | 2453 | 3549,82 | 100,71 | 2547 | 3207,45 | 88,14 |
+| **95001-100000 (ostatnie)** | 2555 | **3605,66** | **101,47** | 2445 | **3308,20** | **90,09** |
+
+Jak w oknach 40k-70k: podzbiór „plik" ma w każdym z sześciu okien niższy średni wynik i
+niższe średnie przeżycie niż podzbiór „pusta" w tym samym oknie — spodziewane z tych
+samych powodów (plansza z pliku startuje bliżej końca partii). Obie krzywe rosną razem od
+okna do okna w tym zakresie, bez odwrócenia.
+
+### Punkty ewaluacji (bez uczenia, 100 partii na punkt, start zawsze z pustej planszy) co 5000 odcinków (70 000-100 000)
+
+Z `docs/data/ntuple-survival-adc-ss-krzywa.json` (`ewaluacja.punkty`, te same `eval_seeds`):
+
+| odcinki | wynik | przeżycie |
+|---|---|---|
+| 70 000 (punkt startowy) | 3119,15 | 84,57 |
+| 75 000 | 3575,76 | 95,85 |
+| 80 000 | 4891,31 | 126,77 |
+| 85 000 | 3163,77 | 94,16 |
+| 90 000 | 3522,04 | 103,04 |
+| 95 000 | 3514,08 | 101,28 |
+| **100 000 (ostatnie)** | 4095,16 | 108,36 |
+
+Najlepszy punkt ewaluacji w całym zakresie 40 000-100 000: odcinek **80 000**, wynik
+4891,31, przeżycie 126,77 (`docs/data/ntuple-survival-adc-ss-krzywa.json`,
+`ewaluacja.najlepszy`) — nie na końcu przebiegu. Jak wyżej, pojedyncze punkty co 1000/5000
+odcinków to szum 100 partii.
+
+Bez werdyktu: jak wyżej, to zadanie nie porównuje tego ramienia z ramieniem A ani nie
+ocenia go ewaluacją zachłanną z pustej planszy jako miarą docelową; porównanie obu ramion
+robi osobne zadanie tego cyklu na zamrożonym `ntuple/survival-adc-ss-70k.json`, nietkniętym
+przez ten trening.
