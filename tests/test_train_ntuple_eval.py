@@ -5,8 +5,11 @@ wczytanie stanu sprzed #140.
 
 Szybkie: `move_cap` mały, kilka partii.
 """
+import glob
+import hashlib
 import json
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -256,6 +259,139 @@ class TestOldStateFormat(unittest.TestCase):
             with self.assertRaises(ValueError):
                 train_main(["--state", state, "--out", out, "--episodes", "3",
                             "--move-cap", "20", "--seed", "4", "--reward", "survival"])
+
+
+class TestLogRotation(unittest.TestCase):
+    """Rotacja logu na pliki-bloki (#187): zaden plik logu nie rosnie bez
+    granic przy milionie odcinkow. `BLOCK_EPISODES` jest tu zamockowane na
+    male wartosci, zeby przetestowac granice bloku bez uruchamiania miliona
+    odcinkow."""
+
+    def test_log_splits_into_block_files_and_read_log_concatenates_in_order(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = os.path.join(tmp, "s.json")
+            out = os.path.join(tmp, "o.json")
+            with mock.patch.object(train_ntuple, "BLOCK_EPISODES", 2):
+                train_main(["--state", state, "--out", out, "--episodes", "5",
+                            "--episodes-per-run", "5", "--move-cap", "20"])
+            base = os.path.join(tmp, "s")
+            self.assertTrue(os.path.exists(base + ".log.jsonl"))  # blok 0: odcinki 1-2
+            self.assertTrue(os.path.exists(base + ".log.0001.jsonl"))  # odcinki 3-4
+            self.assertTrue(os.path.exists(base + ".log.0002.jsonl"))  # odcinek 5
+            with open(base + ".log.jsonl", encoding="utf-8") as fh:
+                self.assertEqual(len(fh.readlines()), 2)
+            with open(base + ".log.0001.jsonl", encoding="utf-8") as fh:
+                self.assertEqual(len(fh.readlines()), 2)
+            with open(base + ".log.0002.jsonl", encoding="utf-8") as fh:
+                self.assertEqual(len(fh.readlines()), 1)
+            self.assertEqual([e["episode"] for e in read_log(state)], [1, 2, 3, 4, 5])
+
+    def test_no_single_block_file_exceeds_size_budget(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = os.path.join(tmp, "s.json")
+            out = os.path.join(tmp, "o.json")
+            with mock.patch.object(train_ntuple, "BLOCK_EPISODES", 3):
+                train_main(["--state", state, "--out", out, "--episodes", "10",
+                            "--episodes-per-run", "10", "--move-cap", "20"])
+            base = os.path.join(tmp, "s")
+            paths = [base + ".log.jsonl"] + sorted(glob.glob(base + ".log.*.jsonl"))
+            self.assertGreater(len(paths), 1)
+            # 3 wpisy/blok x max 164 B (pomiar realnych logow ADC/survival) < 40 MB.
+            for path in paths:
+                self.assertLessEqual(os.path.getsize(path), 3 * 164)
+
+    def test_resuming_across_a_block_boundary_matches_continuous_run(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_a = os.path.join(tmp, "a.json")
+            out_a = os.path.join(tmp, "ao.json")
+            state_b = os.path.join(tmp, "b.json")
+            out_b = os.path.join(tmp, "bo.json")
+            with mock.patch.object(train_ntuple, "BLOCK_EPISODES", 2):
+                train_main(["--state", state_a, "--out", out_a, "--episodes", "5",
+                            "--episodes-per-run", "5", "--seed", "7", "--move-cap", "20"])
+                for _ in range(5):
+                    train_main(["--state", state_b, "--out", out_b, "--episodes", "5",
+                                "--seed", "7", "--move-cap", "20"])
+            self.assertEqual(_load(state_a)["weights"], _load(state_b)["weights"])
+            self.assertEqual([e["seed"] for e in read_log(state_a)], [e["seed"] for e in read_log(state_b)])
+
+    def test_weights_are_bit_identical_regardless_of_block_size(self):
+        """Rozmiar bloku logu to szczegol zapisu na dysk — nie moze zmienic
+        wag ani celu TD (kryterium akceptacji #187)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            state_small = os.path.join(tmp, "small.json")
+            out_small = os.path.join(tmp, "small.o.json")
+            state_big = os.path.join(tmp, "big.json")
+            out_big = os.path.join(tmp, "big.o.json")
+            common = ["--episodes", "6", "--episodes-per-run", "6", "--seed", "13",
+                      "--move-cap", "30", "--reward", "survival", "--layout", "ADC"]
+            with mock.patch.object(train_ntuple, "BLOCK_EPISODES", 2):
+                train_main(["--state", state_small, "--out", out_small] + common)
+            train_main(["--state", state_big, "--out", out_big] + common)  # BLOCK_EPISODES domyslne
+            self.assertEqual(_load(state_small)["weights"], _load(state_big)["weights"])
+            with open(out_small, "rb") as fh_small, open(out_big, "rb") as fh_big:
+                self.assertEqual(
+                    hashlib.sha256(fh_small.read()).hexdigest(),
+                    hashlib.sha256(fh_big.read()).hexdigest(),
+                )
+
+    def test_orphaned_block_logs_are_removed_when_state_restarts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = os.path.join(tmp, "s.json")
+            out = os.path.join(tmp, "o.json")
+            with mock.patch.object(train_ntuple, "BLOCK_EPISODES", 2):
+                train_main(["--state", state, "--out", out, "--episodes", "5",
+                            "--episodes-per-run", "5", "--move-cap", "20"])
+                os.remove(state)  # stan usuniety, logi osierocone
+                train_main(["--state", state, "--out", out, "--episodes", "1",
+                            "--episodes-per-run", "1", "--move-cap", "20"])
+            self.assertEqual([e["episode"] for e in read_log(state)], [1])
+
+
+class TestResumeFromExistingRepoState(unittest.TestCase):
+    """Kryterium akceptacji #187: wznowienie ze stanu sprzed zmiany dziala na
+    kopii w katalogu tymczasowym, pliki w `ntuple/` pozostaja nietkniete."""
+
+    STATE_SRC = os.path.join("ntuple", "survival-adc-state.json")
+
+    def test_resume_from_copied_repo_state_leaves_ntuple_dir_untouched(self):
+        if not os.path.exists(self.STATE_SRC):
+            self.skipTest("ntuple/survival-adc-state.json niedostepny w tym przebiegu")
+        with open(self.STATE_SRC, encoding="utf-8") as fh:
+            src_state = json.load(fh)
+        params = src_state["params"]
+        ntuple_dir = "ntuple"
+
+        def _hashes(names):
+            hashes = {}
+            for name in names:
+                with open(os.path.join(ntuple_dir, name), "rb") as fh:
+                    hashes[name] = hashlib.sha256(fh.read()).hexdigest()
+            return hashes
+
+        before = sorted(os.listdir(ntuple_dir))
+        before_hashes = _hashes(before)
+        with tempfile.TemporaryDirectory() as tmp:
+            state = os.path.join(tmp, "state.json")
+            out = os.path.join(tmp, "out.json")
+            best = os.path.join(tmp, "best.json")
+            shutil.copy(self.STATE_SRC, state)
+            target = src_state["episode"] + 3
+            train_main([
+                "--state", state, "--out", out,
+                "--episodes", str(target), "--episodes-per-run", "3",
+                "--seed", str(params["seed"]), "--alpha", str(params["alpha"]),
+                "--move-cap", str(params["move_cap"]), "--reward", params["reward"],
+                "--layout", params["layout"],
+                "--eval-every", str(src_state["eval"]["every"]),
+                "--eval-episodes", str(src_state["eval"]["episodes"]),
+                "--best-out", best,
+            ])
+            self.assertEqual(_load(state)["episode"], target)
+        after = sorted(os.listdir(ntuple_dir))
+        after_hashes = _hashes(after)
+        self.assertEqual(before, after)
+        self.assertEqual(before_hashes, after_hashes)
 
 
 if __name__ == "__main__":

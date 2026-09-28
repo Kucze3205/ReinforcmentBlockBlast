@@ -76,6 +76,7 @@ tylko to, skąd startuje plansza. Ewaluacja (`--eval-every`) zawsze startuje z
 pustej planszy, niezależnie od tych flag.
 """
 import argparse
+import glob
 import json
 import os
 import random
@@ -95,6 +96,12 @@ DEFAULT_ALPHA = 0.001
 DEFAULT_SAVE_EVERY = 100
 # Okno krzywej uczenia, jak w `docs/data/ntuple-krzywa.json` (#126).
 CURVE_WINDOW = 2000
+# Odcinkow na plik logu (#187): pomiar istniejacych logow `ntuple/*.log.jsonl`
+# (ADC/ADC-ss, 100k odcinkow kazdy) daje max 164 B/wpis, srednio 142-150 B/wpis.
+# Przy 150 000 odcinkow/blok to najwyzej ~24,6 MB/plik — pod limitem GitHuba
+# (40 MB z kryterium akceptacji, 100 MB odrzucenia) z zapasem. Patrz
+# `docs/ntuple-szybkosc.md`, sekcja rotacji logu.
+BLOCK_EPISODES = 150_000
 STATE_FORMAT = 2
 # Cel TD zapisywany w `params.td_target` (#153): odróżnia stan zapisany po
 # poprawce przesunięcia od stanu sprzed niej (brak pola — cel liczył
@@ -314,17 +321,70 @@ def evaluate(ntuple, seeds, move_cap, reward):
     }
 
 
-def log_path(state_path):
-    return os.path.splitext(state_path)[0] + ".log.jsonl"
+def log_block(episode):
+    """Numer bloku (0-indeksowany) pliku logu dla danego numeru odcinka (#187)."""
+    return (episode - 1) // BLOCK_EPISODES
+
+
+def log_path(state_path, episode=None):
+    """Plik logu bloku zawierającego dany odcinek (#187): rotacja co
+    `BLOCK_EPISODES` odcinków, żeby żaden plik logu nie rósł bez granic przy
+    milionie odcinków. Blok 0 (`episode` `None` albo w `[1, BLOCK_EPISODES]`)
+    zachowuje nazwę sprzed rotacji (`<stan>.log.jsonl`) — istniejące pliki w
+    `ntuple/` (wszystkie < `BLOCK_EPISODES` odcinków) wczytują się bez zmiany
+    nazwy."""
+    base = os.path.splitext(state_path)[0]
+    block = log_block(episode) if episode else 0
+    if block <= 0:
+        return base + ".log.jsonl"
+    return "{0}.log.{1:04d}.jsonl".format(base, block)
+
+
+def _log_block_paths(state_path):
+    """Pliki logu wszystkich bloków tego stanu, w kolejności odcinków."""
+    base = os.path.splitext(state_path)[0]
+    found = []
+    legacy = base + ".log.jsonl"
+    if os.path.exists(legacy):
+        found.append((0, legacy))
+    prefix = base + ".log."
+    for path in glob.glob(prefix + "[0-9]" * 4 + ".jsonl"):
+        suffix = path[len(prefix):-len(".jsonl")]
+        if suffix.isdigit():
+            found.append((int(suffix), path))
+    found.sort()
+    return [path for _, path in found]
 
 
 def read_log(state_path):
-    """Wpisy logu odcinków (do testów i analizy; trening go nie czyta)."""
-    path = log_path(state_path)
-    if not os.path.exists(path):
-        return []
-    with open(path, encoding="utf-8") as fh:
-        return [json.loads(line) for line in fh if line.strip()]
+    """Wpisy logu odcinków, ze wszystkich bloków (#187), w kolejności odcinków
+    (do testów i analizy; trening go nie czyta)."""
+    entries = []
+    for path in _log_block_paths(state_path):
+        with open(path, encoding="utf-8") as fh:
+            entries.extend(json.loads(line) for line in fh if line.strip())
+    return entries
+
+
+def _append_log_entries(state_path, entries):
+    """Dopisuje `entries` do plików bloków logu, grupując po bloku (#187).
+    Zwykle wszystkie trafiają do jednego pliku (`BLOCK_EPISODES` jest dużo
+    większe niż `--save-every`), ale kod poprawnie obsługuje partię, która
+    przecina granicę bloku."""
+    groups = {}
+    order = []
+    for entry in entries:
+        block = log_block(entry["episode"])
+        if block not in groups:
+            groups[block] = []
+            order.append(block)
+        groups[block].append(entry)
+    for block in order:
+        block_entries = groups[block]
+        path = log_path(state_path, block_entries[0]["episode"])
+        with open(path, "a", encoding="utf-8") as fh:
+            for entry in block_entries:
+                fh.write(json.dumps(entry) + "\n")
 
 
 def _add_to_windows(windows, entry):
@@ -367,15 +427,18 @@ def new_state(args, forbidden_seeds):
 
 
 def _migrate_v1(path, state):
-    """Stan sprzed #140 trzymał cały log w sobie: przenosi go do `<stan>.log.jsonl`
-    i liczy z niego okna krzywej. Jednorazowe; potem stan ma stały rozmiar."""
+    """Stan sprzed #140 trzymał cały log w sobie: przenosi go do plików bloków
+    logu (#187) i liczy z niego okna krzywej. Jednorazowe; potem stan ma stały
+    rozmiar. Stan sprzed #140 był zawsze mały (dużo poniżej `BLOCK_EPISODES`),
+    więc migracja zawsze trafia do bloku 0 (`<stan>.log.jsonl`)."""
     log = state.pop("log")
     windows = []
-    with open(log_path(path), "w", encoding="utf-8") as fh:
-        for entry in log:
-            fh.write(json.dumps(entry) + "\n")
-            _add_to_windows(windows, entry)
-    state["log_bytes"] = os.path.getsize(log_path(path))
+    _append_log_entries(path, log)
+    for entry in log:
+        _add_to_windows(windows, entry)
+    last_episode = log[-1]["episode"] if log else 0
+    lp = log_path(path, last_episode) if last_episode else log_path(path)
+    state["log_bytes"] = os.path.getsize(lp) if os.path.exists(lp) else 0
     state["windows"] = windows
     state["format"] = STATE_FORMAT
     state.setdefault("eval", {"every": None, "episodes": None, "points": [], "best": None})
@@ -425,8 +488,10 @@ def load_state(path, args, forbidden_seeds):
             "(co {3} na {4})".format(path, ev["every"], ev["episodes"], args.eval_every, args.eval_episodes)
         )
     # Log dopisany przed zapisem stanu, ktory nie doszedl (smierc sesji miedzy
-    # jednym a drugim): odcinamy go do dlugosci zgodnej ze stanem.
-    lp = log_path(path)
+    # jednym a drugim): odcinamy go do dlugosci zgodnej ze stanem. `log_bytes`
+    # opisuje tylko plik bloku aktywnego w chwili ostatniego udanego zapisu
+    # (#187) — wczesniejsze bloki sa juz zamkniete i nie sa dalej dopisywane.
+    lp = log_path(path, state["episode"]) if state["episode"] else log_path(path)
     if os.path.exists(lp) and os.path.getsize(lp) > state["log_bytes"]:
         os.truncate(lp, state["log_bytes"])
     state["episodes_target"] = args.episodes
@@ -479,14 +544,14 @@ def curve(state):
 
 
 def save(args, state, ntuple, pending_log):
-    """Dopisuje zbuforowany log, potem wagi, stan i krzywą. Kolejność ma znaczenie:
-    stan zapisany jako ostatni jest punktem, od którego rusza wznowienie."""
+    """Dopisuje zbuforowany log (do plików bloków, #187), potem wagi, stan i
+    krzywą. Kolejność ma znaczenie: stan zapisany jako ostatni jest punktem,
+    od którego rusza wznowienie."""
     if pending_log:
-        with open(log_path(args.state), "a", encoding="utf-8") as fh:
-            for entry in pending_log:
-                fh.write(json.dumps(entry) + "\n")
+        _append_log_entries(args.state, pending_log)
         pending_log.clear()
-    state["log_bytes"] = os.path.getsize(log_path(args.state)) if os.path.exists(log_path(args.state)) else 0
+    lp = log_path(args.state, state["episode"]) if state["episode"] else log_path(args.state)
+    state["log_bytes"] = os.path.getsize(lp) if os.path.exists(lp) else 0
     state["weights"] = ntuple.weights
     write_json(args.out, weights_payload(ntuple))
     write_json(args.state, state)
@@ -525,8 +590,7 @@ def run_generational(args, config, forbidden_seeds):
     else:
         state = new_state(args, forbidden_seeds)
         ntuple = NTupleValue(reward=args.reward, layout=layout)
-        lp = log_path(args.state)
-        if os.path.exists(lp):
+        for lp in _log_block_paths(args.state):
             os.remove(lp)  # log osierocony po stanie, ktorego juz nie ma
         print("Nowy przebieg {0}: 0/{1} odcinkow".format(args.state, args.episodes), file=sys.stderr)
 
