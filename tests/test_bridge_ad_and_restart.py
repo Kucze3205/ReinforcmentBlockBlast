@@ -166,8 +166,9 @@ class TestCloseAd(unittest.TestCase):
 
 class TestRestartApp(unittest.TestCase):
     @mock.patch("bridge.time.sleep", lambda *_: None)
+    @mock.patch("bridge.screenshot", return_value=_load("0d96333", "120_state.png"))
     @mock.patch("bridge.adb")
-    def test_restarts_without_install_or_tos(self, adb):
+    def test_restarts_without_install_or_tos(self, adb, _screenshot):
         with mock.patch("bridge.in_game", side_effect=[True]):
             self.assertTrue(bridge.restart_app(tries=3, wait=0))
         adb.assert_called_once_with(

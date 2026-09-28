@@ -10,7 +10,10 @@ wybór przez argv[2]/`BRIDGE_POLICY`, #95), wykonanie przez
 poprzedniego (#198; dokładne polecenie kopiowania dla verifiera: `docs/most-zapis-ruchow.md`).
 Wpis (stan, trójka, ruch, wynik — wejście z #9 dla dopasowania symulatora); wpis
 `koniec_partii` niesie też nazwę zrzutu ekranu końca partii (zapisanego przed stuknięciem
-"Play") i listę wszystkich odczytów wyniku aż do ich ustabilizowania (#198).
+"Play") i listę wszystkich odczytów wyniku aż do ich ustabilizowania (#198). Ekran głównego
+menu apki (`menu_glowne`, #204) — kafelki Adventure/Classic/More Games — most odróżnia od
+modalu Ustawień i stuka kafelek „Classic", zamiast „wstecz", żeby wrócić do partii w toku;
+`restart_app` robi to samo, gdy start apki po restarcie ląduje w tym menu zamiast w grze.
 
 Geometria zmierzona na zrzutach z sondy #14 — aktualizacja gry może ją zepsuć.
 """
@@ -58,6 +61,11 @@ GAME_OVER_BLUE_FRAC = 0.8  # próg wariantu niebieskiego is_game_over_screen: 0.
 RESTART_TRIES = 3
 RESTART_WAIT = 20
 PLAY_BUTTON = (160, 456)  # przycisk "Play" na obu wariantach ekranu końca partii, zmierzony przez verifiera (#173)
+MAIN_MENU_TEAL_FRAC = 0.03  # próg dla is_main_menu_screen, patrz docstring
+CLASSIC_BUTTON = (160, 484)  # środek kafelka "Classic" na menu głównym, zmierzony na
+# bridge/runs/4a1796f/chunk4_003_menu_end.png (#204): maska koloru kafelka (teal, patrz
+# is_main_menu_screen) daje x 66-253, y 463-505 bez plakietki "Continue!"; bliskie ręcznemu
+# tapnięciu verifiera (160,483) z tego samego zrzutu, ale zmierzone z geometrii, nie z oka.
 # Dialog wyjścia „Are you sure you want to leave?" (#150/#163): punkty i kolory zmierzone na
 # bridge/runs/495cd91/loop2_after_no.png i after_back4.png. Tło dialogu (90,130,230), przycisk
 # „No" (8,154,214), przycisk „Yes" (41,170,25) — trójka nie występuje razem na modalu Ustawień
@@ -156,6 +164,27 @@ def is_settings_screen(img):
     lo, hi = SETTINGS_DARK_FRAC
     frac = (img.max(axis=-1) < 100).mean()
     return lo < frac < hi
+
+
+def is_main_menu_screen(img):
+    """Ekran głównego menu apki „Block Blast Adventure Master" (#204): most trafiał tu po
+    błędnym `press_back` na modalu Ustawień (`is_settings_screen` fałszywie łapał to okno na
+    innej, nieutrwalonej klatce w sesji `4a1796f`) i po `restart_app`, który zamiast partii w
+    toku odpalał apkę od tego menu.
+
+    Rozpoznanie po kolorze kafelka „Classic" (teal/zielonkawoniebieski, dominacja G i B nad R):
+    na `bridge/runs/4a1796f/chunk4_003_menu_end.png` zajmuje 0,038 pikseli kadru. Najbliższy
+    fałszywy trop w całym `bridge/runs/*` (ok. 700 zrzutów innych okien — plansza, Ustawienia,
+    dialog wyjścia, oba warianty końca partii, ekran domowy, obie reklamy) to 0,021 (reklama
+    jasna `44a8ea2/p2b_ad_before.png`/`p2b_ad_after_back.png`, już złapana wcześniej w pętli
+    przez `is_bright_ad_screen`) — próg 0,03 zostawia margines i tak wyklucza tę reklamę
+    jawnie, na wypadek gdyby coś wywołało tę funkcję poza zwykłą kolejnością pętli.
+    """
+    if is_bright_ad_screen(img):
+        return False
+    r, g, b = img[..., 0], img[..., 1], img[..., 2]
+    teal = (g > 150) & (b > 100) & (b < 220) & (r < 80) & (g > r + 80) & (b > r + 60)
+    return teal.mean() > MAIN_MENU_TEAL_FRAC
 
 
 def is_bright_ad_screen(img):
@@ -284,14 +313,29 @@ def tap_play():
     time.sleep(2)
 
 
+def tap_classic():
+    """Stuka kafelek „Classic" na menu głównym (#204): kontynuuje partię w toku zamiast
+    zaczynać Adventure/More Games — `CLASSIC_BUTTON` zmierzony na zrzucie menu."""
+    x, y = CLASSIC_BUTTON
+    touch("DOWN", x, y)
+    touch("UP", x, y)
+    time.sleep(2)
+
+
 def restart_app(tries=RESTART_TRIES, wait=RESTART_WAIT):
     """Podnosi zabitą apkę zwykłym startem — bez instalacji i bez ToS, z lokalnego
-    autozapisu (#129: logcat 1bd38fa, `app died, no saved state`). True, gdy wróciła."""
+    autozapisu (#129: logcat 1bd38fa, `app died, no saved state`). True, gdy wróciła.
+
+    Start czasem ląduje na menu głównym zamiast w partii w toku (#204, sesja `4a1796f`,
+    kawałek 4) — wtedy stuka „Classic" zanim zwróci sukces, żeby wywołujący dostał z powrotem
+    planszę, nie menu."""
     for attempt in range(1, tries + 1):
         print(f"restart {attempt}/{tries}: {PACKAGE}", flush=True)
         adb("shell", "monkey", "-p", PACKAGE, "-c", "android.intent.category.LAUNCHER", "1")
         time.sleep(wait)
         if in_game():
+            if is_main_menu_screen(screenshot()):
+                tap_classic()
             return True
     return False
 
@@ -572,6 +616,13 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
         if is_settings_screen(img):
             press_back()
             entry = windowed_entry("ustawienia_wstecz")
+            if "end" in entry:
+                break
+            img, grid, slots = stable_state()
+            continue
+        if is_main_menu_screen(img):
+            tap_classic()
+            entry = windowed_entry("menu_glowne")
             if "end" in entry:
                 break
             img, grid, slots = stable_state()

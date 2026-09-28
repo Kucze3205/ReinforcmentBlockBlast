@@ -21,9 +21,13 @@ from PIL import Image
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import bridge
+from board import Board
+from pieces import PIECE_POOL
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RUNS = os.path.join(ROOT, "bridge", "runs")
+
+BEAM2 = next(p for p in PIECE_POOL if p.shape == [[1, 1]])
 
 
 def _load(*parts):
@@ -229,6 +233,104 @@ class TestMainEndsOnGameOverScreen(unittest.TestCase):
         self.assertTrue(tap_play.called)
         self.assertEqual(entries[-1]["end"], "okno: petla_bez_postepu")
         self.assertEqual(best_streak, 0)
+
+
+class TestIsMainMenuScreen(unittest.TestCase):
+    """#204: ekran głównego menu apki („Block Blast Adventure Master", kafelki
+    Adventure/Classic/More Games) — most go mylił z modalem Ustawień (`is_settings_screen`) na
+    innej, nieutrwalonej klatce tego samego epizodu (sesja `4a1796f`, kawałek 4), a po
+    `press_back` i `restart_app` wciąż lądował na tym samym menu."""
+
+    def test_positive_on_main_menu_screenshot(self):
+        self.assertTrue(bridge.is_main_menu_screen(_load("4a1796f", "chunk4_003_menu_end.png")))
+
+    def test_negative_on_settings_and_board_and_gameover(self):
+        cases = [
+            ("44a8ea2", "p1a_settings.png"),
+            ("44a8ea2", "p1b_settings.png"),
+            ("44a8ea2", "p1a_before.png"),
+            ("0d96333", "120_state.png"),
+            ("1402cff", "chunk7_010_gameover_screen.png"),
+            ("c1819ed", "chunk15_after_back.png"),
+            ("1402cff", "chunk2_001_settings_falsepositive_home.png"),
+            ("0d96333", "121_end.png"),
+            ("4a1796f", "chunk4_after_recovery.png"),
+        ]
+        for run, name in cases:
+            with self.subTest(run=run, name=name):
+                self.assertFalse(bridge.is_main_menu_screen(_load(run, name)))
+
+    def test_settings_screen_is_false_on_main_menu(self):
+        self.assertFalse(bridge.is_settings_screen(_load("4a1796f", "chunk4_003_menu_end.png")))
+
+
+class TestMainTapsClassicInMainMenu(unittest.TestCase):
+    """#204: zamiast „wstecz" (jak w Ustawieniach), most stuka kafelek „Classic" i loguje wpis
+    okna `menu_glowne`, żeby kontynuować partię w toku."""
+
+    def test_taps_classic_and_logs_menu_glowne(self):
+        menu_img = _load("4a1796f", "chunk4_003_menu_end.png")
+        board_img = _load("0d96333", "120_state.png")
+        empty_grid = [[0] * 8 for _ in range(8)]
+
+        board = Board()
+        board.grid = [row[:] for row in empty_grid]
+        board.place_piece(BEAM2, 0, 0)
+        playable_grid = board.grid
+        playable_slot = ([[1, 1]], (20, 460))
+        playable_slots = [playable_slot, None, None]
+
+        def fake_settled_state():
+            return menu_img, empty_grid, [None, None, None]
+
+        def fake_stable_state(tries=6):
+            return board_img, playable_grid, playable_slots
+
+        with mock.patch("bridge.settled_state", side_effect=fake_settled_state), \
+             mock.patch("bridge.stable_state", side_effect=fake_stable_state), \
+             mock.patch("bridge.in_game", return_value=True), \
+             mock.patch("bridge.tap_classic") as tap_classic, \
+             mock.patch("bridge.press_back") as press_back, \
+             mock.patch("bridge.read_score", return_value=None), \
+             mock.patch("bridge.drag", return_value=({"finger": [0, 0]}, board_img)), \
+             mock.patch("bridge.annotate"), \
+             mock.patch("PIL.Image.Image.save"), \
+             mock.patch("bridge.os.makedirs"), \
+             mock.patch("builtins.open", mock.mock_open()) as m_open:
+            bridge.main(1, policy_spec="greedy")
+
+        tap_classic.assert_called_once()
+        press_back.assert_not_called()
+        handle = m_open()
+        entries = [json.loads(c.args[0]) for c in handle.write.call_args_list]
+        self.assertEqual(entries[0]["okno"], "menu_glowne")
+
+
+class TestRestartAppTapsClassicWhenLandingInMenu(unittest.TestCase):
+    """#204: start apki po restarcie czasem ląduje w menu głównym zamiast w partii w toku
+    (sesja `4a1796f`, kawałek 4) — `restart_app` ma to rozpoznać i stuknąć „Classic" zanim
+    zwróci sukces."""
+
+    def test_taps_classic_after_restart_lands_on_menu(self):
+        menu_img = _load("4a1796f", "chunk4_003_menu_end.png")
+        with mock.patch("bridge.time.sleep", lambda *_: None), \
+             mock.patch("bridge.adb"), \
+             mock.patch("bridge.in_game", side_effect=[True]), \
+             mock.patch("bridge.screenshot", return_value=menu_img), \
+             mock.patch("bridge.touch") as touch:
+            self.assertTrue(bridge.restart_app(tries=3, wait=0))
+        touch.assert_any_call("DOWN", *bridge.CLASSIC_BUTTON)
+        touch.assert_any_call("UP", *bridge.CLASSIC_BUTTON)
+
+    def test_does_not_tap_classic_when_landing_in_game(self):
+        board_img = _load("0d96333", "120_state.png")
+        with mock.patch("bridge.time.sleep", lambda *_: None), \
+             mock.patch("bridge.adb"), \
+             mock.patch("bridge.in_game", side_effect=[True]), \
+             mock.patch("bridge.screenshot", return_value=board_img), \
+             mock.patch("bridge.touch") as touch:
+            self.assertTrue(bridge.restart_app(tries=3, wait=0))
+        touch.assert_not_called()
 
 
 class TestIsStaticAdScreen(unittest.TestCase):
