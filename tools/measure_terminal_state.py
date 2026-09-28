@@ -28,6 +28,7 @@ celowo unika) -- tylko najblizszy horyzont.
 import argparse
 import collections
 import json
+import multiprocessing
 import os
 import random
 import statistics
@@ -36,6 +37,7 @@ from collections import Counter
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import benchmark
 from benchmark import percentile
 from board import Board
 from features import FEATURE_NAMES, features
@@ -325,20 +327,69 @@ def build_report(records):
     return report
 
 
+# Globalne, zeby `Pool` mogl zbudowac polityke raz na proces roboczy
+# (`_worker_init`), a nie raz na partie -- ten sam wzor co `benchmark.py`.
+_worker_policy = None
+_worker_move_cap = None
+
+
+def _worker_init(spec, config, move_cap):
+    global _worker_policy, _worker_move_cap
+    _worker_policy = benchmark.build_policy(spec, config)
+    _worker_move_cap = move_cap
+
+
+def _worker_analyze(seed):
+    return analyze_game(_worker_policy, seed, _worker_move_cap)
+
+
+def run_games(policy, seeds, move_cap, jobs=1, spec=None, config=None):
+    if jobs > 1:
+        with multiprocessing.Pool(
+            jobs, initializer=_worker_init, initargs=(spec, config, move_cap)
+        ) as pool:
+            return pool.map(_worker_analyze, seeds)
+    return [analyze_game(policy, seed, move_cap) for seed in seeds]
+
+
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Jak umiera partia lookahead:weights.json (#128)")
-    parser.add_argument("--weights-file", default="weights.json")
+    parser = argparse.ArgumentParser(description="Jak umiera partia (#128), dowolna polityka (#170)")
+    parser.add_argument("--weights-file", default="weights.json",
+                         help="uzywane tylko bez --policy: wagi lookahead (domyslne zachowanie)")
+    parser.add_argument(
+        "--policy", default=None,
+        help="specyfikacja polityki jak w benchmark.py --candidate (przez benchmark.build_policy); "
+             "bez tej flagi zachowanie identyczne jak dotychczas (--weights-file -> LookaheadPolicy)",
+    )
     parser.add_argument("--n-games", type=int, default=100)
     parser.add_argument("--config", default=BENCH_CONFIG)
+    parser.add_argument("--jobs", type=int, default=1, help="partie liczone w N procesach")
     parser.add_argument("--out", default=None, help="sciezka do zapisu zagregowanego raportu JSON")
     parser.add_argument("--series-out", default=None, help="sciezka do zapisu surowych rekordow partia-po-partii")
     args = parser.parse_args(argv)
 
     seeds, move_cap = load_bench_seeds(args.n_games, args.config)
-    weights = load_weights(args.weights_file)
-    policy = LookaheadPolicy(weights=weights) if weights is not None else LookaheadPolicy()
 
-    records = [analyze_game(policy, seed, move_cap) for seed in seeds]
+    # `spec`/`config` obsluguja procesy robocze (--jobs > 1); bez --policy budujemy
+    # `policy` bezposrednio (jak dotychczas), zeby zachowanie bez tej flagi bylo
+    # bitowo identyczne jak przed #170 (kryterium akceptacji).
+    if args.policy is not None:
+        spec = args.policy
+    else:
+        spec = "lookahead:" + args.weights_file
+
+    if args.jobs > 1:
+        policy = None
+        config = benchmark.load_config(args.config)
+    elif args.policy is not None:
+        config = benchmark.load_config(args.config)
+        policy = benchmark.build_policy(args.policy, config)
+    else:
+        weights = load_weights(args.weights_file)
+        policy = LookaheadPolicy(weights=weights) if weights is not None else LookaheadPolicy()
+        config = None
+
+    records = run_games(policy, seeds, move_cap, jobs=args.jobs, spec=spec, config=config)
     report = build_report(records)
 
     if args.out:

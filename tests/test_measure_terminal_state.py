@@ -1,4 +1,7 @@
+import json
+import os
 import random
+import tempfile
 import unittest
 
 from board import Board
@@ -13,6 +16,7 @@ from tools.measure_terminal_state import (
     distribution_summary,
     escape_stats,
     feature_k_vs_random,
+    main as measure_main,
     piece_type_distribution,
     summarize_terminal_board,
 )
@@ -163,6 +167,47 @@ class TestAnalyzeGameInvariant(unittest.TestCase):
             result = analyze_game(policy, seed, move_cap=2000)
             self.assertFalse(result["capped"])
             self.assertIn("terminal_occupied_cells", result)
+
+
+class TestPolicyFlag(unittest.TestCase):
+    """(#170): `--policy` bez uzycia daje wynik identyczny jak dotychczas;
+    z uzyciem buduje dowolna polityke przez `benchmark.build_policy`."""
+
+    def test_default_matches_explicit_lookahead_weights_json(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            default_out = os.path.join(tmp, "default.json")
+            explicit_out = os.path.join(tmp, "explicit.json")
+            measure_main(["--n-games", "2", "--out", default_out])
+            measure_main(["--n-games", "2", "--policy", "lookahead:weights.json", "--out", explicit_out])
+            with open(default_out, encoding="utf-8") as fh:
+                default_report = json.load(fh)
+            with open(explicit_out, encoding="utf-8") as fh:
+                explicit_report = json.load(fh)
+            self.assertEqual(default_report, explicit_report)
+
+    def test_jobs_matches_sequential(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            seq_out = os.path.join(tmp, "seq.json")
+            par_out = os.path.join(tmp, "par.json")
+            measure_main(["--n-games", "4", "--out", seq_out])
+            measure_main(["--n-games", "4", "--jobs", "2", "--out", par_out])
+            with open(seq_out, encoding="utf-8") as fh:
+                seq_report = json.load(fh)
+            with open(par_out, encoding="utf-8") as fh:
+                par_report = json.load(fh)
+            self.assertEqual(seq_report, par_report)
+
+    def test_policy_flag_builds_ntuple_policy(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = os.path.join(tmp, "ntuple.json")
+            measure_main([
+                "--n-games", "2",
+                "--policy", "lookahead-ntuple:ntuple/survival-ad-70k.json",
+                "--out", out,
+            ])
+            with open(out, encoding="utf-8") as fh:
+                report = json.load(fh)
+            self.assertEqual(report["n_games"], 2)
 
 
 if __name__ == "__main__":
