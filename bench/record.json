@@ -1,7 +1,7 @@
 {
-  "sha": "9f4765852ee0d3dcda61c86b3dad49d69f6f9f04",
+  "sha": "410620a26a642658b4f42c7b8419cfc71ecb7791",
   "dirty": false,
-  "issue": 194,
+  "issue": 201,
   "status": "ok",
   "blocked_reason": null,
   "config": {
@@ -20,13 +20,33 @@
     "pieces.py": "7241459a3cb11706",
     "features.py": "3e4c45d8cafa246c",
     "policies.py": "fbc34f04185350c0",
-    "benchmark.py": "bef154ac26e40c93",
+    "benchmark.py": "0dd1ab58cb56f4f7",
     "ntuple.py": "e8851320c0a0fd17",
     "ntuple_native.c": "7cb7357be5b2d33d",
     "ntuple_native.py": "7a8a94ed20e92a4f"
   },
   "arms": {
     "candidate": {
+      "policy": "lookahead-ntuple",
+      "fixed": {
+        "mean": 83865.64,
+        "median": 54879.0,
+        "p10": 6150.9,
+        "survival_mean": 619.14,
+        "capped_pct": 5.33
+      },
+      "rotated": {
+        "mean": 76109.04,
+        "median": 50164.5,
+        "p10": 5149.1,
+        "survival_mean": 567.27,
+        "capped_pct": 2.0
+      },
+      "overfit_gap_pct": 9.25,
+      "spec": "lookahead-ntuple:ntuple/survival-adcga16-800k.json@beam=128",
+      "weights_hash": "0ca43a9190d1f1e3"
+    },
+    "record": {
       "policy": "lookahead-ntuple",
       "fixed": {
         "mean": 34657.7,
@@ -36,45 +56,27 @@
         "capped_pct": 0.33
       },
       "rotated": {
-        "mean": 30081.08,
-        "median": 18706.5,
-        "p10": 1519.8,
-        "survival_mean": 340.77,
+        "mean": 34282.33,
+        "median": 24514.0,
+        "p10": 2562.4,
+        "survival_mean": 381.6,
         "capped_pct": 0.67
       },
-      "overfit_gap_pct": 13.21,
+      "overfit_gap_pct": 1.08,
+      "spec": "lookahead-ntuple:ntuple/survival-adcg-400k.json",
       "weights_hash": "2f713f11e7f0ee34"
-    },
-    "record": {
-      "policy": "lookahead-ntuple",
-      "fixed": {
-        "mean": 25946.36,
-        "median": 17124.0,
-        "p10": 2473.1,
-        "survival_mean": 312.81,
-        "capped_pct": 0.33
-      },
-      "rotated": {
-        "mean": 25136.73,
-        "median": 16134.5,
-        "p10": 2323.1,
-        "survival_mean": 306.31,
-        "capped_pct": 0.0
-      },
-      "overfit_gap_pct": 3.12,
-      "weights_hash": "58d1c5f997fa6f55"
     }
   },
   "deltas": {
     "kandydat vs record": {
-      "mean_diff": 8711.34,
-      "pct": 33.57,
-      "sd_diff": 44474.86,
-      "se_diff": 2567.76,
-      "se_pct": 9.9,
-      "mean_diff_over_se": 3.39,
+      "mean_diff": 49207.94,
+      "pct": 141.98,
+      "sd_diff": 93493.46,
+      "se_diff": 5397.85,
+      "se_pct": 15.57,
+      "mean_diff_over_se": 9.12,
       "label": "poprawa"
     }
   },
-  "duration_s": 106.8
+  "duration_s": 451.7
 }
