@@ -408,6 +408,8 @@ _ROW_CELLS = tuple(
 )
 # Zapora na zakres int64 tabel punktów przekazywanych do rdzenia.
 _NATIVE_INT_LIMIT = 1 << 62
+# Zapora na pola `int32` rdzenia (combo, licznik, wiązka, poziomy) — z zapasem na `combo + L`.
+_NATIVE_I32_LIMIT = 1 << 30
 
 
 def _board_from_bits(bits):
@@ -416,8 +418,8 @@ def _board_from_bits(bits):
     return board
 
 
-def _native_int(value):
-    return type(value) is int and -_NATIVE_INT_LIMIT < value < _NATIVE_INT_LIMIT
+def _native_int(value, limit=_NATIVE_INT_LIMIT):
+    return type(value) is int and -limit < value < limit
 
 
 def _tray_beam_search_native(core, board, pieces, combo, combo_counter, beam,
@@ -435,11 +437,11 @@ def _tray_beam_search_native(core, board, pieces, combo, combo_counter, beam,
     wygaśnięciu po drodze, `1..L` (L = liczba poziomów); linii najwyżej
     wysokość + szerokość klocka. Przypadek spoza tabel (np. plansza startowa z
     pełną linią) rdzeń zgłasza, a liczy go Python."""
-    if path_key not in ("gain", "placed") or type(beam) is not int or beam < 0:
+    if path_key not in ("gain", "placed") or not _native_int(beam, _NATIVE_I32_LIMIT) or beam < 0:
         return None
-    if not (_native_int(combo) and _native_int(combo_counter)):
+    if not all(_native_int(v, _NATIVE_I32_LIMIT) for v in (combo, combo_counter, COMBO_COUNTER_BASE)):
         return None
-    if not (_native_int(COMBO_COUNTER_BASE) and _native_int(FULL_CLEAR_BONUS)):
+    if not _native_int(FULL_CLEAR_BONUS):
         return None
     pieces = tuple(pieces)
     if len(pieces) > 16:
@@ -459,7 +461,7 @@ def _tray_beam_search_native(core, board, pieces, combo, combo_counter, beam,
         present |= 1 << slot
         lmax = max(lmax, geom[1] + geom[2])
     levels = depth if depth is not None else sum(1 for p in pieces if p is not None)
-    if type(levels) is not int or levels < 0:
+    if not _native_int(levels, _NATIVE_I32_LIMIT) or levels < 0:
         return None
     width = lmax + 1
     cp_lo = [0] * (levels * width)
