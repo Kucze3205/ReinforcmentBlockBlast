@@ -6,9 +6,11 @@ co polityka umie, a nie jak wypada w trakcie nauki (#8).
 """
 import random
 
+import ntuple_native
 from board import Board
 from features import FEATURE_NAMES, combo_features, features
 from generator import Generator
+from ntuple import board_bits
 from scoring import COMBO_COUNTER_BASE, FULL_CLEAR_BONUS, clear_points, placement_points
 
 
@@ -310,6 +312,24 @@ class NTupleLookaheadPolicy(LookaheadPolicy):
         """Wartość liścia z sieci N-tuple; `combo`/`combo_counter` świadomie bez wpływu."""
         return self.ntuple.value(board)
 
+    def _search(self, board, pieces, combo, combo_counter, beam, root_actions=None, depth=None):
+        """Z rdzeniem natywnym (#184) całą wiązkę liczy `_tray_beam_search_native`
+        — bitowo ten sam wynik co `_tray_beam_search` z liściem `_ntuple_leaf`.
+        Bez rdzenia, z podmienionym `_leaf_value` albo w przypadku, którego rdzeń
+        nie obsłuży, liczy klasa bazowa, jak dotąd."""
+        if self._leaf_value == self._ntuple_leaf:
+            core = getattr(self.ntuple, "native", None)
+            if core is not None:
+                found = _tray_beam_search_native(
+                    core, board, pieces, combo, combo_counter, beam,
+                    root_actions=root_actions, depth=depth, path_key=self._path_key,
+                )
+                if found is not None:
+                    return found
+        return super()._search(
+            board, pieces, combo, combo_counter, beam, root_actions=root_actions, depth=depth,
+        )
+
 
 def _tray_beam_search(board, pieces, combo, combo_counter, weights, beam,
                       root_actions=None, depth=None, leaf_value=None, path_key="gain"):
@@ -379,6 +399,100 @@ def _tray_beam_search(board, pieces, combo, combo_counter, weights, beam,
             candidate["score"] = candidate[path_key] + value_fn(
                 candidate["board"], candidate["combo"], candidate["combo_counter"],
             )
+    return frontier, expanded
+
+
+# Wiersz planszy (bajt maski) jako lista komórek 0/1 — do odtwarzania `Board` z maski.
+_ROW_CELLS = tuple(
+    tuple((byte >> x) & 1 for x in range(Board.WIDTH)) for byte in range(1 << Board.WIDTH)
+)
+# Zapora na zakres int64 tabel punktów przekazywanych do rdzenia.
+_NATIVE_INT_LIMIT = 1 << 62
+
+
+def _board_from_bits(bits):
+    board = Board()
+    board.grid = [list(_ROW_CELLS[(bits >> (y * Board.WIDTH)) & 0xFF]) for y in range(Board.HEIGHT)]
+    return board
+
+
+def _native_int(value):
+    return type(value) is int and -_NATIVE_INT_LIMIT < value < _NATIVE_INT_LIMIT
+
+
+def _tray_beam_search_native(core, board, pieces, combo, combo_counter, beam,
+                             root_actions=None, depth=None, path_key="gain"):
+    """`_tray_beam_search` z liściem `ntuple.value(board)` policzone w rdzeniu
+    natywnym (`ntuple_native.c`, #184). Zwraca to samo `(wiązka, expanded)` —
+    te same stany w tej samej kolejności, z tymi samymi polami — albo `None`,
+    gdy rdzeń tego przypadku nie liczy (wtedy wołający bierze wersję Pythona).
+
+    Rdzeń odtwarza `_expand` na planszy jako masce bitowej: postawienie,
+    czyszczenie linii, przejście combo/licznika. Punkty nie są w nim przepisane:
+    `placement_points`/`clear_points` liczone są tu, funkcjami ze `scoring.py`,
+    dla każdego klocka tacki i każdej pary (combo, linie), jaką przeszukanie
+    może spotkać — combo po czyszczeniu to `combo+1..combo+L` albo, po
+    wygaśnięciu po drodze, `1..L` (L = liczba poziomów); linii najwyżej
+    wysokość + szerokość klocka. Przypadek spoza tabel (np. plansza startowa z
+    pełną linią) rdzeń zgłasza, a liczy go Python."""
+    if path_key not in ("gain", "placed") or type(beam) is not int or beam < 0:
+        return None
+    if not (_native_int(combo) and _native_int(combo_counter)):
+        return None
+    if not (_native_int(COMBO_COUNTER_BASE) and _native_int(FULL_CLEAR_BONUS)):
+        return None
+    pieces = tuple(pieces)
+    if len(pieces) > 16:
+        return None
+    geoms, pp, present, lmax = [], [], 0, 0
+    for slot, piece in enumerate(pieces):
+        if piece is None:
+            geoms.append((0, Board.HEIGHT + 1, Board.WIDTH + 1))
+            pp.append(0)
+            continue
+        geom = ntuple_native.piece_geometry(piece)
+        points = placement_points(piece)
+        if geom is None or not _native_int(points):
+            return None
+        geoms.append(geom)
+        pp.append(points)
+        present |= 1 << slot
+        lmax = max(lmax, geom[1] + geom[2])
+    levels = depth if depth is not None else sum(1 for p in pieces if p is not None)
+    if type(levels) is not int or levels < 0:
+        return None
+    width = lmax + 1
+    cp_lo = [0] * (levels * width)
+    cp_hi = [0] * (levels * width)
+    for k in range(levels):
+        for lines in range(1, width):
+            lo = clear_points(k + 1, lines)
+            hi = clear_points(combo + k + 1, lines)
+            if not (_native_int(lo) and _native_int(hi)):
+                return None
+            cp_lo[k * width + lines] = lo
+            cp_hi[k * width + lines] = hi
+    found = core.search(
+        board_bits(board), geoms, present, combo, combo_counter, COMBO_COUNTER_BASE, levels, lmax,
+        pp, cp_lo, cp_hi, FULL_CLEAR_BONUS, path_key == "placed", beam, root_actions,
+    )
+    if found is None:
+        return None
+    states, expanded = found
+    frontier = []
+    for st in states:
+        used = st.used
+        first = st.first
+        frontier.append({
+            "board": _board_from_bits(st.bits),
+            "pieces": tuple(None if (used >> s) & 1 else p for s, p in enumerate(pieces)) if used else pieces,
+            "combo": st.combo,
+            "combo_counter": st.cc,
+            "gain": st.gain,
+            "placed": st.placed,
+            "first_action": None if first < 0 else (first >> 6, first & 7, (first >> 3) & 7),
+            "score": st.score,
+        })
     return frontier, expanded
 
 
