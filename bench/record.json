@@ -1,7 +1,7 @@
 {
-  "sha": "e4bd47722b7d57e6c1bab43935b47289a1a8cdd0",
+  "sha": "9f4765852ee0d3dcda61c86b3dad49d69f6f9f04",
   "dirty": false,
-  "issue": 192,
+  "issue": 194,
   "status": "ok",
   "blocked_reason": null,
   "config": {
@@ -29,6 +29,25 @@
     "candidate": {
       "policy": "lookahead-ntuple",
       "fixed": {
+        "mean": 34657.7,
+        "median": 22099.0,
+        "p10": 2583.5,
+        "survival_mean": 395.12,
+        "capped_pct": 0.33
+      },
+      "rotated": {
+        "mean": 30081.08,
+        "median": 18706.5,
+        "p10": 1519.8,
+        "survival_mean": 340.77,
+        "capped_pct": 0.67
+      },
+      "overfit_gap_pct": 13.21,
+      "weights_hash": "2f713f11e7f0ee34"
+    },
+    "record": {
+      "policy": "lookahead-ntuple",
+      "fixed": {
         "mean": 25946.36,
         "median": 17124.0,
         "p10": 2473.1,
@@ -36,45 +55,26 @@
         "capped_pct": 0.33
       },
       "rotated": {
-        "mean": 28137.64,
-        "median": 17246.0,
-        "p10": 2340.3,
-        "survival_mean": 325.33,
-        "capped_pct": 0.33
-      },
-      "overfit_gap_pct": -8.45,
-      "weights_hash": "58d1c5f997fa6f55"
-    },
-    "record": {
-      "policy": "lookahead-ntuple",
-      "fixed": {
-        "mean": 28040.73,
-        "median": 18050.5,
-        "p10": 2569.7,
-        "survival_mean": 322.78,
-        "capped_pct": 0.33
-      },
-      "rotated": {
-        "mean": 28460.71,
-        "median": 17538.5,
-        "p10": 2259.8,
-        "survival_mean": 313.25,
+        "mean": 25136.73,
+        "median": 16134.5,
+        "p10": 2323.1,
+        "survival_mean": 306.31,
         "capped_pct": 0.0
       },
-      "overfit_gap_pct": -1.5,
-      "weights_hash": "3e75cd9c41264fd5"
+      "overfit_gap_pct": 3.12,
+      "weights_hash": "58d1c5f997fa6f55"
     }
   },
   "deltas": {
     "kandydat vs record": {
-      "mean_diff": -2094.37,
-      "pct": -7.47,
-      "sd_diff": 40393.2,
-      "se_diff": 2332.1,
-      "se_pct": 8.32,
-      "mean_diff_over_se": -0.9,
-      "label": "bez zmian"
+      "mean_diff": 8711.34,
+      "pct": 33.57,
+      "sd_diff": 44474.86,
+      "se_diff": 2567.76,
+      "se_pct": 9.9,
+      "mean_diff_over_se": 3.39,
+      "label": "poprawa"
     }
   },
-  "duration_s": 97.5
+  "duration_s": 106.8
 }
