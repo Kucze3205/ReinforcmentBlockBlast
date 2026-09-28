@@ -29,3 +29,29 @@ Oba rekordy identyczne poza `duration_s`/`sha`/`dirty`: te same `arms`, `deltas`
 
 Ekstrapolacja na pełny przebieg #144 (3542 s, `--jobs 1`) przy podobnym
 przyspieszeniu: ok. **1830 s** przy `--jobs 4` — z powrotem pod limitem 3600 s.
+
+## Kawałki: `--shard K/N` i `tools/merge_bench.py` (#167)
+
+`--jobs` przyspiesza jedno polecenie, ale samo polecenie wciąż musi zmieścić
+się w limicie 3600 s. Koszt benchmarku rośnie z postępem partii (rekord #161:
+1948,7 s), więc dalszy wzrost (więcej łat, dłuższe partie) potrzebuje podziału
+na **osobne polecenia**, nie tylko procesy w jednym.
+
+`--shard K/N` gra tylko seedy (stałe i rotowane) o indeksie `i` (0-based)
+takim, że `i % N == K - 1` — tę samą pulę seedów co przebieg bez `--shard`,
+przy każdym ramieniu. Plik kawałka niesie surowe wyniki per seed (potrzebne do
+sparowanej różnicy po złożeniu) i pole `"shard": "K/N"`, żeby nikt nie wziął go
+za pełny wynik. `tools/merge_bench.py` składa `N` kawałków w plik o tym samym
+kształcie co przebieg bez `--shard` (agregaty — średnia, mediana, p10,
+przeżycie, % uciętych — są niezależne od kolejności seedów, więc złożenie daje
+`arms`/`deltas` bitowo równe pełnemu przebiegowi; `duration_s` to suma
+kawałków). Odmawia (niezerowy kod wyjścia), gdy kawałki mają różny `sha`,
+`issue`, `config`, specyfikację ramienia (polityka albo `weights_hash`), gdy
+brakuje kawałka albo któryś się powtarza.
+
+```
+python3 benchmark.py --candidate <spec> --record <spec> --issue N --jobs 4 --shard 1/4 --out bench/N-x-shard1.json
+...
+python3 benchmark.py --candidate <spec> --record <spec> --issue N --jobs 4 --shard 4/4 --out bench/N-x-shard4.json
+python3 tools/merge_bench.py --out bench/N-x.json bench/N-x-shard1.json bench/N-x-shard2.json bench/N-x-shard3.json bench/N-x-shard4.json
+```

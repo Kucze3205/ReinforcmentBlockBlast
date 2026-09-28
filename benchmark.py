@@ -245,6 +245,22 @@ def _worker_play(seed):
     return play_game(_worker_policy, seed, _worker_move_cap)
 
 
+def aggregate_set(scores, survivals, capped_flags):
+    """Statystyki zbiorcze partii z surowych list per-seed.
+
+    Dzielone z `tools/merge_bench.py` (#167): kawałek liczy je na swojej
+    podpuli seedów, złożenie — na scalonych listach z wszystkich kawałków.
+    """
+    capped = sum(1 for c in capped_flags if c)
+    return {
+        "mean": round(statistics.mean(scores), 2),
+        "median": round(statistics.median(scores), 2),
+        "p10": round(percentile(scores, 10), 2),
+        "survival_mean": round(statistics.mean(survivals), 2),
+        "capped_pct": round(100.0 * capped / len(scores), 2),
+    }
+
+
 def run_set(policy, seeds, move_cap, jobs=1, spec=None, config=None):
     if jobs > 1:
         # Partie zależą tylko od swojego seeda (#148), więc `Pool.map` — który
@@ -257,19 +273,16 @@ def run_set(policy, seeds, move_cap, jobs=1, spec=None, config=None):
     else:
         results = [play_game(policy, seed, move_cap) for seed in seeds]
 
-    scores, survivals, capped = [], [], 0
+    scores, survivals, capped_flags = [], [], []
     for score, placements, was_capped in results:
         scores.append(score)
         survivals.append(placements)
-        capped += was_capped
-    return {
-        "mean": round(statistics.mean(scores), 2),
-        "median": round(statistics.median(scores), 2),
-        "p10": round(percentile(scores, 10), 2),
-        "survival_mean": round(statistics.mean(survivals), 2),
-        "capped_pct": round(100.0 * capped / len(seeds), 2),
-        "scores": scores,
-    }
+        capped_flags.append(bool(was_capped))
+    summary = aggregate_set(scores, survivals, capped_flags)
+    summary["scores"] = scores
+    summary["survivals"] = survivals
+    summary["capped_flags"] = capped_flags
+    return summary
 
 
 def percentile(values, pct):
@@ -325,12 +338,37 @@ def measure_arm(policy, seeds_fixed, seeds_rotated, move_cap, jobs=1, spec=None,
     }
 
 
+RAW_SET_KEYS = ("scores", "survivals", "capped_flags")
+
+
 def strip_scores(record):
     """Surowe serie zostają poza rekordem — rekord ma być czytelny, nie pełny."""
     for arm in record["arms"].values():
         for key in ("fixed", "rotated"):
-            arm[key].pop("scores", None)
+            for raw_key in RAW_SET_KEYS:
+                arm[key].pop(raw_key, None)
     return record
+
+
+def parse_shard(spec):
+    """`"K/N"` -> `(k, n)`, 1 <= k <= n. Zgłasza `ValueError` na złym formacie."""
+    try:
+        k_str, n_str = spec.split("/")
+        k, n = int(k_str), int(n_str)
+    except ValueError as exc:
+        raise ValueError("--shard oczekuje K/N, np. 1/4, otrzymano: " + spec) from exc
+    if n < 1 or not (1 <= k <= n):
+        raise ValueError("--shard K/N wymaga 1 <= K <= N, otrzymano: " + spec)
+    return k, n
+
+
+def shard_seeds(seeds, k, n):
+    """Podpula seedów kawałka `K/N`: indeks `i` (0-based) taki, że `i % N == K - 1`.
+
+    Ta sama funkcja filtruje i zestaw stały, i rotowany — kawałek nr K bierze
+    tę samą frakcję z obu (#167).
+    """
+    return [seed for i, seed in enumerate(seeds) if i % n == k - 1]
 
 
 def render_markdown(record):
@@ -400,7 +438,18 @@ def main(argv=None):
         "--jobs", type=int, default=1,
         help="partie (seed x ramię) liczone w N procesach; wynik bitowo ten sam co --jobs 1",
     )
+    parser.add_argument(
+        "--shard",
+        help="K/N: gra tylko seedy o indeksie i%%N == K-1 (stałe i rotowane); "
+             "złożenie tools/merge_bench.py wszystkich N kawałków = przebieg bez --shard",
+    )
     args = parser.parse_args(argv)
+
+    if args.shard:
+        try:
+            shard_k, shard_n = parse_shard(args.shard)
+        except ValueError as exc:
+            parser.error(str(exc))
 
     config = load_config(args.config)
     if args.n_seeds:
@@ -425,6 +474,10 @@ def main(argv=None):
 
     seeds_f = fixed_seeds(config)
     seeds_r = rotated_seeds(config, args.issue)
+    if args.shard:
+        seeds_f = shard_seeds(seeds_f, shard_k, shard_n)
+        seeds_r = shard_seeds(seeds_r, shard_k, shard_n)
+        record["shard"] = args.shard
     requested = [
         ("candidate", args.candidate),
         ("previous", args.previous),
@@ -461,7 +514,8 @@ def main(argv=None):
                 )
 
     record["duration_s"] = round(time.time() - started, 1)
-    strip_scores(record)
+    if not args.shard:
+        strip_scores(record)
 
     out_path = args.out or ("bench/" + sha + ("-dirty" if dirty else "") + ".json")
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
