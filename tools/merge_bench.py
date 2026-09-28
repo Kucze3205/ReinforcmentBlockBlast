@@ -119,6 +119,11 @@ def check_consistent(shards):
                     "ramię `" + arm_name + "`: różny `weights_hash` między "
                     + first_path + " i " + path
                 )
+            if arm.get("spec") != first_arm.get("spec"):
+                raise MergeError(
+                    "ramię `" + arm_name + "`: różna specyfikacja (`spec`) między "
+                    + first_path + " i " + path
+                )
 
     ordered = [data for _, data in sorted(
         ((k, data) for k, _, _, data in parsed), key=lambda item: item[0]
@@ -129,6 +134,8 @@ def check_consistent(shards):
 def merge_arm(shard_arms):
     """Scala jedno ramię ze wszystkich kawałków (już posortowanych po `K`)."""
     merged = {"policy": shard_arms[0]["policy"]}
+    if "spec" in shard_arms[0]:
+        merged["spec"] = shard_arms[0]["spec"]
     if "weights_hash" in shard_arms[0]:
         merged["weights_hash"] = shard_arms[0]["weights_hash"]
 

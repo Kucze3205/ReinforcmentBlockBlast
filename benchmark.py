@@ -92,10 +92,15 @@ def source_hashes():
 
 
 def weights_file_for_spec(spec):
-    """Ścieżka pliku wag, jeśli `spec` to `<prefix>:<plik>` (#102: skrót wag w rekordzie)."""
+    """Ścieżka pliku wag, jeśli `spec` to `<prefix>:<plik>` (#102: skrót wag w rekordzie).
+
+    Dla `lookahead-ntuple:<plik>@k=v,...` (#195) zwraca samą ścieżkę, bez parametrów
+    przeszukania — to na niej liczy się `weights_hash`, nie na całej specyfikacji.
+    """
     for prefix in list(TUNED_POLICY_CLASSES) + [NTUPLE_POLICY_PREFIX]:
         if spec.startswith(prefix + ":"):
-            return spec[len(prefix) + 1:]
+            path = spec[len(prefix) + 1:]
+            return path.partition("@")[0]
     return None
 
 
@@ -133,6 +138,46 @@ TUNED_POLICY_CLASSES = {
 # Osobny prefiks (#123): plik wag ma inny format niż FEATURE_NAMES (tablice LUT
 # po łatach, patrz `ntuple.py`), więc `load_tuned_weights` się do niego nie stosuje.
 NTUPLE_POLICY_PREFIX = "lookahead-ntuple"
+
+# Parametry przeszukania, które `lookahead-ntuple:<plik>@...` (#195) wolno nadpisać —
+# dokładnie kwargs konstruktora `NTupleLookaheadPolicy` poza `ntuple` i `seed`.
+NTUPLE_SEARCH_PARAMS = ("beam", "samples", "branch", "inner_beam", "inner_depth")
+
+
+def parse_ntuple_spec(spec):
+    """`<plik>` albo `<plik>@k=v,k=v` -> `(plik, {k: int(v), ...})` (#195).
+
+    Bez `@...` zwraca słownik pusty, więc `NTupleLookaheadPolicy(ntuple, **{})` bierze
+    te same wartości domyślne co dziś — specyfikacja bez parametrów zostaje bitowo tym
+    samym ramieniem. Nazwa spoza `NTUPLE_SEARCH_PARAMS` albo wartość, która nie jest
+    liczbą całkowitą, ma kończyć się błędem czytelnym dla człowieka, nie cichym
+    pominięciem (kryterium akceptacji #195) — stąd `ArmUnavailable`, nie `ValueError`
+    z głębi `int()`.
+    """
+    path, sep, param_str = spec.partition("@")
+    if not sep:
+        return path, {}
+    params = {}
+    for item in param_str.split(","):
+        key, eq, value = item.partition("=")
+        if not eq:
+            raise ArmUnavailable(
+                "parametr bez wartości w specyfikacji " + NTUPLE_POLICY_PREFIX + ": " + item
+            )
+        if key not in NTUPLE_SEARCH_PARAMS:
+            raise ArmUnavailable(
+                "nieznany parametr " + NTUPLE_POLICY_PREFIX + ": " + key
+                + " (dopuszczone: " + ", ".join(NTUPLE_SEARCH_PARAMS) + ")"
+            )
+        if key in params:
+            raise ArmUnavailable("parametr " + key + " podany dwa razy w specyfikacji: " + spec)
+        try:
+            params[key] = int(value)
+        except ValueError as exc:
+            raise ArmUnavailable(
+                "parametr " + key + " wymaga liczby całkowitej, otrzymano: " + value
+            ) from exc
+    return path, params
 
 
 def load_ntuple_weights(path):
@@ -190,9 +235,9 @@ def build_policy(spec, config):
         return LookaheadPolicy()
 
     if spec.startswith(NTUPLE_POLICY_PREFIX + ":"):
-        path = spec[len(NTUPLE_POLICY_PREFIX) + 1:]
+        path, params = parse_ntuple_spec(spec[len(NTUPLE_POLICY_PREFIX) + 1:])
         ntuple_value = load_ntuple_weights(path)
-        return NTupleLookaheadPolicy(ntuple_value)
+        return NTupleLookaheadPolicy(ntuple_value, **params)
 
     for prefix, policy_cls in TUNED_POLICY_CLASSES.items():
         if spec.startswith(prefix + ":"):
@@ -429,7 +474,8 @@ def main(argv=None):
     parser.add_argument(
         "--candidate", required=True,
         help="random | greedy | heuristic | tray | lookahead | heuristic:<plik> | "
-             "tray:<plik> | lookahead:<plik> | lookahead-ntuple:<plik> | "
+             "tray:<plik> | lookahead:<plik> | lookahead-ntuple:<plik>"
+             "[@beam=..,samples=..,branch=..,inner_beam=..,inner_depth=..] | "
              "ścieżka do wag torcha",
     )
     parser.add_argument("--previous", help="ramię odniesienia: poprzednik")
@@ -504,6 +550,10 @@ def main(argv=None):
             policy, seeds_f, seeds_r, config["move_cap"],
             jobs=args.jobs, spec=spec, config=config,
         )
+        # Pełna specyfikacja ramienia (#195): `policy.name` jest stałą klasy (np.
+        # `lookahead-ntuple`) i nie niesie ani pliku wag, ani parametrów przeszukania —
+        # bez `spec` rekord nie dałby się odtworzyć.
+        arm["spec"] = spec
         weights_path = weights_file_for_spec(spec)
         if weights_path:
             arm["weights_hash"] = file_hash(weights_path)
