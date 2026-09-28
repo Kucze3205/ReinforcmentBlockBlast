@@ -6,35 +6,51 @@
     {"kawalek": 1, "plik_ruchow": "chunk1_moves.jsonl", "ruchy": "0-29", "polityka": "greedy",
      "wynik": "30/30 zapisanych, ruch 0 ROZBIEZNOSC (pierwszy odczyt planszy tutorialu - duch podpowiedzi przesloniel plansze/tacke na pierwszej klatce, most sam sie odzyskal na kolejnej). Ruchy 14 i 15 ROZBIEZNOSC (drobna niezgodnosc plansza oczekiwana/obserwowana, most kontynuowal normalnie). Brak okien, brak reklam, brak konca partii w tym kawalku. Partia 1 (od tutorialu) w toku, wynik do 1065."},
     {"kawalek": 2, "plik_ruchow": "chunk2_moves.jsonl", "ruchy": "0-29", "polityka": "greedy",
-     "wynik": "Ruchy 0-11: partia 1 kontynuowana, ok (ruch 11 ROZBIEZNOSC drobna, nie przerwala trajektorii), wynik do 1286. Ruch 11->12: most sam wykryl koniec partii (is_game_over_screen), zapisal zrzut 012_end.png PRZED tapnieciem Play, stabilny odczyt wyniku 2/2 zgodne = 1290, sam tapnal Play (bez reki), partia 2 wystartowala (n=12). Ruchy 12-29 partii 2 ok, wynik do 218. Brak okien, brak reklam poza automatycznym zdarzeniem konca partii."}
+     "wynik": "Ruchy 0-11: partia 1 kontynuowana, ok (ruch 11 ROZBIEZNOSC drobna, nie przerwala trajektorii), wynik do 1286. Ruch 11->12: most sam wykryl koniec partii (is_game_over_screen), zapisal zrzut 012_end.png PRZED tapnieciem Play, stabilny odczyt wyniku 2/2 zgodne = 1290, sam tapnal Play (bez reki), partia 2 wystartowala (n=12). Ruchy 12-29 partii 2 ok, wynik do 218. Brak okien, brak reklam poza automatycznym zdarzeniem konca partii."},
+    {"kawalek": 3, "plik_ruchow": "chunk3_moves.jsonl", "ruchy": "0-29", "polityka": "greedy",
+     "wynik": "30/30 ok, brak okien, brak reklam, brak konca partii. Partia 2 kontynuowana: wynik do 2444."},
+    {"kawalek": 4, "plik_ruchow": "chunk4_moves.jsonl", "ruchy": "0-2 ok, potem NIEZNANE OKNO", "polityka": "greedy",
+     "wynik": "Ruchy 0-2 partii 2 ok, wynik do 3562. Po ruchu 2 (n=3): most rozpoznal is_settings_screen (SETTINGS_DARK_FRAC), nacisnal wstecz (press_back, wpis okno=ustawienia_wstecz), po czym in_game()=false -> most sam wywolal restart_app() (monkey, bez instalacji/ToS), log 'restart udany, kontynuacja partii'. Po restarcie odczyt planszy dal 'brak legalnego ruchu wg odczytu' i kawalek zakonczyl sie po 3 ruchach zamiast 30. Zrzut n=3 (003_state.png, zapisany jako chunk4_003_menu_end.png) pokazuje NIE ekran Ustawien, tylko GLOWNE MENU apki ('Block Blast Adventure Master' z kafelkami Adventure/Classic/More Games, kafelek Classic z plakietka 'Continue!'). Wniosek: most bledne zaklasyfikowal glowny ekran menu jako is_settings_screen (prog SETTINGS_DARK_FRAC trafiony przez ciemnoniebieskie tlo menu), a po nieudanym wstecz apka wygladala jak 'nie na pierwszym planie' co wywolalo restart_app (ktory tylko ponownie odpalil apke - i tak wyladowal na tym samym menu). To NOWE NIEZNANE OKNO (menu_glowne) nie obslugiwane przez bridge.py. Naprawa reczna (1/3 dozwolonych prob z zadania): adb shell input tap 160 483 (przyblizony srodek kafelka 'Classic' na zrzucie 320x640) -> gra wznowila plansze partii 2 z wynikiem 3566 (bridge-out/after_tap_classic.png, kopia bridge/runs/4a1796f/chunk4_after_recovery.png). UWAGA: wynik przeszedl 3562->3566 bez zadnego zalogowanego ruchu miedzy nimi - DZIURA w trajektorii partii 2 (nieznany ruch/zdarzenie w tle apki podczas przejscia do menu i restartu)."},
+    {"kawalek": 5, "plik_ruchow": "chunk5_moves.jsonl", "ruchy": "0-29", "polityka": "greedy",
+     "wynik": "30/30 ok (wg pola ok), brak okien, brak reklam, brak konca partii. Partia 2 kontynuowana od wynik 3566 do 6190 wg ostatniego ruchu. UWAGA: pole 'score' (pojedynczy OCR na klatke, diagnostyczne, NIE wynik stabilizowany) pokazuje skrajnie niestabilne odczyty w tym kawalku: 9863, 9884, spadek do 5886, 9920..9972, spadek do 5976, potem 65978 i 66984 (najwyraznej blad OCR na animacji combo/mnoznika), znow spadek do 5988 - kolejne odczyty wracaja do spojnego wzrostu (6091, 6185, 6190). To NIE sa realne wahania wyniku (plansza/tacka miedzy tymi ruchami zmienia sie zgodnie z pojedynczym ruchem, bez resetu), tylko szum OCR pojedynczego odczytu w trakcie animacji - dotyczy WYLACZNIE diagnostycznego pola 'score' per-ruch, nie pola 'wynik_koncowy' (ktore stabilizuje sie 2 odczytami przy koncu partii)."},
+    {"kawalek": 6, "plik_ruchow": "chunk6_moves.jsonl", "ruchy": "0-1 (partia 2) + 2-29 (partia 3 od nowa)", "polityka": "greedy",
+     "wynik": "Ruch 0 ok (wynik 6194), ruch 1 ROZBIEZNOSC drobna - most wykrywa is_game_over_screen, zapisuje zrzut 002_end.png PRZED Play, stabilny odczyt 2/2 = 6307, sam tapnal Play (bez reki), partia 3 wystartowala (n=2). Ruchy 2-29 partii 3: przewaznie ok, 3 ROZBIEZNOSCI drobne (ruch 9, 24, 25 wedlug numeracji chunku) nie przerywajace trajektorii, wynik do 1165."}
   ],
   "partie": [
     {"partia": 1, "polityka": "greedy", "pierwszy_kawalek": 1, "ostatni_kawalek": 2, "liczba_ruchow": 42,
      "wynik_koncowy_ekran": 1290, "wynik_koncowy_odczyty": [1290, 1290],
      "zrzut_ekranu_konca": "bridge/runs/4a1796f/chunk2_012_end.png (zapisany przez most PRZED tapnieciem Play, #198)",
      "wariant_ekranu_konca": "fioletowy 'Can you Top that?'",
-     "trajektoria_bez_dziur": "tak - chunk1_moves.jsonl (n 0-29) i chunk2_moves.jsonl (n 0-12) kompletne na dysku, brak restartu apki, jedyne ROZBIEZNOSCI sa oznaczone ok=false na pojedynczych ruchach ale most kontynuowal bez interwencji rownej restartowi."}
+     "trajektoria_bez_dziur": "tak - chunk1_moves.jsonl (n 0-29) i chunk2_moves.jsonl (n 0-12) kompletne na dysku, brak restartu apki, jedyne ROZBIEZNOSCI sa oznaczone ok=false na pojedynczych ruchach ale most kontynuowal bez interwencji rownej restartowi."},
+    {"partia": 2, "polityka": "greedy", "pierwszy_kawalek": 2, "ostatni_kawalek": 6, "liczba_ruchow": "ok. 74 (12 w kawalku2 + 30 w kawalku3 + 3 w kawalku4 [z czego 1 rzeczywisty ruch przed dziura] + 30 w kawalku5 + 1 w kawalku6, plus nieznany ruch w dziurze)",
+     "wynik_koncowy_ekran": 6307, "wynik_koncowy_odczyty": [6307, 6307],
+     "zrzut_ekranu_konca": "bridge/runs/4a1796f/chunk6_002_end.png (zapisany przez most PRZED tapnieciem Play)",
+     "wariant_ekranu_konca": "fioletowy 'Beat Your Best Again!'",
+     "trajektoria_bez_dziur": "NIE - w kawalku 4 (patrz opis kawalka) most fatalnie zaklasyfikowal nieznane okno 'menu_glowne' jako ustawienia_wstecz, wykonal press_back, uznal apke za nie-na-pierwszym-planie i wywolal restart_app(); po recznym powrocie na plansze (tap Classic) wynik skoczyl 3562->3566 BEZ zalogowanego ruchu miedzy nimi - jeden ruch/zdarzenie nieznane w trajektorii. Wszystkie pozostale kawalki tej partii (2,3,5,6) sa kompletne na dysku, bez restartu apki poza tym jednym epizodem."}
   ],
   "liczniki_zdarzen_bez_reki": {
-    "reklama_statyczna": {"liczba": 0, "bez_reki": "nie dotyczy - brak wystapien w 2 kawalkach (60 ruchow polityki)"},
-    "koniec_partii_wariant_purpurowy": {"liczba": 1, "bez_reki": "tak - most sam rozpoznal is_game_over_screen, zapisal zrzut, odczytal wynik (stabilny po 2 odczytach) i tapnal Play, bez reki verifiera. Naglowek: 'Can you Top that?'."},
+    "reklama_statyczna": {"liczba": 0, "bez_reki": "nie dotyczy - brak wystapien w 6 kawalkach (180 ruchow polityki)"},
+    "koniec_partii_wariant_purpurowy": {"liczba": 2, "bez_reki": "tak, oba razy - most sam rozpoznal is_game_over_screen, zapisal zrzut, odczytal wynik (stabilny po 2 odczytach) i tapnal Play, bez reki verifiera. Naglowki: 'Can you Top that?' (partia 1), 'Beat Your Best Again!' (partia 2)."},
     "koniec_partii_wariant_niebieski": {"liczba": 0, "bez_reki": "nie dotyczy - brak wystapien"},
-    "automatyczne_play": {"liczba": 1, "bez_reki": "tak"},
-    "ustawienia_wstecz": {"liczba": 0, "bez_reki": "nie dotyczy - brak wystapien"},
-    "restart_apki": {"liczba": 0, "bez_reki": "nie dotyczy"},
-    "nieznane_okno": {"liczba": 0},
-    "stabilizacja_wyniku_ponad_2_odczyty": {"liczba": 0, "uwaga": "jedyne zdarzenie konca partii w tym kawalku ustabilizowalo sie na pierwszej parze odczytow (1290, 1290)"}
+    "automatyczne_play": {"liczba": 2, "bez_reki": "tak, oba razy"},
+    "ustawienia_wstecz": {"liczba": 1, "bez_reki": "NIE bez reki, ale most sadzil ze tak - w kawalku 4 most wykonal wlasny press_back sadzac ze to ekran Ustawien (wpis okno=ustawienia_wstecz w logu), lecz faktyczny ekran to nieznane menu_glowne (patrz nieznane_okno). Klasyfikacja mostu byla bledna."},
+    "restart_apki": {"liczba": 1, "bez_reki": "tak co do samego restartu (most sam wywolal restart_app/monkey), ale restart NIE przywrocil partii - wyladowal na menu_glownym, wiec potrzebna byla 1 reczna interwencja verifiera (tap na kafelek Classic) zeby wrocic do gry. Kawalek 4."},
+    "nieznane_okno": {"liczba": 1, "okno": "menu_glowne", "zrzut": "bridge/runs/4a1796f/chunk4_003_menu_end.png", "uwaga": "Glowny ekran apki (Block Blast Adventure Master: kafelki Adventure / Classic [z plakietka 'Continue!'] / More Games). Most bledna zaklasyfikowal go jako is_settings_screen (prog SETTINGS_DARK_FRAC widocznie tez pasuje do tego ciemnoniebieskiego tla). Po press_back i restart_app apka nadal wyladowala na tym samym menu. Naprawa reczna: 1 z maks. 3 dozwolonych prob z zadania - tap (160,483) na kafelek Classic, gra wznowiona. Wspolrzedne to przyblizony srodek kafelka zmierzony na zrzucie 320x640, NIE ostateczna geometria dla mostu - o tym decyduje implementer."},
+    "stabilizacja_wyniku_ponad_2_odczyty": {"liczba": 0, "uwaga": "oba zdarzenia konca partii w tej sesji ustabilizowaly sie juz na pierwszej parze odczytow (1290,1290 i 6307,6307)"}
   },
   "co_odczytane_vs_wnioskowane": {
     "odczytane_ze_zrzutow_i_logow": [
       "bridge-out/version.txt: versionName=10.7.5.",
-      "bridge-out/chunk1.log, chunk2.log: konsola mostu 1:1.",
-      "bridge/runs/4a1796f/chunk1_moves.jsonl, chunk2_moves.jsonl: surowa trajektoria per ruch skopiowana z bridge-out/ bezposrednio po kazdym wywolaniu.",
-      "bridge/runs/4a1796f/chunk2_012_end.png: zrzut zapisany PRZEZ MOST (nie przez podglad zewnetrzny jak w sesji cb91077) - widac naglowek 'Can you Top that?' i wynik '1290', zgodny co do cyfry z polem wynik_koncowy w moves.1.jsonl."
+      "bridge-out/chunk1.log .. chunk6.log: konsola mostu 1:1 dla kazdego wywolania.",
+      "bridge/runs/4a1796f/chunkN_moves.jsonl (N=1..6): surowa trajektoria per ruch skopiowana z bridge-out/ bezposrednio po kazdym wywolaniu, zaden plik nie nadpisany (numeracja moves.jsonl, moves.1.jsonl, ... dziala zgodnie z opisem #198).",
+      "bridge/runs/4a1796f/chunk2_012_end.png i chunk6_002_end.png: zrzuty zapisane PRZEZ MOST PRZED tapnieciem Play (nowe w tej sesji dzieki #198) - widoczne naglowki i wyniki zgodne co do cyfry z polami wynik_koncowy w plikach ruchow.",
+      "bridge/runs/4a1796f/chunk4_003_menu_end.png: zrzut glownego menu apki, zlapany przez most jako 003_state.png przy proby odczytu planszy po nieudanej autonaprawie (ustawienia_wstecz + restart_app).",
+      "bridge/runs/4a1796f/chunk4_after_recovery.png: zrzut po recznym tapnieciu kafelka Classic - plansza partii 2 wznowiona z wynikiem 3566 (byl 3562 przed dziura)."
     ],
     "wnioski": [
-      "Poprawka #198 dziala: most sam zapisal zrzut konca partii do pliku przed Play (wczesniej wymagalo to zewnetrznego ciaglego nagrywania), i wynik ustabilizowal sie juz po 2 odczytach bez potrzeby dalszych probek.",
-      "Numeracja plikow ruchow dziala zgodnie z opisem: pierwsze wywolanie -> moves.jsonl, drugie -> moves.1.jsonl, zaden plik nie zostal nadpisany."
+      "Poprawka #198 dziala dla obu zaobserwowanych koncow partii: most sam zapisal zrzut PRZED Play, wynik ustabilizowal sie juz po 2 odczytach, zadne wywolanie nie nadpisalo pliku ruchow poprzedniego.",
+      "Nowe (nieznane bridge.py) zachowanie: apka potrafi wyladowac na glownym menu (nie na ekranie Ustawien ani na planszy) po zdarzeniu, ktorego przyczyny verifier nie zdiagnozowal (mozliwy krotki crash/reset procesu w tle) - is_settings_screen falszywie dopasowal to menu (prawdopodobnie przez podobny prog ciemnosci tla), a nastepujacy po nim restart_app rowniez nie wyladowal w partii. To DZIURA w trajektorii partii 2: miedzy ostatnim znanym ruchem (wynik 3562) a wznowieniem (wynik 3566) brak zalogowanego ruchu - nie wiadomo co konkretnie sie stalo w tym oknie.",
+      "Diagnostyczne pole 'score' (pojedynczy OCR wyniku na kazdej klatce ruchu, ROZNE od stabilizowanego 'wynik_koncowy' przy koncu partii) bywa skrajnie niestabilne w trakcie animacji combo/mnoznika (kawalek 5: odczyty 65978, 66984 zamiast ~6000) - nie nadaje sie do rekonstrukcji trajektorii wyniku bez dodatkowej walidacji; tylko wynik_koncowy z podwojnym odczytem jest wiarygodny dla porownania z naszym wzorem (#183)."
     ]
   }
 }
