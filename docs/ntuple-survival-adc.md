@@ -118,3 +118,85 @@ z rzędu). Najlepszy punkt ewaluacji (39 000, tuż przed końcem, nie w środku
 przebiegu) potwierdza ten sam sygnał: budżet 40 000 odcinków nie wystarczył,
 żeby `ADC` osiągnął sufit, tak jak `AD` w #152 przed swoim wznowieniem do
 70 000 w #157.
+
+## Ciąg dalszy do 70 000 (#166)
+
+Wznowienie tym samym poleceniem (zmienione wyłącznie `--episodes`/`--episodes-per-run`)
+od 40 000 do **70 000 odcinków**, trzy bloki na pierwszym planie, stan/wagi/krzywa
+commitowane po każdym. Wagi 40 000 zamrożone pod niezmienną nazwą przed startem
+(`ntuple/survival-adc-40k.json`, sha256 `913323c98017dd80`).
+
+| blok | `--episodes-per-run` | odcinki po bloku | czas bloku (rzeczywisty) |
+|---|---|---|---|
+| 1 | 10000 | 50000 | 31m27,7s (1887,7 s) |
+| 2 | 12000 | 62000 | 37m27,3s (2247,3 s) |
+| 3 | 8000 | 70000 (KONIEC) | 26m11,9s (1571,9 s) |
+
+Wszystkie trzy poniżej limitu 3400 s (blok 1 dobrany konserwatywnie z tempa końca
+przebiegu 0-40 000, 0,1435 s/odcinek, #162, z zapasem; bloki 2 i 3 dobrane z tempa
+bloku poprzedniego liczonego z `<stan>.log.jsonl`: 0,17125 s/odcinek po bloku 1,
+0,17010 s/odcinek po bloku 2).
+
+### Okna treningu po 5000 odcinków, 40 001-70 000: `ADC` kontra `AD`
+
+Polityka behawioralna (zachłanna, bez przeszukania tacki), okna liczone z
+`<stan>.log.jsonl` obu przebiegów (ten sam `--seed 3`, `AD` z #157):
+
+| okno (odcinki) | wynik `ADC` | przeżycie `ADC` | wynik `AD` | przeżycie `AD` |
+|---|---|---|---|---|
+| 40001-45000 | 2987,37 | 89,98 | 2719,78 | 85,38 |
+| 45001-50000 | 3035,75 | 90,94 | 2786,52 | 88,00 |
+| 50001-55000 | 3109,28 | 92,08 | 2918,12 | 89,36 |
+| 55001-60000 | 3146,86 | 93,53 | 2988,67 | 91,39 |
+| 60001-65000 | 3174,95 | 93,51 | 3137,71 | 93,85 |
+| **65001-70000 (ostatnie)** | **3169,82** | **93,57** | 3099,56 | 94,01 |
+
+`ADC` prowadzi wynikiem na wszystkich sześciu oknach 40 001-70 000, ale przewaga
+zanika: z +9,8% na oknie 40001-45000 do +1,2% na oknie ostatnim (65001-70000), a na
+oknie 60001-65000 `AD` doganiał w przeżyciu (93,51 wobec 93,85 — pierwsza chwila, gdy
+`ADC` nie prowadzi w tej mierze). Okno ostatnie `ADC` to pierwszy spadek średniego
+wyniku okna w tej części przebiegu (3174,95 → 3169,82, -0,17%), podobnie jak u `AD`
+w tym samym zakresie (3137,71 → 3099,56, -1,2%) — obie krzywe zaczynają płaszczeć się
+w tym samym miejscu (okolice 60 000-65 000).
+
+### Punkty ewaluacji (bez uczenia, 100 partii na punkt) co 5000 odcinków
+
+| odcinki | wynik `ADC` | przeżycie `ADC` |
+|---|---|---|
+| 40 000 | 2647,48 | 84,82 |
+| 45 000 | 3067,46 | 94,32 |
+| **50 000** | **3467,78** | **100,60** |
+| 55 000 | 3223,48 | 93,87 |
+| 60 000 | 3254,87 | 90,49 |
+| 65 000 | 2943,60 | 84,81 |
+| 70 000 (ostatnie) | 3175,06 | 89,63 |
+
+Żaden z punktów siatki co 5000 po 50 000 nie przebija punktu 50 000 — sam siatkowy
+sygnał sugeruje szczyt wcześnie, ale poza siatką co 1000 leży punkt **68 000**
+(3738,19/104,05), nowy najlepszy punkt całego przebiegu (patrz niżej) — zaszumienie
+100-partiowej ewaluacji nie pokrywa się tu z gładszymi oknami treningu wyżej.
+
+### Najlepszy punkt i czas na odcinek
+
+`ntuple/survival-adc-best.json` nadpisano przy odcinku **68 000**: wynik 3738,19,
+przeżycie 104,05 (100 partii) — przebija poprzedni najlepszy punkt z #162 (odcinek
+39 000: 3649,62/97,71) i pozostaje najlepszy do końca przebiegu (70 000).
+
+Czas na odcinek z `<stan>.log.jsonl` (nie z zaokrąglanego pola `duration_s` stanu):
+**0,17259 s/odcinek** dla nowej części (odcinki 40 001-70 000, 30 000 odcinków),
+**0,15055 s/odcinek** licząc cały przebieg od zera (70 000 odcinków) — wolniej niż
+średnia 0-40 000 (0,13402), zgodnie z rosnącą długością dojrzewających partii, ten
+sam kierunek co u `AD` (0,19664 dla jego nowej części, #157).
+
+### Werdykt
+
+**Krzywa `ADC` nadal rośnie przy 70 000, ale z wyraźnie malejącym tempem od ~55 000
+i pierwszym mikroskopijnym spadkiem okna na samym końcu** (65001-70000: -0,17%
+wyniku wobec okna poprzedniego) — nie odwraca się jak `A` (#126), płaszczy się w tym
+samym miejscu co `AD` w tym samym zakresie odcinków (60 000-65 000). Przewaga `ADC`
+nad `AD` w oknach 5000-partiowych utrzymuje się przez całą część 40 001-70 000, ale
+zanika z +9,8% do +1,2% między pierwszym i ostatnim oknem tego zakresu (w części
+0-40 000 była płasko na +14%) — `AD` dogania `ADC`, nie odwrotnie. Najlepszy punkt
+całego przebiegu `ADC` (68 000: 3738,19/104,05) jest wyżej niż najlepszy punkt `AD`
+w tym samym zakresie odcinków (50 000: 3582,91/102,58, #157), więc `ADC` zostaje
+lepszym układem przy 70 000, tak jak był przy 40 000 — ale margines się kurczy.
