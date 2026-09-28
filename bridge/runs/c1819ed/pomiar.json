@@ -1,0 +1,45 @@
+{
+  "run": "c1819ed",
+  "cel": "Pomiar #173: naprawy z #169 na zywym moscie (plansza_pusta_przejsciowo, ustawienia_wstecz, petla_bez_postepu, restart apki, ekran 'Can you Top that?') + jasna reklama (#164 powtorka), polityka rekordu lookahead-ntuple:ntuple/survival-ad-70k.json",
+  "wersja_gry": "10.7.5 (bridge-out/version.txt)",
+  "kawalki": [
+    {"kawalek": 1, "ruchy": "0-19", "polityka": "lookahead-ntuple", "wynik": "20/20 ok wg logu (17/20 obserwowanych 'OK' w konsoli, ruch 2 ROZBIEZNOSC), wynik do 371",
+     "wynik_szczegoly": "ruch 2 (slot1->(3,6)): ROZBIEZNOSC — apka padla miedzy ruchem a odczytem (jak w #164 kawalek 2). Most SAM wykryl not in_game() i wywolal restart_app(): 'restart 1/3' nieudany, 'restart 2/3' udany ('restart udany, kontynuacja partii'), bez reki verifiera. Po restarcie ruch 3 (te same wspolrzedne co nieudany ruch 2) zakonczyl sie OK, wynik wrocil do 128 (ten sam co przed padem) - autozapis apki przetrwal restart. Reszta kawalka (ruchy 3-19) bez zakloceń."},
+    {"kawalek": 2, "ruchy": "0-19", "polityka": "lookahead-ntuple", "wynik": "20/20 ok, brak okien, brak reklam, wynik do 2665"},
+    {"kawalek": 3, "ruchy": "0-19", "polityka": "lookahead-ntuple", "wynik": "20/20 ok, brak okien, brak reklam, wynik do ~9163 (kilka odczytow OCR wyniku zanizonych/bledych po drodze, bez wplywu na ruchy - ok liczone z porownania planszy, nie z OCR)"},
+    {"kawalek": 4, "ruchy": "0-19", "polityka": "lookahead-ntuple", "wynik": "20/20 ok, brak okien, brak reklam, wynik do ~7070 (OCR nadal miejscami niestabilny, np. 'wynik 56381')"},
+    {"kawalek": 5, "ruchy": "0-19", "polityka": "lookahead-ntuple", "wynik": "20/20 ok, brak okien, brak reklam, wynik do 13371 (partia zywa, nie skonczona)"}
+  ],
+  "jasne_reklamy": [],
+  "restarty_apki": [
+    {"kawalek": 1, "n_przy_restarcie": 2, "proby": "1 nieudana, 2 udana", "partia_szla_dalej": "tak, automatycznie bez reki verifiera - to potwierdzona naprawa z #169 (restart_app dziala samodzielnie w petli bridge.py)"}
+  ],
+  "okna_169": {
+    "plansza_pusta_przejsciowo": [],
+    "ustawienia_wstecz": [],
+    "petla_bez_postepu": [],
+    "koniec_partii_can_you_top_that": []
+  },
+  "pytanie_1_naprawy_na_zywo": {
+    "plansza_pusta_przejsciowo": {"liczba": 0, "partia_szla_dalej": "nie dotyczy (brak wystapien w dotychczasowych 5 kawalkach)"},
+    "ustawienia_wstecz": {"liczba": 0, "partia_szla_dalej": "nie dotyczy"},
+    "petla_bez_postepu": {"liczba": 0, "partia_szla_dalej": "nie dotyczy"},
+    "restart_apki": {"liczba": 1, "partia_szla_dalej": "tak, automatycznie - most sam wykryl brak gry na pierwszym planie i wznowil bez reki verifiera (kawalek 1)"},
+    "koniec_partii_can_you_top_that": {"liczba": 0, "partia_szla_dalej": "nie dotyczy (partia wciaz trwa po 5 kawalkach)"}
+  },
+  "pytanie_2_jasna_reklama": {
+    "odpowiedz": "w trakcie pomiaru",
+    "ruchy_partie_czas": "kawalki 1-5 (100 ruchow polityki, ~4 minuty gry emulatorowej, 1 partia ciagla poza jednym restartem apki po padzie): zadna reklama (ani ciemna interstitial, ani jasna) nie wystapila"
+  },
+  "co_odczytane_vs_wnioskowane": {
+    "odczytane_ze_zrzutow": [
+      "bridge-out/chunk1.log: konsola pokazuje 'restart 1/3', 'restart 2/3', 'restart udany, kontynuacja partii' po ROZBIEZNOSCI na ruchu 2 kawalka 1.",
+      "bridge/runs/c1819ed/chunk1 nie zachowany osobno (moves.jsonl nadpisywany przy kazdym starcie bridge.py) - wpis 'restart' z tym tekstem odczytany z konsoli i z bridge-out/moves.jsonl przed nadpisaniem (linia 4: {'n':3,...,'restart':'apka wznowiona po awarii (monkey, bez instalacji/ToS)'}).",
+      "bridge-out/version.txt: versionName=10.7.5."
+    ],
+    "wnioski": [
+      "Naprawiony restart_app() w petli main() dziala samodzielnie na tej wersji apki - to bezposrednie potwierdzenie dzialania naprawy z #169 na zywym moscie, bez potrzeby recznej interwencji jak w #164.",
+      "Przy tej polityce (lookahead-ntuple, wagi rekordowe) partia przetrwala 100 ruchow bez konca gry i bez jakiejkolwiek reklamy - zgodnie z opisem w issue, ze ta polityka przezywa dluzej niz lookahead:weights.json, wiec mniej okazji na reklamy na kawalek."
+    ]
+  }
+}
