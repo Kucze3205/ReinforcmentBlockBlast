@@ -16,7 +16,15 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools"))
 
 from ntuple import REWARD_SCORE, NTupleValue
-from tools.train_ntuple import episode_seed, load_bench_seeds, main as train_main, read_log, run_episode
+from tools.train_ntuple import (
+    choose_start_board,
+    episode_seed,
+    load_bench_seeds,
+    load_start_states,
+    main as train_main,
+    read_log,
+    run_episode,
+)
 
 CONFIG_PATH = "bench/config.json"
 
@@ -289,6 +297,177 @@ class TestLayoutFlag(unittest.TestCase):
             with open(state_explicit, encoding="utf-8") as fh:
                 explicit_weights = json.load(fh)["weights"]
             self.assertEqual(default_weights, explicit_weights)
+
+
+class TestChooseStartBoard(unittest.TestCase):
+    """`choose_start_board` (#168): wybor planszy startowej, niezalezny od
+    `episode_seed` i deterministyczny z (seed, numer_odcinka)."""
+
+    BOARDS = [[[1] * 8 for _ in range(8)], [[0] * 8 for _ in range(8)]]
+
+    def test_zero_prob_returns_none(self):
+        self.assertIsNone(choose_start_board(self.BOARDS, seed=1, episode_number=1, prob=0.0))
+
+    def test_empty_states_returns_none_even_with_prob_one(self):
+        self.assertIsNone(choose_start_board([], seed=1, episode_number=1, prob=1.0))
+
+    def test_prob_one_always_returns_a_board_from_states(self):
+        for episode in range(1, 10):
+            board = choose_start_board(self.BOARDS, seed=1, episode_number=episode, prob=1.0)
+            self.assertIn(board, self.BOARDS)
+
+    def test_deterministic_for_same_seed_and_episode(self):
+        a = choose_start_board(self.BOARDS, seed=5, episode_number=3, prob=1.0)
+        b = choose_start_board(self.BOARDS, seed=5, episode_number=3, prob=1.0)
+        self.assertEqual(a, b)
+
+
+class TestLoadStartStates(unittest.TestCase):
+    def test_reads_boards_key_from_collect_states_format(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "states.json")
+            board = [[0] * 8 for _ in range(8)]
+            with open(path, "w", encoding="utf-8") as fh:
+                json.dump({"boards": [{"board": board, "placement": 5, "game_seed": 1}]}, fh)
+            self.assertEqual(load_start_states(path), [board])
+
+    def test_reads_plain_list_of_boards(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "states.json")
+            board = [[1] * 8 for _ in range(8)]
+            with open(path, "w", encoding="utf-8") as fh:
+                json.dump([board], fh)
+            self.assertEqual(load_start_states(path), [board])
+
+
+class TestRunEpisodeStartBoard(unittest.TestCase):
+    def test_start_board_none_never_calls_set_board(self):
+        class FakeGame:
+            def __init__(self, seed):
+                self.done = False
+                self.score = 0
+                self.placements = 0
+
+            def set_board(self, grid):
+                raise AssertionError("set_board nie powinno byc wolane bez start_board")
+
+            def available_actions(self):
+                return []
+
+            def step(self, action):
+                pass
+
+        with mock.patch("tools.train_ntuple.Game", FakeGame):
+            run_episode(NTupleValue(), seed=1, move_cap=5, alpha=0.01, start_board=None)
+
+    def test_start_board_is_applied_via_set_board(self):
+        applied = []
+
+        class FakeGame:
+            def __init__(self, seed):
+                self.done = False
+                self.score = 0
+                self.placements = 0
+
+            def set_board(self, grid):
+                applied.append(grid)
+
+            def available_actions(self):
+                return []
+
+            def step(self, action):
+                pass
+
+        board = [[1] * 8 for _ in range(8)]
+        with mock.patch("tools.train_ntuple.Game", FakeGame):
+            stats = run_episode(NTupleValue(), seed=1, move_cap=5, alpha=0.01, start_board=board)
+        self.assertEqual(applied, [board])
+        self.assertTrue(stats["start_from_file"])
+
+
+class TestStartStatesIntegration(unittest.TestCase):
+    """`--start-states`/`--start-prob` end-to-end w `tools/train_ntuple.py` (#168)."""
+
+    @staticmethod
+    def _write_states_file(path):
+        board = [[1] * 8 for _ in range(8)]
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump({"boards": [{"board": board, "placement": 100, "game_seed": 1}]}, fh)
+
+    def test_without_start_states_matches_run_without_the_flags(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            states_path = os.path.join(tmp, "states.json")
+            self._write_states_file(states_path)
+
+            state_a = os.path.join(tmp, "a.state.json")
+            out_a = os.path.join(tmp, "a.out.json")
+            train_main(["--state", state_a, "--out", out_a, "--episodes", "3",
+                        "--episodes-per-run", "3", "--seed", "9", "--move-cap", "40"])
+
+            state_b = os.path.join(tmp, "b.state.json")
+            out_b = os.path.join(tmp, "b.out.json")
+            train_main(["--state", state_b, "--out", out_b, "--episodes", "3",
+                        "--episodes-per-run", "3", "--seed", "9", "--move-cap", "40",
+                        "--start-states", states_path, "--start-prob", "0"])
+
+            with open(state_a, encoding="utf-8") as fh:
+                a = json.load(fh)
+            with open(state_b, encoding="utf-8") as fh:
+                b = json.load(fh)
+            self.assertEqual(a["weights"], b["weights"])
+
+    def test_start_prob_one_marks_first_episode_as_from_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            states_path = os.path.join(tmp, "states.json")
+            self._write_states_file(states_path)
+            state = os.path.join(tmp, "state.json")
+            out = os.path.join(tmp, "out.json")
+            train_main(["--state", state, "--out", out, "--episodes", "1", "--seed", "9",
+                        "--move-cap", "40", "--start-states", states_path, "--start-prob", "1"])
+            entries = read_log(state)
+            self.assertEqual(len(entries), 1)
+            self.assertTrue(entries[0]["start_from_file"])
+
+    def test_resumed_run_with_start_states_matches_continuous_run(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            states_path = os.path.join(tmp, "states.json")
+            self._write_states_file(states_path)
+            common_flags = ["--seed", "9", "--move-cap", "40",
+                             "--start-states", states_path, "--start-prob", "0.5"]
+
+            state_a = os.path.join(tmp, "a.state.json")
+            out_a = os.path.join(tmp, "a.out.json")
+            train_main(["--state", state_a, "--out", out_a, "--episodes", "4",
+                        "--episodes-per-run", "4"] + common_flags)
+
+            state_b = os.path.join(tmp, "b.state.json")
+            out_b = os.path.join(tmp, "b.out.json")
+            for _ in range(4):
+                train_main(["--state", state_b, "--out", out_b, "--episodes", "4"] + common_flags)
+
+            with open(state_a, encoding="utf-8") as fh:
+                a = json.load(fh)
+            with open(state_b, encoding="utf-8") as fh:
+                b = json.load(fh)
+            self.assertEqual(a["weights"], b["weights"])
+            flags_a = [e["start_from_file"] for e in read_log(state_a)]
+            flags_b = [e["start_from_file"] for e in read_log(state_b)]
+            self.assertEqual(flags_a, flags_b)
+            self.assertTrue(any(flags_a), "test nie sprawdza nic, jesli zaden odcinek nie wystartowal z pliku")
+
+    def test_state_saved_without_start_states_resumes_with_start_states(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            states_path = os.path.join(tmp, "states.json")
+            self._write_states_file(states_path)
+            state = os.path.join(tmp, "state.json")
+            out = os.path.join(tmp, "out.json")
+            train_main(["--state", state, "--out", out, "--episodes", "2", "--episodes-per-run", "2",
+                        "--seed", "9", "--move-cap", "40"])
+            train_main(["--state", state, "--out", out, "--episodes", "4", "--episodes-per-run", "2",
+                        "--seed", "9", "--move-cap", "40",
+                        "--start-states", states_path, "--start-prob", "1"])
+            with open(state, encoding="utf-8") as fh:
+                self.assertEqual(json.load(fh)["episode"], 4)
 
 
 if __name__ == "__main__":
