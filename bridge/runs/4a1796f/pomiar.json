@@ -1,0 +1,40 @@
+{
+  "run": "4a1796f",
+  "cel": "Pomiar #199: cale partie greedy, pelne plansze (material dla Z-6 #191 i punktacji #183/#191). Most po #198: nie nadpisuje ruchow, zapisuje zrzut konca partii przed Play, stabilny odczyt wyniku (2 kolejne odczyty rowne). python3 bridge.py 30 greedy.",
+  "wersja_gry": "10.7.5 (bridge-out/version.txt)",
+  "kawalki": [
+    {"kawalek": 1, "plik_ruchow": "chunk1_moves.jsonl", "ruchy": "0-29", "polityka": "greedy",
+     "wynik": "30/30 zapisanych, ruch 0 ROZBIEZNOSC (pierwszy odczyt planszy tutorialu - duch podpowiedzi przesloniel plansze/tacke na pierwszej klatce, most sam sie odzyskal na kolejnej). Ruchy 14 i 15 ROZBIEZNOSC (drobna niezgodnosc plansza oczekiwana/obserwowana, most kontynuowal normalnie). Brak okien, brak reklam, brak konca partii w tym kawalku. Partia 1 (od tutorialu) w toku, wynik do 1065."},
+    {"kawalek": 2, "plik_ruchow": "chunk2_moves.jsonl", "ruchy": "0-29", "polityka": "greedy",
+     "wynik": "Ruchy 0-11: partia 1 kontynuowana, ok (ruch 11 ROZBIEZNOSC drobna, nie przerwala trajektorii), wynik do 1286. Ruch 11->12: most sam wykryl koniec partii (is_game_over_screen), zapisal zrzut 012_end.png PRZED tapnieciem Play, stabilny odczyt wyniku 2/2 zgodne = 1290, sam tapnal Play (bez reki), partia 2 wystartowala (n=12). Ruchy 12-29 partii 2 ok, wynik do 218. Brak okien, brak reklam poza automatycznym zdarzeniem konca partii."}
+  ],
+  "partie": [
+    {"partia": 1, "polityka": "greedy", "pierwszy_kawalek": 1, "ostatni_kawalek": 2, "liczba_ruchow": 42,
+     "wynik_koncowy_ekran": 1290, "wynik_koncowy_odczyty": [1290, 1290],
+     "zrzut_ekranu_konca": "bridge/runs/4a1796f/chunk2_012_end.png (zapisany przez most PRZED tapnieciem Play, #198)",
+     "wariant_ekranu_konca": "fioletowy 'Can you Top that?'",
+     "trajektoria_bez_dziur": "tak - chunk1_moves.jsonl (n 0-29) i chunk2_moves.jsonl (n 0-12) kompletne na dysku, brak restartu apki, jedyne ROZBIEZNOSCI sa oznaczone ok=false na pojedynczych ruchach ale most kontynuowal bez interwencji rownej restartowi."}
+  ],
+  "liczniki_zdarzen_bez_reki": {
+    "reklama_statyczna": {"liczba": 0, "bez_reki": "nie dotyczy - brak wystapien w 2 kawalkach (60 ruchow polityki)"},
+    "koniec_partii_wariant_purpurowy": {"liczba": 1, "bez_reki": "tak - most sam rozpoznal is_game_over_screen, zapisal zrzut, odczytal wynik (stabilny po 2 odczytach) i tapnal Play, bez reki verifiera. Naglowek: 'Can you Top that?'."},
+    "koniec_partii_wariant_niebieski": {"liczba": 0, "bez_reki": "nie dotyczy - brak wystapien"},
+    "automatyczne_play": {"liczba": 1, "bez_reki": "tak"},
+    "ustawienia_wstecz": {"liczba": 0, "bez_reki": "nie dotyczy - brak wystapien"},
+    "restart_apki": {"liczba": 0, "bez_reki": "nie dotyczy"},
+    "nieznane_okno": {"liczba": 0},
+    "stabilizacja_wyniku_ponad_2_odczyty": {"liczba": 0, "uwaga": "jedyne zdarzenie konca partii w tym kawalku ustabilizowalo sie na pierwszej parze odczytow (1290, 1290)"}
+  },
+  "co_odczytane_vs_wnioskowane": {
+    "odczytane_ze_zrzutow_i_logow": [
+      "bridge-out/version.txt: versionName=10.7.5.",
+      "bridge-out/chunk1.log, chunk2.log: konsola mostu 1:1.",
+      "bridge/runs/4a1796f/chunk1_moves.jsonl, chunk2_moves.jsonl: surowa trajektoria per ruch skopiowana z bridge-out/ bezposrednio po kazdym wywolaniu.",
+      "bridge/runs/4a1796f/chunk2_012_end.png: zrzut zapisany PRZEZ MOST (nie przez podglad zewnetrzny jak w sesji cb91077) - widac naglowek 'Can you Top that?' i wynik '1290', zgodny co do cyfry z polem wynik_koncowy w moves.1.jsonl."
+    ],
+    "wnioski": [
+      "Poprawka #198 dziala: most sam zapisal zrzut konca partii do pliku przed Play (wczesniej wymagalo to zewnetrznego ciaglego nagrywania), i wynik ustabilizowal sie juz po 2 odczytach bez potrzeby dalszych probek.",
+      "Numeracja plikow ruchow dziala zgodnie z opisem: pierwsze wywolanie -> moves.jsonl, drugie -> moves.1.jsonl, zaden plik nie zostal nadpisany."
+    ]
+  }
+}
