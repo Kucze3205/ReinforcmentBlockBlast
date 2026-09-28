@@ -1,0 +1,58 @@
+{
+  "run": "cb91077",
+  "cel": "Pomiar #190: całe partie od wyniku 0 do ekranu końca, bez dziur w trajektorii - materiał dla punktacji (#183, nasz wzór kontra wynik ekranu końca) i dla Z-6 (#182, tacki na pełnych planszach). Faza 1: polityka greedy, python3 bridge.py 30 greedy.",
+  "wersja_gry": "10.7.5 (bridge-out/version.txt)",
+  "kawalki": [
+    {"kawalek": 1, "ruchy": "0-29", "polityka": "greedy", "wynik": "30/30 ok, brak okien, brak reklam, partia 1: wynik do 636"},
+    {"kawalek": 2, "ruchy": "0-29", "polityka": "greedy", "wynik": "30/30 ok, brak okien, brak reklam, partia 1 kontynuowana: wynik do 1855"},
+    {"kawalek": 3, "ruchy": "0-11 (partia 1) + 12-29 (partia 2 od nowa)", "polityka": "greedy",
+     "wynik": "ruchy 0-10 ok (partia 1, wynik do 2125). Ruch 11 (slot2->(0,2)): ROZBIEŻNOŚĆ - obserwowana plansza sygnalizowała koniec (pełna/niezgodna z oczekiwaną), most natychmiast wykrył is_game_over_screen=true, odczytał OCR-em wynik_koncowy=2128, sam tapnął Play (bez ręki) i wystartował partię 2 (n=12, wynik zresetowany, tacka 3 nowe klocki). Ruchy 12-29 partii 2 ok (wynik do 703). UWAGA: surowy chunk3_moves.jsonl NADPISANY przez kawałek 4 (błąd verifiera - most nadpisuje moves.jsonl na starcie każdego wywołania, nie skopiowano przed kolejnym `bridge.py`); zachowany tylko chunk3.log (konsola, pełne ruchy i zdarzenie koniec_partii są w nim widoczne 1:1)."},
+    {"kawalek": 4, "ruchy": "0-29", "polityka": "greedy", "wynik": "30/30 ok, brak okien, brak reklam, partia 2 kontynuowana: wynik do 6290"},
+    {"kawalek": 5, "ruchy": "0-29", "polityka": "greedy", "wynik": "30/30 ok, brak okien, brak reklam, partia 2 kontynuowana: wynik do 7712"},
+    {"kawalek": 6, "ruchy": "0-29", "polityka": "greedy", "wynik": "30/30 ok, brak okien, brak reklam, partia 2 kontynuowana: wynik do 8775"},
+    {"kawalek": 7, "ruchy": "0-10 (partia 2) + 11-29 (partia 3 od nowa)", "polityka": "greedy",
+     "wynik": "ruchy 0-9 ok (partia 2, wynik do 8847). Ruch 10 (slot2->(3,3)): ROZBIEŻNOŚĆ - most wykrył is_game_over_screen, OCR wynik_koncowy=8877, sam tapnął Play (bez ręki), partia 3 wystartowała (n=11). Zrzut ekranu końca złapany ciągłym podglądem (co ~1 s, poza most.py): bridge/runs/cb91077/chunk7_gameover2_screen.png, ekran fioletowy 'Beat Your Best Again! Score 8877' - zgodny z OCR mostu. Ruchy 11-29 partii 3 ok (wynik do 673)."},
+    {"kawalek": 8, "ruchy": "0-29", "polityka": "greedy", "wynik": "30/30 ok, brak okien, brak reklam, partia 3 kontynuowana: wynik do 2342"},
+    {"kawalek": 9, "ruchy": "0-29", "polityka": "greedy", "wynik": "30/30 ok, brak okien, brak reklam, partia 3 kontynuowana: wynik do 7113"},
+    {"kawalek": 10, "ruchy": "0-29", "polityka": "greedy", "wynik": "30/30 ok, brak okien, brak reklam, partia 3 kontynuowana: wynik do 10911"},
+    {"kawalek": 11, "ruchy": "0-29", "polityka": "greedy", "wynik": "30/30 ok, brak okien, brak reklam, partia 3 kontynuowana: wynik do 12983"},
+    {"kawalek": 12, "ruchy": "0 (koniec partii 3, z komplikacją) + 1-29 (partia 4 od nowa, w toku)", "polityka": "greedy",
+     "wynik": "Ruch 0 (slot2->(0,1)): ROZBIEŻNOŚĆ - most wykrył is_game_over_screen, ale OCR pierwszego odczytu dał wynik_koncowy=5495 (odczyt w trakcie animacji licznika wyniku - zrzut chunk12_gameover3_misread.png pokazuje ekran z widocznym '0' zamiast finalnej liczby). Most tapnął Play, ale zamiast nowej partii wykrył is_settings_screen (okno: ustawienia_wstecz - ZNANY typ okna z #169, obsłużony w pełni automatycznie: press_back(), bez ręki), po czym ponownie trafił na TEN SAM ekran końca partii, tym razem z ustabilizowanym licznikiem: OCR wynik_koncowy=12990 (zgodny z ostatnim żywym wynikiem 12988+2), zrzut chunk12_gameover3_screen.png potwierdza 'Fun doesn't Stop Here! Score 12990' z przyciskiem Play - NOWY, wcześniej nie widziany nagłówek fioletowego wariantu (obok znanych 'Can you Top that?' i 'Beat Your Best Again!'), poprawnie złapany przez is_game_over_screen bo test opiera się na kolorze tła, nie na tekście. Most sam tapnął Play (bez ręki), partia 4 wystartowała (n=1). Ruchy 1-29 partii 4 ok (wynik do 2274, partia W TOKU, nie skończona - nie liczy się do 'co najmniej 3 partii')."}
+  ],
+  "partie": [
+    {"partia": 1, "polityka": "greedy", "pierwszy_kawalek": 1, "ostatni_kawalek": 3, "liczba_ruchow": 72,
+     "wynik_koncowy_ekran": 2128, "zrzut_ekranu_konca": "BRAK - most nie zapisuje ekranu końca partii do pliku (czyta go OCR-em w locie i tapa Play natychmiast); w tym kawałku (3) verifier jeszcze nie nagrywał ciągłego podglądu ekranu, więc żaden zewnętrzny zrzut też nie powstał. Wynik 2128 pochodzi z chunk3.log (konsola mostu, wpis 'koniec_partii, wynik 2128, nowa_partia 2') i z pola wynik_koncowy w moves.jsonl PRZED jego nadpisaniem (widziane na żywo, nie zachowane jako plik).",
+     "trajektoria_bez_dziur": "tak co do rozgrywki (brak restartu apki, brak ROZBIEŻNOŚCI innej niż naturalny koniec partii), ALE materiał niekompletny: surowy chunk3_moves.jsonl (board/tray/expected/observed per ruch) utracony - nadpisany przed skopiowaniem (błąd verifiera). Zachowany tylko console log."},
+    {"partia": 2, "polityka": "greedy", "pierwszy_kawalek": 3, "ostatni_kawalek": 7, "liczba_ruchow": 119,
+     "wynik_koncowy_ekran": 8877, "zrzut_ekranu_konca": "bridge/runs/cb91077/chunk7_gameover2_screen.png (złapany ciągłym podglądem watch_run.py co ~1 s, poza główną pętlą mostu) - ekran fioletowy 'Beat Your Best Again!', OCR na zrzucie zgodny z OCR mostu (8877).",
+     "trajektoria_bez_dziur": "tak - wszystkie kawałki (3 od n=12, 4, 5, 6, 7 do n=10) mają zachowany chunkN_moves.jsonl, brak restartu apki, brak nierozpoznanych okien."},
+    {"partia": 3, "polityka": "greedy", "pierwszy_kawalek": 7, "ostatni_kawalek": 12, "liczba_ruchow": 140,
+     "wynik_koncowy_ekran": 12990, "zrzut_ekranu_konca": "bridge/runs/cb91077/chunk12_gameover3_screen.png (złapany ciągłym podglądem) - ekran fioletowy 'Fun doesn't Stop Here!' (nowy, wcześniej niewidziany nagłówek tego wariantu), OCR na zrzucie 12990 zgodny z drugim (poprawnym) odczytem mostu. Pierwszy odczyt mostu (5495) był błędny - zrzut chunk12_gameover3_misread.png pokazuje ten sam ekran w trakcie animacji licznika wyniku (widoczne '0' zamiast finalnej liczby), most odczytał OCR-em klatkę pośrednią.",
+     "trajektoria_bez_dziur": "tak - wszystkie kawałki (7 od n=11, 8, 9, 10, 11, 12 do n=0) mają zachowany chunkN_moves.jsonl, brak restartu apki. Jedyne zdarzenie okienkowe (ustawienia_wstecz) obsłużone automatycznie i udokumentowane, nie przerwało trajektorii."}
+  ],
+  "liczniki_zdarzen_bez_reki": {
+    "reklama_statyczna": {"liczba": 0, "bez_reki": "nie dotyczy - brak wystąpień w 12 kawałkach (360 ruchów polityki)"},
+    "koniec_partii_wariant_purpurowy": {"liczba": 3, "bez_reki": "tak, wszystkie 3 - most sam rozpoznał (is_game_over_screen), sam odczytał OCR-em wynik i sam tapnął Play, bez ręki verifiera. Trzy różne nagłówki tego samego (fioletowego) wariantu graficznego: partia1 nieznany (brak zrzutu), partia2 'Beat Your Best Again!', partia3 'Fun doesn't Stop Here!' (nowy)."},
+    "koniec_partii_wariant_niebieski": {"liczba": 0, "bez_reki": "nie dotyczy - brak wystąpień"},
+    "automatyczne_play": {"liczba": 3, "bez_reki": "tak, wszystkie 3 razy most sam tapnął Play po odczytaniu wyniku końcowego, bez interwencji verifiera. Przy partii 3 tap trafił raz na inny ekran (patrz ustawienia_wstecz) i most sam się odzyskał drugim automatycznym tapnięciem Play - również bez ręki."},
+    "ustawienia_wstecz": {"liczba": 1, "bez_reki": "tak - most sam rozpoznał is_settings_screen i sam nacisnął wstecz (press_back), bez ręki verifiera (kawałek 12, w trakcie przejścia koniec partii 3 -> partia 4)."},
+    "restart_apki": {"liczba": 0, "bez_reki": "nie dotyczy - apka ani razu nie zniknęła z pierwszego planu w 12 kawałkach"},
+    "nieznane_okno": {"liczba": 0, "uwaga": "brak nowego, nierozpoznanego typu okna; 'Fun doesn't Stop Here!' to nowy TEKST na znanym (rozpoznawanym po kolorze) wariancie fioletowym, nie nowe okno"}
+  },
+  "co_odczytane_vs_wnioskowane": {
+    "odczytane_ze_zrzutow_i_logow": [
+      "bridge-out/version.txt: versionName=10.7.5.",
+      "bridge-out/chunk1.log .. chunk12.log: konsola mostu dla każdego kawałka, 1:1 z tym co most wypisał w danym wywołaniu.",
+      "bridge/runs/cb91077/chunkN_moves.jsonl (N=1,2,4,5,6,7,8,9,10,11,12): surowa trajektoria per ruch (board, tray, move, expected, observed, ok) skopiowana z bridge-out/moves.jsonl bezpośrednio po każdym wywołaniu bridge.py, PRZED kolejnym wywołaniem (dla N=3 ten krok pominięty - patrz partia 1).",
+      "bridge/runs/cb91077/chunk7_gameover2_screen.png: zrzut z ciągłego podglądu (watch_run.py, screencap co ~1 s równolegle do bridge.py) - programowo sprawdzony test koloru fioletowego (b>r>g, marginesy jak w is_game_over_screen) dał 0.948 na tej klatce, nad progiem 0.5; widoczny tekst 'Beat Your Best Again! Score 8877' zgodny z OCR mostu.",
+      "bridge/runs/cb91077/chunk12_gameover3_misread.png i chunk12_gameover3_screen.png: dwie klatki tego samego ekranu końca partii 3 z ciągłego podglądu, test koloru fioletowego 0.958 i 0.904 - obie nad progiem. Pierwsza pokazuje wynik w trakcie animacji ('0'), druga ustabilizowany '12990'."
+    ],
+    "wnioski": [
+      "Automatyczne Play (#180) działa niezawodnie na żywym moście dla wariantu fioletowego (3/3 razy, wliczając odzyskanie po nietrafionym tapnięciu w partii 3) - bez ręki verifiera.",
+      "Nowy nagłówek 'Fun doesn't Stop Here!' na fioletowym tle rozszerza znany zbiór tekstów tego wariantu ('Can you Top that?', 'Beat Your Best Again!'), ale nie wymaga zmian w moście - is_game_over_screen testuje kolor tła, nie tekst.",
+      "OCR wyniku końcowego bywa niestabilny bezpośrednio po wykryciu ekranu końca, jeśli licznik jeszcze się animuje (partia 3: 5495 zamiast 12990) - most nie czeka na ustabilizowanie się liczby przed pierwszym odczytem. Skutek uboczny w tym przebiegu: tap Play trafił nie w przycisk Play (bo w trakcie animacji przycisk mógł być jeszcze niewidoczny/w innym miejscu) tylko uruchomił coś rozpoznane jako ekran Ustawień - most sam to naprawił (press_back + ponowne wykrycie ekranu końca z poprawnym wynikiem + ponowne Play), bez ręki, ale kosztem jednego dodatkowego, potencjalnie mylącego wpisu w logu.",
+      "Most NIE zapisuje żadnego zrzutu ekranu końca partii do pliku - czyta go OCR-em w locie i natychmiast tapuje Play. Jedyny sposób, by zdobyć zrzut wymagany przez kryteria akceptacji, to niezależne, ciągłe nagrywanie ekranu (adb screencap co ~1 s) równolegle do działania bridge.py - zastosowane od kawałka 4 (watch_run.py, poza `bridge.py`, nie modyfikuje mostu). Dla partii 1 (kawałek 3) tego nagrywania jeszcze nie było, więc zrzutu ekranu końca brak.",
+      "Przy tej polityce (greedy) partie są znacznie dłuższe niż zakładał opis zadania ('partie słabej polityki są krótkie, kończą się na pełnej planszy'): 72, 119 i 140 ruchów - łącznie 331 ruchów na 3 partie, więcej niż budżet '~90 turów' z treści zadania. To odkrycie dla orchestratora: budżet turów w zadaniu nie doszacował długości partii greedy na tej wersji apki."
+    ]
+  }
+}
