@@ -17,14 +17,23 @@
     {"kawalek": 10, "ruchy": "0-19", "polityka": "lookahead-ntuple", "wynik": "20/20 ok (nowa partia po recznym Play), brak okien, brak reklam, wynik do 1470"},
     {"kawalek": 11, "ruchy": "0-19", "polityka": "lookahead-ntuple", "wynik": "20/20 ok, brak okien, brak reklam, wynik do 92 (OCR wyniku mocno niestabilny w tym kawalku, ale ok liczone z porownania plansz, nie z OCR)"},
     {"kawalek": 12, "ruchy": "0-19", "polityka": "lookahead-ntuple", "wynik": "20/20 ok, brak okien, brak reklam, wynik do 16998"},
-    {"kawalek": 13, "ruchy": "0-19", "polityka": "lookahead-ntuple", "wynik": "20/20 ok, brak okien, brak reklam, wynik do 1995 (OCR niestabilny, realnie rosnacy - partia zywa)"}
+    {"kawalek": 13, "ruchy": "0-19", "polityka": "lookahead-ntuple", "wynik": "20/20 ok, brak okien, brak reklam, wynik do 1995 (OCR niestabilny, realnie rosnacy - partia zywa)"},
+    {"kawalek": 14, "ruchy": "0-19", "polityka": "lookahead-ntuple", "wynik": "20/20 ok, brak okien, brak reklam, wynik do ~19992 (OCR silnie niestabilny caly kawalek, ale ok liczone z porownania plansz)"},
+    {"kawalek": 15, "ruchy": "0-2 ok, ruch 3 ROZBIEZNOSC + NIEZNANE OKNO (reklama statyczna BlackRock) + koniec_partii nierozpoznany (wariant niebieski)", "polityka": "lookahead-ntuple",
+     "wynik": "ruchy 0-2 ok (wynik do 26085). Ruch 3 (slot0->(0,5)): ROZBIEZNOSC - observed plansza CALKOWICIE PELNA (wszystkie 64 pola), expected mial wolne pola. Most NIE rozpoznal zadnego znanego okna (nie is_ad_screen - reklama nie byla ciemna; nie is_bright_ad_screen - tylko 317 unikalnych kolorow, prog to 20000; nie is_game_over_screen - tlo bialo-czarne, 0 pikseli fioletowych; board_and_tray_empty tez nie pasuje, bo plansza byla PELNA a nie pusta) i zakonczyl kawalek falszywym 'brak legalnego ruchu wg odczytu' (n=4). Zrzut bridge/runs/c1819ed/chunk15_unknown.png pokazuje STATYCZNA reklame tekstowa (BlackRock, 'Infrastructure and the opportunity in skilled trades', przycisk 'LEARN MORE', X w gornym prawym rogu) - typ reklamy inny niz znany 'reklama_jasna' (quiz/Connect Words, fotorealistyczna). Verifier nacisnal systemowy KEYCODE_BACK (bez zgadywania wspolrzednych X) - zamknelo reklame i odslonilo DRUGI, TAKZE NIEROZPOZNAWANY wariant ekranu konca partii: 'Your Best is Next' na NIEBIESKIM tle (bridge/runs/c1819ed/chunk15_after_back.png), wynik 20345, najlepszy wynik 29907, przycisk Play. is_game_over_screen (test fioletu b>r>g) daje na tym zrzucie 0.0 - NIE lapie tego wariantu. Verifier tapnal recznie Play (160,456), nowa partia wystartowala (chunk15_after_play2.png, wynik 0, tacka z 3 niebieskimi klockami)."}
   ],
-  "jasne_reklamy": [],
+  "jasne_reklamy": [
+    {"kawalek": 15, "typ": "NIE jest to znana 'reklama_jasna' (is_bright_ad_screen, quiz/fotorealistyczna) - to inny, wczesniej niewidziany typ: statyczna reklama tekstowa (BlackRock, tlo bialo/czarne, 317 unikalnych kolorow, bez fotorealistycznych gradientow)",
+     "moment": "ruch 3 kawalka 15 (po ok. 233 ruchach polityki lacznie od poczatku pomiaru, partia 2, ~26 minut gry)",
+     "srodek_x_ze_zrzutu": "NIE ZGADYWANY - patrz zrzut bridge/runs/c1819ed/chunk15_unknown.png, biala kolka z czarnym X w gornym prawym rogu paska reklamowego (okolice standardowego AD_CLOSE, ale nieporownane/niewymierzone precyzyjnie przez verifiera)",
+     "stukniecie_i_wynik": "verifier NIE tapnal w X (nie zgaduje wspolrzednych) - zamiast tego nacisnal systemowy KEYCODE_BACK, co zamknelo reklame i odslonilo NOWY, rowniez nierozpoznawany przez most wariant ekranu konca partii 'Your Best is Next' na niebieskim tle (patrz 'konce_partii_can_you_top_that')"}
+  ],
   "restarty_apki": [
     {"kawalek": 1, "n_przy_restarcie": 2, "proby": "1 nieudana, 2 udana", "partia_szla_dalej": "tak, automatycznie bez reki verifiera - to potwierdzona naprawa z #169 (restart_app dziala samodzielnie w petli bridge.py)"}
   ],
   "konce_partii_can_you_top_that": [
-    {"kawalek": 9, "n_przy_koncu": 15, "wynik_koncowy": 29907, "partia_szla_dalej": "nie sama - most poprawnie rozpoznal koniec i odczytal wynik, ale nie ma automatycznej obslugi przycisku Play; verifier tapnal recznie, zeby kontynuowac pomiar nastepnym kawalkiem"}
+    {"kawalek": 9, "n_przy_koncu": 15, "wynik_koncowy": 29907, "wariant": "purpurowy 'Can you Top that?' - rozpoznany przez is_game_over_screen", "partia_szla_dalej": "nie sama - most poprawnie rozpoznal koniec i odczytal wynik, ale nie ma automatycznej obslugi przycisku Play; verifier tapnal recznie, zeby kontynuowac pomiar nastepnym kawalkiem"},
+    {"kawalek": 15, "n_przy_koncu": 4, "wynik_koncowy": 20345, "wariant": "NIEBIESKI 'Your Best is Next' - NIE rozpoznany przez is_game_over_screen (purple frac 0.0 na tym zrzucie)", "partia_szla_dalej": "nie - most zakonczyl kawalek falszywym 'brak legalnego ruchu wg odczytu' bez odczytania wyniku koncowego (odczytal go dopiero verifier ze zrzutu po recznym KEYCODE_BACK); most tez nie zamknal reklamy poprzedzajacej ten ekran, bo nie rozpoznal jej typu (patrz jasne_reklamy)"}
   ],
   "okna_169": {
     "plansza_pusta_przejsciowo": [],
@@ -36,11 +45,11 @@
     "ustawienia_wstecz": {"liczba": 0, "partia_szla_dalej": "nie dotyczy"},
     "petla_bez_postepu": {"liczba": 0, "partia_szla_dalej": "nie dotyczy"},
     "restart_apki": {"liczba": 1, "partia_szla_dalej": "tak, automatycznie - most sam wykryl brak gry na pierwszym planie i wznowil bez reki verifiera (kawalek 1)"},
-    "koniec_partii_can_you_top_that": {"liczba": 1, "partia_szla_dalej": "nie bez reki - most poprawnie rozpoznal koniec i odczytal wynik (29907), ale przycisk Play trzeba bylo tapnac recznie (kawalek 9)"}
+    "koniec_partii_can_you_top_that": {"liczba": 2, "partia_szla_dalej": "kawalek 9 (wariant purpurowy): nie bez reki - most poprawnie rozpoznal koniec i odczytal wynik (29907), ale przycisk Play trzeba bylo tapnac recznie. Kawalek 15 (wariant niebieski 'Your Best is Next'): most GO NIE ROZPOZNAL WCALE (is_game_over_screen zwraca false na tym zrzucie) - falszywie zakonczyl kawalek 'brak legalnego ruchu wg odczytu' bez wyniku koncowego w logu; verifier odczytal wynik (20345) recznie ze zrzutu po interwencji"}
   },
   "pytanie_2_jasna_reklama": {
-    "odpowiedz": "w trakcie pomiaru",
-    "ruchy_partie_czas": "kawalki 1-13 (ok. 260 ruchow polityki, ~19 minut gry emulatorowej, 2 partie: pierwsza zakonczona prawdziwym koniec_partii wynik 29907 w kawalku 9, druga w toku): tylko 1 reklama napotkana lacznie - ciemna interstitial tuz przed ekranem konca partii (kawalek 9), zamknieta jednym tapnieciem AD_CLOSE; jasna reklama (is_bright_ad_screen, quiz/Connect Words) nie wystapila ani razu"
+    "odpowiedz": "reklama_jasna (is_bright_ad_screen, quiz/Connect Words z #154) NIE wystapila ani razu w calym pomiarze. Natomiast wystapil INNY, wczesniej nieznany typ reklamy - statyczna reklama tekstowa (BlackRock) - ktorej most rowniez nie rozpoznaje (zaden z is_ad_screen/is_bright_ad_screen/is_game_over_screen jej nie lapie)",
+    "ruchy_partie_czas": "kawalki 1-15 (ok. 293 ruchy polityki lacznie, ~30-35 minut gry emulatorowej, 3 partie: 1. zakonczona wynik 29907 w kawalku 9 (wariant purpurowy konca gry), 2. zakonczona wynik 20345 w kawalku 15 (wariant niebieski konca gry, po nieznanej reklamie statycznej), 3. w toku): 2 reklamy napotkane lacznie - 1 ciemna interstitial (kawalek 9, zamknieta automatycznie przez most) i 1 statyczna tekstowa BlackRock (kawalek 15, nieznana most, zamknieta recznie przez verifiera KEYCODE_BACK); jasna reklama w rozumieniu is_bright_ad_screen nie wystapila ani razu"
   },
   "co_odczytane_vs_wnioskowane": {
     "odczytane_ze_zrzutow": [
@@ -48,12 +57,17 @@
       "bridge/runs/c1819ed/chunk1 nie zachowany osobno (moves.jsonl nadpisywany przy kazdym starcie bridge.py) - wpis 'restart' z tym tekstem odczytany z konsoli i z bridge-out/moves.jsonl przed nadpisaniem (linia 4: {'n':3,...,'restart':'apka wznowiona po awarii (monkey, bez instalacji/ToS)'}).",
       "bridge-out/version.txt: versionName=10.7.5.",
       "bridge/runs/c1819ed/chunk9_gameover.png: ekran 'Can you Top that? Score 29907' z przyciskiem Play - zgodny z entry 'end':'koniec_partii','wynik_koncowy':29907 z moves.jsonl.",
-      "bridge/runs/c1819ed/chunk9_after_play.png: po recznym tapnieciu (160,456) plansza pusta, wynik 0, nowe 3 klocki w tacy - nowa partia."
+      "bridge/runs/c1819ed/chunk9_after_play.png: po recznym tapnieciu (160,456) plansza pusta, wynik 0, nowe 3 klocki w tacy - nowa partia.",
+      "bridge/runs/c1819ed/chunk15_unknown.png: statyczna reklama tekstowa BlackRock, tlo czarno-biale, 317 unikalnych kolorow RGB (liczone programowo), 0 pikseli ciemniejszych niz 30 na >85% ekranu (dark frac 0.258, ponizej AD_DARK_FRAC=0.85).",
+      "bridge/runs/c1819ed/chunk15_after_back.png: po KEYCODE_BACK - ekran 'Your Best is Next' na niebieskim tle, wynik 20345, najlepszy wynik 29907, przycisk Play; frakcja pikseli fioletowych (test is_game_over_screen: b>r, r>g, b-r>=15, r-g>=15) policzona programowo na tym zrzucie = 0.0.",
+      "bridge/runs/c1819ed/chunk15_after_play2.png: po recznym tapnieciu Play (160,456) - plansza pusta, wynik 0, tacka z 3 niebieskimi klockami - nowa partia (3.) wystartowala."
     ],
     "wnioski": [
       "Naprawiony restart_app() w petli main() dziala samodzielnie na tej wersji apki - to bezposrednie potwierdzenie dzialania naprawy z #169 na zywym moscie, bez potrzeby recznej interwencji jak w #164.",
-      "Naprawiony is_game_over_screen() poprawnie odroznia prawdziwy koniec partii od reklamy/Ustawien i sam odczytuje wynik koncowy OCR-em (GAME_OVER_SCORE_BOX) - w #164 most tylko konczyl kawalek 'brak legalnego ruchu wg odczytu' bez odczytu wyniku; teraz zapisuje 'koniec_partii'/'wynik_koncowy' wprost do moves.jsonl. Nadal brak automatycznej obslugi przycisku Play - to pozostaje reczne.",
-      "Przy tej polityce (lookahead-ntuple, wagi rekordowe) pierwsza partia przetrwala 150 ruchow (wynik 29907) zanim skonczyla sie naturalnie (brak legalnego ruchu), znacznie dluzej niz partie na lookahead:weights.json z #164 (do ok. 8500 w 20-30 min). Na ok. 260 lacznych ruchow polityki w dwoch partiach napotkano tylko 1 reklame (ciemna, tuz przed koniec_partii) - zero jasnych reklam - co jest spojne z opisem w issue, ze ta polityka daje mniej okazji na reklamy na kawalek z powodu dluzszego przezycia."
+      "Naprawiony is_game_over_screen() poprawnie odroznia prawdziwy koniec partii od reklamy/Ustawien i sam odczytuje wynik koncowy OCR-em (GAME_OVER_SCORE_BOX) dla WARIANTU PURPUROWEGO ('Can you Top that?', kawalek 9) - w #164 most tylko konczyl kawalek 'brak legalnego ruchu wg odczytu' bez odczytu wyniku; teraz zapisuje 'koniec_partii'/'wynik_koncowy' wprost do moves.jsonl. Nadal brak automatycznej obslugi przycisku Play - to pozostaje reczne.",
+      "Kawalek 15 pokazuje, ze naprawa z #169 nie jest kompletna: gra ma CO NAJMNIEJ DWA wizualnie rozne ekrany konca partii ('Can you Top that?' purpurowy i 'Your Best is Next' niebieski) i is_game_over_screen (test koloru fioletowego) lapie tylko pierwszy. Na drugim most falszywie raportuje 'brak legalnego ruchu wg odczytu' zamiast 'koniec_partii' z wynikiem - to nowe odkrycie, nie bylo widoczne w #164 (tam napotkano tylko wariant purpurowy).",
+      "Napotkano tez calkowicie nowy, nieznany most typ reklamy - statyczna reklama tekstowa (bialo-czarna, np. BlackRock) miedzy koncem jednej partii a ekranem 'Your Best is Next'. Nie jest to 'reklama_jasna' z #154 (ktora jest fotorealistyczna, >20000 unikalnych kolorow) - ten typ ma tylko 317 unikalnych kolorow i nie jest tez wystarczajaco ciemny dla is_ad_screen. Most nie ma zadnego mechanizmu do jej wykrycia ani zamkniecia; verifier zamknal ja recznie systemowym KEYCODE_BACK (bez zgadywania wspolrzednych X), co ujawnilo kolejny nierozpoznawany ekran (wariant niebieski konca partii).",
+      "Przy tej polityce (lookahead-ntuple, wagi rekordowe) pierwsza partia przetrwala 150 ruchow (wynik 29907), druga okolo 4 ruchy w tym kawalku (ale zaczela sie w kawalku 10, wiec realnie duzo wiecej - patrz kawalki 10-15) zanim natrafila na nieznana reklame. Znaczaco dluzej niz partie na lookahead:weights.json z #164 (do ok. 8500 w 20-30 min). Na ok. 293 lacznych ruchow polityki w trzech partiach napotkano 2 reklamy (1 ciemna automatycznie obsluzona, 1 nieznana statyczna wymagajaca reki) - zero reklam typu 'reklama_jasna' z #154."
     ]
   }
 }
