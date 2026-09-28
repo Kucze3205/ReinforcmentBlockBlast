@@ -1,0 +1,80 @@
+{
+  "sha": "6a92fecec1f93d794e9c80071a584d40d560d432",
+  "dirty": false,
+  "issue": 192,
+  "status": "ok",
+  "blocked_reason": null,
+  "config": {
+    "n_seeds": 300,
+    "move_cap": 2000,
+    "epsilon": 0.0,
+    "torch_seed": 0,
+    "threshold_pct": 10.0,
+    "fixed_seed_file": "bench/seeds_fixed.json",
+    "rotated_seed_salt": 2654435761
+  },
+  "source_hashes": {
+    "game.py": "37da8bd9298fc6c2",
+    "scoring.py": "1e4a1b8730243ce6",
+    "generator.py": "bc8c4a19ba7f16d2",
+    "pieces.py": "7241459a3cb11706",
+    "features.py": "3e4c45d8cafa246c",
+    "policies.py": "fbc34f04185350c0",
+    "benchmark.py": "bef154ac26e40c93",
+    "ntuple.py": "e8851320c0a0fd17",
+    "ntuple_native.c": "7cb7357be5b2d33d",
+    "ntuple_native.py": "7a8a94ed20e92a4f"
+  },
+  "arms": {
+    "candidate": {
+      "policy": "lookahead-ntuple",
+      "fixed": {
+        "mean": 27583.51,
+        "median": 16285.0,
+        "p10": 1688.5,
+        "survival_mean": 321.01,
+        "capped_pct": 0.33
+      },
+      "rotated": {
+        "mean": 30783.72,
+        "median": 19338.0,
+        "p10": 2322.6,
+        "survival_mean": 343.9,
+        "capped_pct": 0.33
+      },
+      "overfit_gap_pct": -11.6,
+      "weights_hash": "5beb3ef59a33553e"
+    },
+    "record": {
+      "policy": "lookahead-ntuple",
+      "fixed": {
+        "mean": 25946.36,
+        "median": 17124.0,
+        "p10": 2473.1,
+        "survival_mean": 312.81,
+        "capped_pct": 0.33
+      },
+      "rotated": {
+        "mean": 28137.64,
+        "median": 17246.0,
+        "p10": 2340.3,
+        "survival_mean": 325.33,
+        "capped_pct": 0.33
+      },
+      "overfit_gap_pct": -8.45,
+      "weights_hash": "58d1c5f997fa6f55"
+    }
+  },
+  "deltas": {
+    "kandydat vs record": {
+      "mean_diff": 1637.16,
+      "pct": 6.31,
+      "sd_diff": 41138.49,
+      "se_diff": 2375.13,
+      "se_pct": 9.15,
+      "mean_diff_over_se": 0.69,
+      "label": "bez zmian"
+    }
+  },
+  "duration_s": 98.6
+}
