@@ -200,3 +200,66 @@ zanika z +9,8% do +1,2% między pierwszym i ostatnim oknem tego zakresu (w czę�
 całego przebiegu `ADC` (68 000: 3738,19/104,05) jest wyżej niż najlepszy punkt `AD`
 w tym samym zakresie odcinków (50 000: 3582,91/102,58, #157), więc `ADC` zostaje
 lepszym układem przy 70 000, tak jak był przy 40 000 — ale margines się kurczy.
+
+## Ciąg dalszy do 100 000 (#178)
+
+Wznowienie tym samym poleceniem (zmienione wyłącznie `--episodes`/`--episodes-per-run`)
+od 70 000 do **100 000 odcinków**, trzy bloki na pierwszym planie, stan/wagi/krzywa
+commitowane po każdym. Wagi 70 000 zamrożone pod niezmienną nazwą przed startem
+(`ntuple/survival-adc-70k.json`, sha256 `65dd0764e5c3bbe9`, #172).
+
+Ramię `B` tego samego eksperymentu (`ntuple/survival-adc-ss-*`, `docs/ntuple-survival-adc-ss.md`)
+dociąga w tym samym cyklu, niezależnie — nie jest tu poruszane.
+
+| blok | `--episodes-per-run` | odcinki po bloku | czas bloku (rzeczywisty) |
+|---|---|---|---|
+| 1 | 10000 | 80000 | 32m38,0s (1958,0 s) |
+| 2 | 10000 | 90000 | 32m53,6s (1973,6 s) |
+| 3 | 10000 | 100000 (KONIEC) | 32m14,3s (1934,3 s) |
+
+Wszystkie trzy poniżej limitu 3400 s (wybrane z tempa `<stan>.log.jsonl` bloku 3
+poprzedniego ciągu, 0,17010 s/odcinek, z zapasem konserwatywnym; tempo rzeczywiste
+tych trzech bloków wyszło zbliżone, ok. 0,195 s/odcinek).
+
+### Okna treningu po 5000 odcinków, 70 001-100 000
+
+Polityka behawioralna (zachłanna, bez przeszukania tacki), okna liczone wprost z
+`<stan>.log.jsonl` (`--seed 3`). Porównania z `AD` brak — przebieg `AD` (#157) nie
+sięga poza 70 000.
+
+| okno (odcinki) | wynik `ADC` | przeżycie `ADC` |
+|---|---|---|
+| 70001-75000 | 3390,43 | 98,25 |
+| 75001-80000 | 3347,24 | 97,91 |
+| 80001-85000 | 3433,21 | 98,72 |
+| 85001-90000 | 3348,62 | 96,68 |
+| 90001-95000 | 3343,29 | 97,28 |
+| **95001-100000 (ostatnie)** | **3320,14** | **96,17** |
+
+### Punkty ewaluacji (bez uczenia, 100 partii na punkt) co 5000 odcinków
+
+| odcinki | wynik `ADC` | przeżycie `ADC` |
+|---|---|---|
+| 75 000 | 3502,09 | 97,38 |
+| 80 000 | 3284,72 | 93,77 |
+| **85 000** | **4249,51** | **116,55** |
+| 90 000 | 3561,45 | 100,04 |
+| 95 000 | 3662,16 | 107,02 |
+| 100 000 (ostatnie) | 3218,57 | 91,94 |
+
+### Najlepszy punkt i czas na odcinek
+
+`ntuple/survival-adc-best.json` nadpisano przy odcinku **85 000**: wynik 4249,51,
+przeżycie 116,55 (100 partii) — przebija poprzedni najlepszy punkt z #166 (odcinek
+68 000: 3738,19/104,05) i pozostaje najlepszy do końca przebiegu (100 000).
+
+Czas na odcinek z `<stan>.log.jsonl` (nie z zaokrąglanego pola `duration_s` stanu):
+**0,17727 s/odcinek** dla nowej części (odcinki 70 001-100 000, 30 000 odcinków),
+**0,15857 s/odcinek** licząc cały przebieg od zera (100 000 odcinków) — zbliżone do
+tempa nowej części poprzedniego ciągu (0,17259, #166), lekki dalszy wzrost, zgodny
+z rosnącą długością partii.
+
+Snapshot `ntuple/survival-adc-100k.json` (kopia `ntuple/survival-adc-weights.json`
+po 100 000, 136 łat), sha256 `3e75cd9c41264fd5`.
+
+Bez werdyktu tutaj — o zakończeniu treningu decyduje benchmark (#8), nie ta krzywa.
