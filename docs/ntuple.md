@@ -77,6 +77,25 @@ równoważny `alpha=0.001` dla `A`, `alpha` dla `AD` powinno być
 `--alpha` z krokiem ok. 3,25× większym niż `A`, na innej liczbie wag, więc
 krzywe obu układów nie byłyby porównywalne przy tym samym `--alpha`.
 
+### Trzeci układ: `ADC` (#162)
+
+`rect23` (prostokąty 2×3/3×2) jest **drugim** zabójcą partii po `square3`
+(razem 76,9% partii wg `docs/co-zabija-partie.md`), a żadna łata w `AD` nie ma
+tego kształtu — łaty-wiersz/kolumna (`A`) widzą pełną linię, kwadraty 3×3 (`D`)
+widzą 3×3, żadna nie widzi 2×3/3×2 wprost. `ntuple.LAYOUTS["ADC"]` dodaje do
+`AD` wariant `C` z #120 (prostokąty 2×3 i 3×2, `k=6`) **we wszystkich 84
+położeniach** lewego-górnego rogu (42 dla 2×3, 42 dla 3×2 — patrz sekcja 3
+`docs/research/budzet-wyuczonej-oceny.md`): `52 + 84 = 136` łaty,
+`22528 + 84 × 2**6 = 22528 + 5376 = 27904` wag. `AD` (drugi układ) zostaje bez
+zmian — `ADC` jest trzecim, wybieralnym układem, nie zamiennikiem.
+
+Tak jak dla `AD`, krok efektywny `alpha · N_łaty` powinien być równoważny
+`alpha=0.001` dla `A` (16 łat): `alpha` dla `ADC` (136 łat) powinno być
+`0.001 · 16 / 136 ≈ 0.0001176` — inaczej krok efektywny `ADC` byłby ok. 8,5×
+większy niż `A` przy tym samym `--alpha`, na innej liczbie wag, więc krzywe
+nie byłyby porównywalne. Pomiar krzywej `ADC` kontra `AD` do 40 000 odcinków
+(sygnał survival, ten sam `--seed 3`): `docs/ntuple-survival-adc.md`.
+
 ### Przebieg dymny `AD`/`survival` i czas na odcinek (#149)
 
 Dwa polecenia, 300 odcinków każde, ten sam seed (`--seed 1`), pliki poza tym
