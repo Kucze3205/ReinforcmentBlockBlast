@@ -1,0 +1,36 @@
+polityka: greedy (źródło: argv)
+reset(seed='36430239638')
+ruch 0: slot 2 -> (6,0) wynik 1861 OK
+ruch 1: slot 0 -> (0,0) wynik 2016 OK
+ruch 2: slot 1 -> (3,0) wynik 2049 OK
+ruch 3: slot 2 -> (2,2) wynik 2053 OK
+ruch 4: slot 1 -> (5,3) wynik 2057 OK
+ruch 5: slot 0 -> (6,0) wynik 2072 OK
+ruch 6: slot 2 -> (0,1) wynik 2096 OK
+ruch 7: slot 0 -> (3,0) wynik 2099 OK
+ruch 8: slot 1 -> (5,1) wynik 2103 OK
+ruch 9: slot 2 -> (2,2) wynik 2107 OK
+ruch 10: slot 1 -> (3,6) wynik 2111 OK
+ruch 11: slot 2 -> (0,2) wynik 2125 ROZBIEŻNOŚĆ
+OCR: 
+koniec_partii, wynik 2128, nowa_partia 2
+OCR: 
+ruch 12: slot 0 -> (0,0) wynik None OK
+ruch 13: slot 1 -> (1,0) wynik 4 OK
+ruch 14: slot 2 -> (4,0) wynik 7 OK
+ruch 15: slot 0 -> (5,0) wynik 9 OK
+ruch 16: slot 2 -> (6,0) wynik 13 OK
+ruch 17: slot 1 -> (3,0) wynik 27 OK
+ruch 18: slot 1 -> (0,0) wynik 49 OK
+ruch 19: slot 0 -> (1,0) wynik 93 OK
+ruch 20: slot 2 -> (4,0) wynik 96 OK
+ruch 21: slot 2 -> (6,0) wynik 99 OK
+ruch 22: slot 0 -> (2,1) wynik 73 OK
+ruch 23: slot 1 -> (0,0) wynik 97 OK
+ruch 24: slot 1 -> (4,0) wynik 101 OK
+ruch 25: slot 0 -> (1,0) wynik 135 OK
+ruch 26: slot 2 -> (1,3) wynik 144 OK
+ruch 27: slot 0 -> (1,6) wynik 153 OK
+ruch 28: slot 2 -> (1,0) wynik 574 OK
+ruch 29: slot 1 -> (0,0) wynik 703 OK
+najdłuższa seria zgodnych ruchów: 18
