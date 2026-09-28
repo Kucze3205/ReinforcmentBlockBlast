@@ -176,6 +176,19 @@ zmiany, skopiowanego do katalogu tymczasowego (`tests/test_train_ntuple_eval.py:
 TestResumeFromExistingRepoState`, na `ntuple/survival-adc-state.json`) — pliki w
 `ntuple/` weryfikowane sha256 przed i po pozostają identyczne.
 
+### Wagi identyczne: 200 odcinków `ADC`/`survival`
+
+`python tools/train_ntuple.py --state <s> --out <w> --episodes 200 --episodes-per-run 200
+--seed 200 --reward survival --layout ADC --move-cap 400`, ten sam seed, przed i po zmianie
+(kod przed: commit `cb91077`, po: ten commit). Porównane pole `--out`:
+
+| | sha256 pliku wag |
+|---|---|
+| przed | `ef34592eed2915a5bd00fbb75554a6505f81d36cf7baa3dd56042a323bfd45f7` |
+| po | `ef34592eed2915a5bd00fbb75554a6505f81d36cf7baa3dd56042a323bfd45f7` |
+
+Identyczne — kryterium akceptacji #187.
+
 Nie zmienione (dodatkowo do listy wyżej): `state["log_bytes"]` nadal śledzi tylko plik
 bloku aktywnego w chwili ostatniego udanego zapisu (truncate przy wznowieniu po
 przerwanej sesji działa jak wcześniej, tylko na właściwym pliku bloku zamiast
