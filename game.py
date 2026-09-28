@@ -110,6 +110,13 @@ class Game:
                         return True
         return False
 
+    def set_board(self, grid):
+        """Zastępuje siatkę planszy (start z pliku stanów, #168).
+
+        Nieinwazyjne wobec `step`/punktacji: tacka, generator, wynik i combo
+        zostają, jak są po `reset` — tylko `board.grid` się zmienia."""
+        self.board.grid = [row[:] for row in grid]
+
     def get_state(self):
         return {
             "board": [row[:] for row in self.board.grid],

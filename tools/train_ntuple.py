@@ -57,6 +57,23 @@ Zapis (#140): stan (wagi + małe liczniki) i wagi idą na dysk co `--save-every`
 odcinków, przy każdej ewaluacji i na końcu wywołania; log odcinków jest
 dopisywany przyrostowo do `<stan>.log.jsonl`. Koszt zapisu nie zależy od
 liczby odcinków za nami.
+
+Starty z późnej gry (#168): `--start-states <plik> --start-prob <p>` — z
+prawdopodobieństwem `p` odcinek startuje z planszy wylosowanej z `<plik>`
+(zebranego `tools/collect_states.py`) zamiast z pustej. Tacka i dalsze klocki
+nadal pochodzą z generatora gry na seed odcinka, dokładnie jak dziś — plik
+podmienia tylko `Game.board`, przez `Game.set_board` (nieinwazyjne wobec
+`step`/punktacji). Wybór (start z pliku czy nie, który wpis) jest
+deterministyczny z `(--seed, numer_odcinka)`, przez `random.Random` niezależny
+od tego, który wybiera seed partii (`episode_seed`) — wznowienie w połowie
+odtwarza dokładnie ten sam wybór co przebieg ciągły. Bez `--start-states`
+(domyślnie) zachowanie jest bitowo takie samo jak przed #168: `choose_start_board`
+zwraca `None` bez tworzenia jakiegokolwiek `random.Random`. `--start-states`/
+`--start-prob` nie wchodzą do `params` sprawdzanych przy wznowieniu — można je
+dodać do stanu zapisanego bez nich (i zmieniać między wywołaniami), bo nie
+zmieniają kształtu tego, co trening mierzy (seed/alpha/move_cap/reward/layout),
+tylko to, skąd startuje plansza. Ewaluacja (`--eval-every`) zawsze startuje z
+pustej planszy, niezależnie od tych flag.
 """
 import argparse
 import json
@@ -116,6 +133,35 @@ def episode_seed(seed, episode_number, forbidden):
         salt += 1
 
 
+def load_start_states(path):
+    """Plansze startowe zebrane przez `tools/collect_states.py` (#168).
+
+    Akceptuje format tego narzędzia (`{"boards": [{"board": ..., ...}, ...]}`)
+    i, dla prostoty testów, zwykłą listę plansz — w obu przypadkach zwraca
+    listę samych siatek."""
+    with open(path, encoding="utf-8") as fh:
+        data = json.load(fh)
+    entries = data["boards"] if isinstance(data, dict) else data
+    return [entry["board"] if isinstance(entry, dict) else entry for entry in entries]
+
+
+def choose_start_board(states, seed, episode_number, prob):
+    """Plansza startowa odcinka (#168): z prawdopodobieństwem `prob` wylosowana
+    z `states`, inaczej `None` (pusta plansza, dzisiejsze zachowanie).
+
+    Deterministyczne z `(seed, episode_number)`, przez `random.Random` w
+    osobnej przestrzeni nazw niż `episode_seed` — nie zużywa jego RNG, więc
+    dodanie tej flagi nie zmienia seeda partii. Gdy `states` jest puste albo
+    `prob <= 0`, nie tworzy żadnego `random.Random` — bit-identyczne z
+    zachowaniem bez `--start-states`."""
+    if not states or prob <= 0:
+        return None
+    rng = random.Random("train_ntuple_start_state:{0}:{1}".format(seed, episode_number))
+    if rng.random() >= prob:
+        return None
+    return rng.choice(states)
+
+
 def eval_seeds(n, forbidden):
     """`n` seedów ewaluacji, te same w każdym punkcie i w każdym przebiegu (#140).
 
@@ -159,8 +205,13 @@ def _choose_action(ntuple, game, actions, reward=REWARD_SCORE):
     return best_action, best_idxs, best_r
 
 
-def run_episode(ntuple, seed, move_cap, alpha, reward=REWARD_SCORE, learn=True):
+def run_episode(ntuple, seed, move_cap, alpha, reward=REWARD_SCORE, learn=True, start_board=None):
     """Jedna partia; przy `learn` z aktualizacją TD(0) po każdym postawieniu.
+
+    `start_board` (#168, opcjonalne): plansza, z której partia startuje zamiast
+    pustej — `None` (domyślnie) to dzisiejsze zachowanie bit w bit. Tacka,
+    generator, wynik i combo startują jak zwykle; zmienia się tylko
+    `Game.board` (`Game.set_board`, nieinwazyjne wobec `step`/punktacji).
 
     Cel dla `V(afterstate_{t-1})` to `r_t + V(afterstate_t)`, gdzie `r_t` jest
     nagrodą ruchu wybranego **z** `afterstate_{t-1}` (ten, który prowadzi do
@@ -172,6 +223,8 @@ def run_episode(ntuple, seed, move_cap, alpha, reward=REWARD_SCORE, learn=True):
     Zwraca statystyki partii (do logu) — same wagi `ntuple` są modyfikowane
     w miejscu. `learn=False` to ewaluacja: ta sama polityka, wagi nietknięte."""
     game = Game(seed=seed)
+    if start_board is not None:
+        game.set_board(start_board)
     prev_idxs = None
     steps = 0
     td_errors = []
@@ -201,6 +254,7 @@ def run_episode(ntuple, seed, move_cap, alpha, reward=REWARD_SCORE, learn=True):
         "placements": game.placements,
         "steps": steps,
         "mean_abs_td_error": round(statistics.mean(abs(e) for e in td_errors), 4) if td_errors else 0.0,
+        "start_from_file": start_board is not None,
     }
 
 
@@ -436,13 +490,16 @@ def run_generational(args, config, forbidden_seeds):
         state["eval"]["episodes"] = args.eval_episodes
         seeds_eval = eval_seeds(args.eval_episodes, forbidden_seeds)
 
+    start_states = load_start_states(args.start_states) if args.start_states else None
+
     pending_log = []
     ran = 0
     while state["episode"] < args.episodes and ran < args.episodes_per_run:
         episode = state["episode"] + 1
         seed = episode_seed(args.seed, episode, forbidden_seeds)
+        start_board = choose_start_board(start_states, args.seed, episode, args.start_prob)
         started = time.time()
-        stats = run_episode(ntuple, seed, args.move_cap, args.alpha, args.reward)
+        stats = run_episode(ntuple, seed, args.move_cap, args.alpha, args.reward, start_board=start_board)
         elapsed = time.time() - started
 
         state["episode"] = episode
@@ -531,11 +588,24 @@ def main(argv=None):
         "--curve-out", default=None,
         help="plik krzywej: okna treningu (jak docs/data/ntuple-krzywa.json) i punkty ewaluacji",
     )
+    parser.add_argument(
+        "--start-states", default=None,
+        help="plik plansz z tools/collect_states.py (#168); z --start-prob>0 odcinki startuja "
+             "z wylosowanej z niego planszy zamiast pustej (tacka nadal z generatora na seed odcinka)",
+    )
+    parser.add_argument(
+        "--start-prob", type=float, default=0.0,
+        help="prawdopodobienstwo startu odcinka z pliku --start-states (domyslnie 0: zawsze pusta plansza)",
+    )
     parser.add_argument("--config", default=BENCH_CONFIG)
     args = parser.parse_args(argv)
 
     if args.save_every < 1:
         parser.error("--save-every musi byc >= 1")
+    if not 0.0 <= args.start_prob <= 1.0:
+        parser.error("--start-prob musi byc w [0, 1]")
+    if args.start_prob and not args.start_states:
+        parser.error("--start-prob > 0 wymaga --start-states")
     if args.eval_every is not None:
         if args.eval_every < 1 or args.eval_episodes < 1:
             parser.error("--eval-every i --eval-episodes musza byc >= 1")
