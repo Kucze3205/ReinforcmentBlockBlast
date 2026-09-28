@@ -169,11 +169,14 @@ class TestSearchEquivalence(unittest.TestCase):
                     self._compare(value, board, tuple(game.pieces), combo, counter, 3, None, 0, path_key)
 
     def test_case_outside_point_tables_falls_back_to_python(self):
-        """Plansza z już pełną linią: czyszczenie liczy więcej linii, niż klocek
+        """Plansza z już pełnymi liniami: czyszczenie liczy więcej linii, niż klocek
         może domknąć — rdzeń oddaje `None`, a polityka liczy wiązkę w Pythonie."""
         value = NTupleValue.load(ADC_WEIGHTS, native=True)
         game = Game(seed=12)
-        game.board.grid[4] = [1] * Board.WIDTH
+        # Wiersze 0-3 i kolumny 0-3 pełne (8 linii), wolny kwadrat 4x4 w rogu:
+        # każde postawienie czyści co najmniej 8 linii, klocek 3x3 domyka najwyżej 6.
+        game.board.grid = [[1 if y < 4 or x < 4 else 0 for x in range(Board.WIDTH)]
+                           for y in range(Board.HEIGHT)]
         pieces = tuple(game.pieces)
         self.assertIsNone(_tray_beam_search_native(
             value.native, game.board, pieces, 0, 3, 8, path_key="placed"))
