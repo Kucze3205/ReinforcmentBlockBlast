@@ -8,38 +8,52 @@
     {"kawalek": 2, "ruchy": "0-19", "polityka": "lookahead-ntuple", "wynik": "20/20 ok, brak okien, brak reklam, wynik do 2665"},
     {"kawalek": 3, "ruchy": "0-19", "polityka": "lookahead-ntuple", "wynik": "20/20 ok, brak okien, brak reklam, wynik do ~9163 (kilka odczytow OCR wyniku zanizonych/bledych po drodze, bez wplywu na ruchy - ok liczone z porownania planszy, nie z OCR)"},
     {"kawalek": 4, "ruchy": "0-19", "polityka": "lookahead-ntuple", "wynik": "20/20 ok, brak okien, brak reklam, wynik do ~7070 (OCR nadal miejscami niestabilny, np. 'wynik 56381')"},
-    {"kawalek": 5, "ruchy": "0-19", "polityka": "lookahead-ntuple", "wynik": "20/20 ok, brak okien, brak reklam, wynik do 13371 (partia zywa, nie skonczona)"}
+    {"kawalek": 5, "ruchy": "0-19", "polityka": "lookahead-ntuple", "wynik": "20/20 ok, brak okien, brak reklam, wynik do 13371 (partia zywa, nie skonczona)"},
+    {"kawalek": 6, "ruchy": "0-19", "polityka": "lookahead-ntuple", "wynik": "20/20 ok, brak okien, brak reklam, wynik do 26428"},
+    {"kawalek": 7, "ruchy": "0-19", "polityka": "lookahead-ntuple", "wynik": "20/20 ok, brak okien, brak reklam, wynik do 27333"},
+    {"kawalek": 8, "ruchy": "0-19", "polityka": "lookahead-ntuple", "wynik": "20/20 ok, brak okien, brak reklam, wynik do 29373"},
+    {"kawalek": 9, "ruchy": "0-14 ok, ruch 14 ROZBIEZNOSC + reklama_interstitial + koniec_partii", "polityka": "lookahead-ntuple",
+     "wynik": "ruchy 0-13 ok. Ruch 14 (slot0->(0,1), wynik 29903): ROZBIEZNOSC - observed plansza CALKOWICIE pelna (wszystkie 64 pola), expected mial jeszcze wolne pola; most natychmiast wykryl is_ad_screen=true (reklama ciemna po prawdziwym koncu partii, wzorzec identyczny jak #164 kawalek 7), zamknal ja AD_CLOSE - 'okno: reklama_interstitial zamknieta' - po czym rozpoznal PRAWDZIWY ekran konca gry przez is_game_over_screen (naprawiony w #169) i sam odczytal wynik koncowy OCR-em z GAME_OVER_SCORE_BOX: 'koniec_partii, wynik 29907'. Zrzut bridge/runs/c1819ed/chunk9_gameover.png potwierdza zgodnosc: ekran 'Can you Top that? Score 29907'. To lepsze niz w #164 (kawalek 7) - most poprawnie odczytal i zapisal wynik koncowy zamiast tylko konczyc kawalek 'brak legalnego ruchu wg odczytu'. Nadal brak automatycznej obslugi przycisku Play - verifier tapnal recznie (160,456), zrzut chunk9_after_play.png potwierdza start nowej partii (wynik 0)."},
+    {"kawalek": 10, "ruchy": "0-19", "polityka": "lookahead-ntuple", "wynik": "20/20 ok (nowa partia po recznym Play), brak okien, brak reklam, wynik do 1470"},
+    {"kawalek": 11, "ruchy": "0-19", "polityka": "lookahead-ntuple", "wynik": "20/20 ok, brak okien, brak reklam, wynik do 92 (OCR wyniku mocno niestabilny w tym kawalku, ale ok liczone z porownania plansz, nie z OCR)"},
+    {"kawalek": 12, "ruchy": "0-19", "polityka": "lookahead-ntuple", "wynik": "20/20 ok, brak okien, brak reklam, wynik do 16998"},
+    {"kawalek": 13, "ruchy": "0-19", "polityka": "lookahead-ntuple", "wynik": "20/20 ok, brak okien, brak reklam, wynik do 1995 (OCR niestabilny, realnie rosnacy - partia zywa)"}
   ],
   "jasne_reklamy": [],
   "restarty_apki": [
     {"kawalek": 1, "n_przy_restarcie": 2, "proby": "1 nieudana, 2 udana", "partia_szla_dalej": "tak, automatycznie bez reki verifiera - to potwierdzona naprawa z #169 (restart_app dziala samodzielnie w petli bridge.py)"}
   ],
+  "konce_partii_can_you_top_that": [
+    {"kawalek": 9, "n_przy_koncu": 15, "wynik_koncowy": 29907, "partia_szla_dalej": "nie sama - most poprawnie rozpoznal koniec i odczytal wynik, ale nie ma automatycznej obslugi przycisku Play; verifier tapnal recznie, zeby kontynuowac pomiar nastepnym kawalkiem"}
+  ],
   "okna_169": {
     "plansza_pusta_przejsciowo": [],
     "ustawienia_wstecz": [],
-    "petla_bez_postepu": [],
-    "koniec_partii_can_you_top_that": []
+    "petla_bez_postepu": []
   },
   "pytanie_1_naprawy_na_zywo": {
-    "plansza_pusta_przejsciowo": {"liczba": 0, "partia_szla_dalej": "nie dotyczy (brak wystapien w dotychczasowych 5 kawalkach)"},
+    "plansza_pusta_przejsciowo": {"liczba": 0, "partia_szla_dalej": "nie dotyczy (brak wystapien w 13 kawalkach)"},
     "ustawienia_wstecz": {"liczba": 0, "partia_szla_dalej": "nie dotyczy"},
     "petla_bez_postepu": {"liczba": 0, "partia_szla_dalej": "nie dotyczy"},
     "restart_apki": {"liczba": 1, "partia_szla_dalej": "tak, automatycznie - most sam wykryl brak gry na pierwszym planie i wznowil bez reki verifiera (kawalek 1)"},
-    "koniec_partii_can_you_top_that": {"liczba": 0, "partia_szla_dalej": "nie dotyczy (partia wciaz trwa po 5 kawalkach)"}
+    "koniec_partii_can_you_top_that": {"liczba": 1, "partia_szla_dalej": "nie bez reki - most poprawnie rozpoznal koniec i odczytal wynik (29907), ale przycisk Play trzeba bylo tapnac recznie (kawalek 9)"}
   },
   "pytanie_2_jasna_reklama": {
     "odpowiedz": "w trakcie pomiaru",
-    "ruchy_partie_czas": "kawalki 1-5 (100 ruchow polityki, ~4 minuty gry emulatorowej, 1 partia ciagla poza jednym restartem apki po padzie): zadna reklama (ani ciemna interstitial, ani jasna) nie wystapila"
+    "ruchy_partie_czas": "kawalki 1-13 (ok. 260 ruchow polityki, ~19 minut gry emulatorowej, 2 partie: pierwsza zakonczona prawdziwym koniec_partii wynik 29907 w kawalku 9, druga w toku): tylko 1 reklama napotkana lacznie - ciemna interstitial tuz przed ekranem konca partii (kawalek 9), zamknieta jednym tapnieciem AD_CLOSE; jasna reklama (is_bright_ad_screen, quiz/Connect Words) nie wystapila ani razu"
   },
   "co_odczytane_vs_wnioskowane": {
     "odczytane_ze_zrzutow": [
       "bridge-out/chunk1.log: konsola pokazuje 'restart 1/3', 'restart 2/3', 'restart udany, kontynuacja partii' po ROZBIEZNOSCI na ruchu 2 kawalka 1.",
       "bridge/runs/c1819ed/chunk1 nie zachowany osobno (moves.jsonl nadpisywany przy kazdym starcie bridge.py) - wpis 'restart' z tym tekstem odczytany z konsoli i z bridge-out/moves.jsonl przed nadpisaniem (linia 4: {'n':3,...,'restart':'apka wznowiona po awarii (monkey, bez instalacji/ToS)'}).",
-      "bridge-out/version.txt: versionName=10.7.5."
+      "bridge-out/version.txt: versionName=10.7.5.",
+      "bridge/runs/c1819ed/chunk9_gameover.png: ekran 'Can you Top that? Score 29907' z przyciskiem Play - zgodny z entry 'end':'koniec_partii','wynik_koncowy':29907 z moves.jsonl.",
+      "bridge/runs/c1819ed/chunk9_after_play.png: po recznym tapnieciu (160,456) plansza pusta, wynik 0, nowe 3 klocki w tacy - nowa partia."
     ],
     "wnioski": [
       "Naprawiony restart_app() w petli main() dziala samodzielnie na tej wersji apki - to bezposrednie potwierdzenie dzialania naprawy z #169 na zywym moscie, bez potrzeby recznej interwencji jak w #164.",
-      "Przy tej polityce (lookahead-ntuple, wagi rekordowe) partia przetrwala 100 ruchow bez konca gry i bez jakiejkolwiek reklamy - zgodnie z opisem w issue, ze ta polityka przezywa dluzej niz lookahead:weights.json, wiec mniej okazji na reklamy na kawalek."
+      "Naprawiony is_game_over_screen() poprawnie odroznia prawdziwy koniec partii od reklamy/Ustawien i sam odczytuje wynik koncowy OCR-em (GAME_OVER_SCORE_BOX) - w #164 most tylko konczyl kawalek 'brak legalnego ruchu wg odczytu' bez odczytu wyniku; teraz zapisuje 'koniec_partii'/'wynik_koncowy' wprost do moves.jsonl. Nadal brak automatycznej obslugi przycisku Play - to pozostaje reczne.",
+      "Przy tej polityce (lookahead-ntuple, wagi rekordowe) pierwsza partia przetrwala 150 ruchow (wynik 29907) zanim skonczyla sie naturalnie (brak legalnego ruchu), znacznie dluzej niz partie na lookahead:weights.json z #164 (do ok. 8500 w 20-30 min). Na ok. 260 lacznych ruchow polityki w dwoch partiach napotkano tylko 1 reklame (ciemna, tuz przed koniec_partii) - zero jasnych reklam - co jest spojne z opisem w issue, ze ta polityka daje mniej okazji na reklamy na kawalek z powodu dluzszego przezycia."
     ]
   }
 }
