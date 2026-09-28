@@ -178,3 +178,69 @@ kompletnych partii z apki) podejmie orchestrator.
   planszy (ruch 10, kawałek 9, partia A: +72 przy zero liniach) — to nowy, konkretny
   przykład zjawiska, które `pomiar.json` już nazywało "OCR niestabilny", przydatny jako
   test case, gdyby ktoś chciał policzyć most z dokładniejszym odczytem wyniku.
+
+## Pomiar 2 (#191): partia D z sesji danych tego cyklu
+
+Bilet: [#191](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/191) · dane:
+`bridge/runs/cb91077/pomiar.json` (#190, sesja danych na moście, polityka greedy, 12 kawałków, 3 pełne
+partie plus czwarta w toku). **Zaraportowano, nie naprawiono** — `scoring.py`, `game.py`, `generator.py`
+nietknięte, `reward_shape_changed: no`.
+
+### Dobór partii: tylko cała partia bez dziur
+
+Kryterium tego zadania jest ostrzejsze niż w #183 ("wynik z ekranu końca" tam wystarczał nawet z brakującym
+kawałkiem) — tu liczy się **cała partia bez dziur** w surowej trajektorii. Z trzech partii w `cb91077`:
+
+- **partia 1** (kawałki 1–3): `chunk3_moves.jsonl` utracony (nadpisany przed skopiowaniem, udokumentowane
+  wprost w `pomiar.json`, pole `kawalki[2]`) — brak surowego `board`/`tray`/`move` dla ruchów 0–10, tylko
+  log konsoli. **Wykluczona.**
+- **partia 2** (kawałki 3–7): `pomiar.json` (pole `partie[1]`) twierdzi "bez dziur", ale to sprzeczne z
+  własnym opisem kawałka 3 wyżej w tym samym pliku — `chunk3_moves.jsonl` naprawdę nie istnieje na dysku
+  (sprawdzone `ls bridge/runs/cb91077/*.jsonl`), więc brakuje ruchów 12–29 kawałka 3 (start partii 2, ok.
+  18 ruchów). **Wykluczona** mimo etykiety w źródle — patrz `## Odkrycia` w `docs/z6-tacka-a-plansza.md`
+  (Pomiar 3, #191).
+- **partia 3** (kawałki 7–12): wszystkie kawałki mają zachowany surowy `chunkN_moves.jsonl`, bez restartu
+  apki. Jedyna komplikacja to wewnątrz-kawałkowa granica: kawałek 7 zawiera koniec partii 2 (ruchy 0–10) i
+  początek partii 3 (ruchy 11–29), kawałek 12 zawiera koniec partii 3 (ruch 0) i początek partii 4
+  (ruchy 1–29) — `tools/score_from_trajectory.py` tnie tylko po całych plikach, nie po numerze ruchu
+  wewnątrz pliku, więc granice partii 3 wycięto ręcznie ze strumienia wpisów (drugie wystąpienie `n=11` w
+  `chunk7_moves.jsonl` to pierwszy prawdziwy ruch partii 3 — pierwsze to wpis przejściowy bez `move`; ruch
+  `n=0` w `chunk12_moves.jsonl` to ostatni ruch partii 3, kolejne wpisy już partia 4). **Włączona jako
+  partia D.**
+
+### Partia D
+
+| partia | kawałki | postawień | luki | wynik apki | źródło wyniku apki | wynik **main** | wynik **alt** |
+|---|---|---:|---|---:|---|---:|---:|
+| D — `cb91077`, partia 3 | 7 (od ruchu 11) – 12 (do ruchu 0) | 140 (komplet, bez dziur) | 1× `ok=false` (kawałek 7, ruch 10 — sam koniec partii poprzedniej, poza oknem partii D); 1× `ok=false` (kawałek 12, ruch 0 — koniec partii D, oczekiwane) | **12 990** | `chunk12_gameover3_screen.png` ("Fun doesn't Stop Here!") | 7 604 | 16 089 |
+
+### Tabela zbiorcza (A–D)
+
+| partia | kawałki | postawień | apka | main | alt | apka/main | apka/alt |
+|---|---|---:|---:|---:|---:|---:|---:|
+| A — `c1819ed` p.1 | 2–9 | 155 z ~175 | 29 907 (29 502 w widocznym oknie) | 6 302 | 13 317 | 4,68× | 2,22× |
+| B — `c1819ed` p.2 | 10–15 | 104 | 20 345 | 6 040 | 13 355 | 3,37× | 1,52× |
+| C — `1402cff` | 1–7 | 111 | 8 532 | 4 282 | 8 032 | 1,99× | 1,06× |
+| D — `cb91077` p.3 | 7–12 | 140 | 12 990 | 7 604 | 16 089 | **1,71×** | **0,81×** |
+
+Partia D jest pierwszą w tym zestawie, gdzie `alt` **przekracza** apkę (0,81× — apka niższa niż `alt`), nie
+tylko zbliża się do niej z dołu jak w A/B/C. Combo max partii D jest też najwyższe z czterech (`main`: 22,
+`alt`: 24, przeciw 14–15/17–23 w A–C) — spójne z wcześniejszą obserwacją z #183, że drabinka trójstopniowa
+`alt` (10/15/20) rośnie zbyt stromo przy wysokich combo względem tego, co realnie robi apka, jeśli ekstrapolować
+poza zakres, w którym ją dopasowano.
+
+| partia | pkt/postawienie **main** | pkt/postawienie **alt** | pkt/postawienie **apka** | udział czyszczeń main | udział czyszczeń alt | udział czyszczeń apka (szac.) |
+|---|---:|---:|---:|---:|---:|---:|
+| D | 54,31 | 114,92 | **92,79** | 91,66% | 96,06% | 95,12% |
+
+Udział czyszczeń (main/alt/apka szac.) jest w tym samym rzędzie wielkości 91–96% co w A–C i w symulatorze
+(93,03%) — spójne z resztą zestawu niezależnie od tego, który wzór (main/alt) się użyje.
+
+### Jawne zdanie
+
+**Żaden z dwóch wzorów nie trzyma się wyniku apki w granicach ±10% na wszystkich czterech partiach.**
+`main` jest systematycznie ZA NISKI (1,71×–4,68× poniżej apki na wszystkich czterech). `alt` jest bliżej na
+trzech pierwszych (1,06×–2,22×, wciąż poza ±10%), ale na partii D **przeskakuje na drugą stronę** i
+przekracza apkę (0,81×, też poza ±10%, w przeciwnym kierunku) — więc `alt` nie jest nawet spójnie
+jednostronny, dodatkowy dowód, że trójstopniowa drabinka 10/15/20 nie jest właściwym wzorem apki, tylko
+przybliżeniem lepszym niż `main` w wąskim zakresie combo, w jakim była kalibrowana.

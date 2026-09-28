@@ -310,3 +310,155 @@ pytania Z-6 o zależność od planszy, i osobna od tego, czy warto przepisywać
 `generator.py` na warunkowy (na to danych wciąż brakuje). Decyzja o
 kolejnym pomiarze i o ewentualnej zmianie `generator.py` należy do
 orchestratora.
+
+## Pomiar 3 (#191)
+
+Bilet: [#191](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/191) · powód: między pomiarem 2
+i tym pomiarem `generator.py` przestał losować typy jednostajnie (1/15) — #186 wpisało do kodu wagi
+zmierzone z tych samych 326 par co pomiar 2 plus dołożony `bridge/runs/d878d79/` (`docs/generator-wagi-typow.md`).
+Testy (b)–(d) pomiaru 2 liczyły H0 Monte Carlo przez `generator.Generator`, więc automatycznie odziedziczyły
+nowe wagi po zmianie kodu — ale test (a) porównywał się z jednostajnością, nie z nowym H0, i cała próba (326
+par) posłużyła do wyliczenia tych wag, więc test (a) na tej samej próbie byłby kołowy. Ten pomiar: (1) przelicza
+(a) na H0 = skalibrowany `generator.py` (nie 1/15) i tylko na parach spoza próby kalibracyjnej, (2) dolicza dane
+z sesji tego cyklu (`bridge/runs/cb91077/`, #190) do wszystkiego innego. Zmiana w kodzie: `tools/z6_testy.py`
+(`chi_square_types`/`chi_square_orientations` liczą teraz przeciw `PIECE_TYPE_WEIGHTS` z `generator.py`, nie
+przeciw 1/15; nowy stały zbiór `CALIBRATION_RUN_DIRS` — osiem przebiegów, które weszły do kalibracji #186 —
+i `is_out_of_calibration()`, który wybiera pary spoza niego). `generator.py`, `scoring.py`, `game.py`,
+`pieces.py` **nietknięte** (`reward_shape_changed: no`).
+
+### Dane
+
+`tools/z6_pomiar2.py` uruchomiony ponownie (ekstrakcja przez `tools/z6_pary.py` bez zmian w logice) po
+dołożeniu `bridge/runs/cb91077/` na dysku (12 kawałków, polityka greedy, #190) daje **431 par** (wzrost z 326
+w #186/pomiar 2), z czego **105 nowych, spoza próby kalibracyjnej wag** — wszystkie z `cb91077`. Zapełnienie
+≥ 40%: **76 / 431** par w całej próbie (17,6%), **18 / 105** wśród nowych (17,1%) — podobny udział jak
+wcześniej, `cb91077` nie zmienia rozkładu zapełnienia w widoczny sposób. Zapełnienie w całej próbie:
+min 0,000, mediana 0,250, max 0,625 (bez zmian względem pomiaru 2 co do zakresu — most wciąż nie zbiera
+plansz bliskich pełnym).
+
+### Testy (b)–(d): H0 = skalibrowany `generator.py`, wszystkie 431 par
+
+H0 Monte Carlo (`Generator(seed=182)`, 500 powtórzeń na planszę, jak w pomiarze 2) już automatycznie liczy z
+`PIECE_TYPE_WEIGHTS` — kod tych testów się nie zmienił, tylko dane wejściowe (`generator.py` po #186) i liczba
+par. Korekta Bonferroniego za 8 testów w tym pomiarze (2 z (a) + 4 kwartyle z (b) + 1 z (c) + 1 z (d)):
+α = 0,05/8 = **0,00625**.
+
+**(b) Test 1 z pomiaru 1, stratyfikowany** (progi kwartyli tej próby: 0,156 / 0,25 / 0,359):
+
+| kwartyl | n par | zapełnienie | obs. grywalne | oczek. H0 | p (jednostronne) |
+|---|---|---|---|---|---|
+| 0 | 114 | 0,000–0,156 | 342 | 342,00 | 1,000 |
+| 1 | 110 | 0,172–0,250 | 330 | 330,00 | 1,000 |
+| 2 | 118 | 0,266–0,359 | 353 | 353,40 | 0,883 |
+| 3 | 89 | 0,375–0,625 | 257 | 260,80 | 0,960 |
+
+Bez zmian jakościowych względem pomiaru 2: żaden kwartyl, łącznie z najpełniejszym, nie pokazuje
+faworyzowania grywalnych typów.
+
+**(c) Grywalność całej tacki** (permutacje kolejności, czyszczenie linii między postawieniami) na wszystkich
+431 planszach: obserwowane **431/431 grywalnych (100%)** wobec oczekiwanych pod skalibrowanym H0 **425,62
+(98,8%)**. p (jednostronne) = **0,002503**, dwustronne = **0,003677**. **To PRZECHODZI korektę Bonferroniego
+(0,00625/8)** — pierwszy raz w tej serii pomiarów, że ten test przeżywa korektę za wielokrotne testowanie.
+Efekt bezwzględny jest mały (różnica 1,2 punktu procentowego), ale przy n=431 mocny statystycznie.
+
+**(d) To samo, tylko na planszach gdzie H0 daje grywalność < 0,9** — 18 z 431 (4,2%, podobny udział co w
+pomiarze 2). Obserwowane **18/18 (100%)** wobec oczekiwanych **14,32 (79,5%)** — różnica ok. 20 punktów
+procentowych, w tym samym rzędzie co w pomiarze 2 (tam 20 pp na 13 planszach). p (jednostronne) = **0,01415**,
+dwustronne = **0,02987** — **NIE przechodzi** korekty Bonferroniego (próg 0,00625), choć jest bliżej niż w
+pomiarze 2 (tam p=0,0559).
+
+**Moc testu (d).** `tools.analiza_z6.power_normal_approx` ma błąd — parametr `alpha` jest przyjmowany, ale
+`z_alpha` wewnątrz funkcji jest zakodowany na sztywno jako próg dla α=0,05 (`1.6449`), więc wywołanie z innym
+`alpha` po cichu zwraca moc dla α=0,05, nie dla podanego progu (patrz `## Odkrycia` — nie naprawiono, poza
+budżetem tego zadania, plik nie jest wymieniony w `## Budżet`). Policzone tu ręcznie, z poprawnym progiem
+(`norm_ppf(1 - alpha)` z tego samego modułu, już tam obecny i poprawny) dla obserwowanego efektu (delta =
+(18−14,32)/18 = 0,204):
+
+| α | moc dla obserwowanego efektu (0,204) |
+|---|---|
+| 0,05 (nieskorygowane) | 0,600 |
+| 0,00625 (Bonferroni/8) | **0,065** |
+
+Test (d) jest przy tej liczności silnie niedomocowany po korekcie — moc 0,065 znaczy, że nawet gdyby prawdziwy
+efekt był dokładnie taki jak obserwowany, test złapałby go tylko raz na ~15 powtórzeń tego pomiaru. Licząc tym
+samym sposobem co w pomiarze 2 (k kopii tego samego profilu 18 "trudnych" plansz), moc przy α Bonferroniego
+osiąga 0,80 dopiero przy **k=4× (72 plansze)**: k=1→0,065, k=2 (36)→0,501, k=3 (54)→0,878, k=4 (72)→0,984.
+Przy obecnym udziale trudnych plansz (18/431 ≈ 4,2%) to odpowiada **~1700 parom łącznie** — więcej niż dolna
+granica z pomiaru 2 (~1200), bo obserwowany efekt w tym pomiarze jest nieco mniejszy niż tam zakładano dla
+ekstrapolacji.
+
+### Test (a): tylko pary spoza próby kalibracyjnej (105 par, 315 klocków, z `cb91077`)
+
+H0 = skalibrowany `generator.py` (`PIECE_TYPE_WEIGHTS`, nie 1/15). Liczony wyłącznie na 105 nowych parach —
+inaczej byłby kołowy, bo te same 326 par posłużyły do wyliczenia wag testowanych tu jako H0.
+
+**Chi-kwadrat typów:** χ² = 32,741, df = 14, **p = 0,003139**. **Chi-kwadrat orientacji:** χ² = 87,857, df = 40,
+**p = 1,92·10⁻⁵**. Oba przechodzą korektę Bonferroniego (0,00625) — **nawet skalibrowane wagi typów z #186 nie
+pasują do świeżej, niezależnej próby z `cb91077`.** To słabszy efekt niż w pomiarze 2 wobec jednostajności
+(tam p ≈ 10⁻⁷², tu p ≈ 0,003 — o 69 rzędów wielkości bliżej progu), ale wciąż odrzuca H0 na progu istotności
+tego pomiaru. Obserwowane liczności na 105 tackach (315 klocków) wobec oczekiwanych pod skalibrowanym H0:
+
+| typ | obs. | oczek. (H0 skalibrowane) | stosunek |
+|---|---:|---:|---:|
+| L | 52 | 45,41 | 1,15× |
+| beam4 | 37 | 43,48 | 0,85× |
+| beam3 | 28 | 18,04 | 1,55× |
+| beam5 | 30 | 18,68 | 1,61× |
+| rect23 | 35 | 37,36 | 0,94× |
+| square2 | 22 | 32,21 | 0,68× |
+| square3 | 22 | 17,07 | 1,29× |
+| T | 19 | 28,67 | 0,66× |
+| S | 17 | 25,44 | 0,67× |
+| corner5 | 13 | 10,31 | 1,26× |
+| corner3 | 10 | 10,63 | 0,94× |
+| 1x1 | 8 | 4,19 | 1,91× |
+| diag2 | 4 | 2,25 | 1,78× |
+| beam2 | 18 | 19,33 | 0,93× |
+| diag3 | 0 | 1,93 | 0,00× |
+
+Kierunek jest inny niż odchylenie wobec 1/15 w pomiarze 2 (tam `L`/`beam4`/`rect23` były najbardziej nad
+oczekiwaniem, teraz `beam3`/`beam5`/`1x1`/`diag2` są nad, `T`/`S`/`square2` pod) — spójne z tym, że wagi #186
+już wyłapały główny (silny) sygnał nierówności, a to co zostaje w resztkach jest szumem próby wielkości 105
+tacek (315 klocków), nie systematycznym błędem kalibracji w jedną stronę. `diag3` na zerze przy oczekiwanych
+1,93 to jedyna pojedyncza kategoria z widocznie dużym odchyleniem względnym, ale przy n_oczek.<2 to i tak
+najmniej precyzyjnie zmierzony typ w całej próbie (6 obserwacji w kalibracji #186).
+
+### Liczba par i moc
+
+431 par łącznie (105 spoza kalibracji), 76 z zapełnieniem ≥ 40%. Test (d) — najbardziej ukierunkowany na
+wykrycie zależności od KONKRETNEJ planszy — ma moc 0,065 przy obserwowanym efekcie i skorygowanym progu;
+potrzeba ~4× obecnej liczby "trudnych" plansz (72 zamiast 18), co przy obecnym udziale odpowiada ~1700 parom
+łącznie, żeby mieć moc 0,80.
+
+### Werdykt (pomiar 3)
+
+**Nierozstrzygnięte, ale kierunek przesunął się w stronę "generator widzi planszę" po raz pierwszy w tej
+serii pomiarów.** Test (c) — grywalność całej tacki z czyszczeniem linii, wobec H0 liczonego już z
+kalibrowanymi wagami typów (więc odporny na zarzut kołowości testu (a)) — **po raz pierwszy przechodzi
+korektę Bonferroniego** (p=0,0025 < 0,00625), z efektem w tym samym kierunku co w pomiarze 2 (obserwacja >
+H0). Ale test (d), czulszy metodologicznie (patrzy tylko na plansze, gdzie H0 przewiduje grywalność < 90%,
+czyli tam gdzie sygnał powinien być najwyraźniejszy), wciąż NIE przechodzi korekty i ma moc zaledwie 0,065
+dla dokładnie tego efektu, jaki obserwuje — więc jego brak istotności nie jest dowodem nieobecności efektu,
+tylko brakiem mocy. Dodatkowo test (a), teraz liczony przeciw skalibrowanemu H0 i tylko na świeżych,
+niekołowych danych, wciąż odrzuca dosłowne `PIECE_TYPE_WEIGHTS` (p=0,0031) — sugeruje, że same wagi typów
+mogą wymagać dalszej kalibracji (więcej danych) niezależnie od pytania o świadomość planszy. Potrzeba więcej
+danych mostu, z naciskiem na trudne (zapełnienie ≥ 30–40%) plansze, żeby test (d) miał szansę rozstrzygnąć
+(c) niezależnie — orchestrator decyduje o kolejnym pomiarze.
+
+## Odkrycia
+
+- `tools.analiza_z6.power_normal_approx` (bez zmian w tym zadaniu, plik poza budżetem #191) ignoruje
+  parametr `alpha` przy liczeniu progu odrzucenia — `z_alpha` jest zakodowany na sztywno jako wartość dla
+  α=0,05 (`1.6448536269514722`), więc `power_normal_approx(probs, alpha=0.00625, delta=d)` po cichu zwraca
+  moc dla α=0,05, nie dla α=0,00625. Skutek: każde dotychczasowe wywołanie tej funkcji z niedomyślnym `alpha`
+  (w tym `power_grid` w `tools/z6_testy.py`, wywoływane tylko z domyślnym 0,05 więc niezależnie poprawne, ale
+  API na to nie chroni) dałoby błędny wynik. W tym pomiarze moc dla α Bonferroniego policzona ręcznie obok
+  (`norm_ppf` z tego samego modułu jest poprawny, tylko nieużyty w `power_normal_approx`).
+- `bridge/runs/cb91077/pomiar.json` (#190), pole `partie[1]` (partia 2, kawałki 3–7), jest wewnętrznie
+  sprzeczne: opis kawałka 3 mówi wprost, że `chunk3_moves.jsonl` został nadpisany i utracony (tylko
+  `chunk3.log` konsoli ocalał), ale opis partii 2 mimo to twierdzi "wszystkie kawałki ... mają zachowany
+  chunkN_moves.jsonl" / `trajektoria_bez_dziur: tak`. Plik faktycznie nie istnieje na dysku (sprawdzone
+  `ls bridge/runs/cb91077/*.jsonl`) — partia 2 NIE jest "całą partią bez dziur" w sensie replayu ruch po
+  ruchu (brakuje ruchów 12–29 kawałka 3, ok. 18 ruchów na starcie partii). Dlatego w
+  `docs/punktacja-apka-vs-wzor.md` (sekcja niżej) użyto z tej sesji tylko partii 3 (kawałki 7–12), jedynej
+  faktycznie kompletnej.
