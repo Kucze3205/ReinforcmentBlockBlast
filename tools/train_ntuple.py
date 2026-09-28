@@ -58,6 +58,12 @@ odcinków, przy każdej ewaluacji i na końcu wywołania; log odcinków jest
 dopisywany przyrostowo do `<stan>.log.jsonl`. Koszt zapisu nie zależy od
 liczby odcinków za nami.
 
+Log jest rotowany na pliki-bloki po `BLOCK_EPISODES` odcinków (#187), żeby
+żaden plik nie przekroczył limitu commitu GitHuba przy skali 1 mln odcinków
+(`docs/ntuple-szybkosc.md`, sekcja rotacji logu) — blok 0 to nadal
+`<stan>.log.jsonl`, kolejne to `<stan>.log.NNNN.jsonl`. Trening go nie czyta;
+`read_log` łączy wszystkie bloki dla testów i analizy.
+
 Starty z późnej gry (#168): `--start-states <plik> --start-prob <p>` — z
 prawdopodobieństwem `p` odcinek startuje z planszy wylosowanej z `<plik>`
 (zebranego `tools/collect_states.py`) zamiast z pustej. Tacka i dalsze klocki

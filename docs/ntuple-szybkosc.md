@@ -133,3 +133,52 @@ po przebiegu to `0.05`, nie `0.0`, jak dawałby stary kod.
 `scoring.py`, `generator.py`, `pieces.py`, `features.py`, `benchmark.py`, pliki w
 `ntuple/`. `reward_shape_changed: no` — żadna wartość zwracana przez `game.step`
 ani punktacja/nagroda TD nie zostały ruszone, tylko sposób liczenia indeksów łat.
+
+## Rotacja logu odcinków na pliki-bloki (#187)
+
+Log odcinków (`<stan>.log.jsonl`) nie jest czytany przez sam trening (tylko przez
+`read_log`, do testów i analizy krzywej), więc przy skali 0,5–1 mln odcinków `ADC`
+groził tylko rozmiarem pliku do commitu, nie wydajnością. Pomiar istniejących logów
+`ntuple/*.log.jsonl` (100 tys. odcinków każdy):
+
+| plik | wpisów | B/wpis (średnio) | B/wpis (max) |
+|---|---|---|---|
+| `survival-adc-state.log.jsonl` | 100 000 | 142,2 | 164 |
+| `survival-adc-ss-state.log.jsonl` | 100 000 | 149,7 | 164 |
+
+Przy 1 000 000 odcinków jeden plik urósłby do ~14,2–15,0 MB × 10 ≈ 142–150 MB —
+ponad próg odrzucenia commitu GitHuba (100 MB) i daleko ponad kryterium akceptacji
+tego zadania (40 MB).
+
+Zmiana: `tools/train_ntuple.py` dzieli log na pliki-bloki po `BLOCK_EPISODES = 150_000`
+odcinków (`log_block`, `log_path(state_path, episode)`). Blok 0 (odcinki 1..150 000)
+zachowuje nazwę sprzed zmiany, `<stan>.log.jsonl` — istniejące pliki w `ntuple/`
+(wszystkie < 150 000 odcinków) wczytują się bez zmiany nazwy. Kolejne bloki to
+`<stan>.log.NNNN.jsonl` (np. `<stan>.log.0001.jsonl` dla odcinków 150 001..300 000).
+`read_log` łączy wszystkie bloki w kolejności odcinków — interfejs dla testów/analizy
+się nie zmienił.
+
+Szacunek rozmiaru bloku przy 164 B/wpis (zmierzony max powyżej): `150 000 × 164 B ≈
+24,6 MB` — pod limitem 40 MB z zapasem ~38%, mimo że układ `ADC` (136 tabel wag) ma
+najdłuższe wpisy logu spośród dotychczas trenowanych układów. Przy 1 000 000 odcinków
+`ADC` to 7 plików bloków (6 pełnych po ~24,6 MB + 1 niepełny), żaden nie przekracza
+budżetu.
+
+Rotacja jest szczegółem zapisu na dysk: `_append_log_entries` grupuje wpisy po bloku
+i dopisuje każdą grupę do właściwego pliku — cel TD i aktualizacja wag w `run_episode`
+jej nie widzą. Test `tests/test_train_ntuple_eval.py::TestLogRotation::
+test_weights_are_bit_identical_regardless_of_block_size` uruchamia ten sam trening
+(`--reward survival --layout ADC`, 6 odcinków, seed 13) z `BLOCK_EPISODES` zmockowanym
+na 2 i z wartością domyślną — plik wag (`--out`) wychodzi bitowo identyczny (ten sam
+sha256) w obu przypadkach. Wznowienie działa też w poprzek granicy bloku
+(`test_resuming_across_a_block_boundary_matches_continuous_run`) i ze stanu sprzed tej
+zmiany, skopiowanego do katalogu tymczasowego (`tests/test_train_ntuple_eval.py::
+TestResumeFromExistingRepoState`, na `ntuple/survival-adc-state.json`) — pliki w
+`ntuple/` weryfikowane sha256 przed i po pozostają identyczne.
+
+Nie zmienione (dodatkowo do listy wyżej): `state["log_bytes"]` nadal śledzi tylko plik
+bloku aktywnego w chwili ostatniego udanego zapisu (truncate przy wznowieniu po
+przerwanej sesji działa jak wcześniej, tylko na właściwym pliku bloku zamiast
+jedynego pliku logu). `--curve-out` i punkty ewaluacji (`state["eval"]`) nie czytają
+logu wcale — liczą się przyrostowo w `state["windows"]`/`state["eval"]["points"]`
+podczas treningu, więc rotacja logu ich nie dotyczy.
