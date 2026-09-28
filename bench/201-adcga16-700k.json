@@ -1,0 +1,82 @@
+{
+  "sha": "b6993113836ace9229f8e2c2461fb427ab78999f",
+  "dirty": false,
+  "issue": 201,
+  "status": "ok",
+  "blocked_reason": null,
+  "config": {
+    "n_seeds": 300,
+    "move_cap": 2000,
+    "epsilon": 0.0,
+    "torch_seed": 0,
+    "threshold_pct": 10.0,
+    "fixed_seed_file": "bench/seeds_fixed.json",
+    "rotated_seed_salt": 2654435761
+  },
+  "source_hashes": {
+    "game.py": "37da8bd9298fc6c2",
+    "scoring.py": "1e4a1b8730243ce6",
+    "generator.py": "bc8c4a19ba7f16d2",
+    "pieces.py": "7241459a3cb11706",
+    "features.py": "3e4c45d8cafa246c",
+    "policies.py": "fbc34f04185350c0",
+    "benchmark.py": "0dd1ab58cb56f4f7",
+    "ntuple.py": "e8851320c0a0fd17",
+    "ntuple_native.c": "7cb7357be5b2d33d",
+    "ntuple_native.py": "7a8a94ed20e92a4f"
+  },
+  "arms": {
+    "candidate": {
+      "policy": "lookahead-ntuple",
+      "fixed": {
+        "mean": 36142.48,
+        "median": 20815.0,
+        "p10": 3476.3,
+        "survival_mean": 393.02,
+        "capped_pct": 1.0
+      },
+      "rotated": {
+        "mean": 35952.55,
+        "median": 22380.0,
+        "p10": 3503.4,
+        "survival_mean": 405.8,
+        "capped_pct": 0.67
+      },
+      "overfit_gap_pct": 0.53,
+      "spec": "lookahead-ntuple:ntuple/survival-adcga16-700k.json",
+      "weights_hash": "e8f87872b84c5e5e"
+    },
+    "record": {
+      "policy": "lookahead-ntuple",
+      "fixed": {
+        "mean": 34657.7,
+        "median": 22099.0,
+        "p10": 2583.5,
+        "survival_mean": 395.12,
+        "capped_pct": 0.33
+      },
+      "rotated": {
+        "mean": 34282.33,
+        "median": 24514.0,
+        "p10": 2562.4,
+        "survival_mean": 381.6,
+        "capped_pct": 0.67
+      },
+      "overfit_gap_pct": 1.08,
+      "spec": "lookahead-ntuple:ntuple/survival-adcg-400k.json",
+      "weights_hash": "2f713f11e7f0ee34"
+    }
+  },
+  "deltas": {
+    "kandydat vs record": {
+      "mean_diff": 1484.78,
+      "pct": 4.28,
+      "sd_diff": 53370.67,
+      "se_diff": 3081.36,
+      "se_pct": 8.89,
+      "mean_diff_over_se": 0.48,
+      "label": "bez zmian"
+    }
+  },
+  "duration_s": 93.3
+}
