@@ -205,8 +205,12 @@ class TestPiecePool(unittest.TestCase):
         }
         self.assertEqual(actual, expected)
 
-    def test_sampling_is_uniform_over_types_not_poses(self):
-        # R-8: typ 3x3 (1 orientacja) musi wypadać ~8x częściej niż konkretna poza L.
+    def test_sampling_is_uniform_over_poses_within_type_not_all_poses(self):
+        # R-8: orientacja w obrębie typu jest 1/n, więc konkretna poza L (1 z 8)
+        # nie może wypadać tak samo często jak square3 (jedyna poza swojego typu)
+        # mimo że od #186 typy mają nierówne wagi, nie 1/15 (docs/generator-wagi-typow.md).
+        from generator import PIECE_TYPE_WEIGHTS
+
         gen = Generator(1234)
         counts = {}
         for _ in range(20000):
@@ -214,7 +218,14 @@ class TestPiecePool(unittest.TestCase):
             counts[piece.name] = counts.get(piece.name, 0) + 1
         square3 = counts.get("square3", 0)
         l_pose = counts.get("L-0", 0)
-        self.assertGreater(square3 / max(l_pose, 1), 5.0)
+
+        square3_idx = next(i for i, (n, _) in enumerate(CANONICAL_TYPES) if n == "square3")
+        l_idx = next(i for i, (n, _) in enumerate(CANONICAL_TYPES) if n == "L")
+        expected_ratio = PIECE_TYPE_WEIGHTS[square3_idx] / (PIECE_TYPE_WEIGHTS[l_idx] / 8)
+        # ratio obserwowane 20000 losowaniami powinno leżeć blisko tego
+        # wynikającego z wag - jeśli sampling zdegenerowałby się do 1/41
+        # jednostajnie po pozach, ratio spadłoby do ~1.0.
+        self.assertAlmostEqual(square3 / max(l_pose, 1), expected_ratio, delta=1.0)
 
 
 class TestBenchmarkPrerequisites(unittest.TestCase):
