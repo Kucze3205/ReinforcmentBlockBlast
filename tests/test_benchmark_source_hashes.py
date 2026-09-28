@@ -31,6 +31,8 @@ REQUIRED_SOURCES = {
     "policies.py",
     "benchmark.py",
     "ntuple.py",
+    "ntuple_native.c",
+    "ntuple_native.py",
 }
 
 

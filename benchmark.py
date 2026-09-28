@@ -51,6 +51,10 @@ HASHED_SOURCES = [
     # Ocena liścia ramienia `lookahead-ntuple:` żyje w `ntuple.py` — bez niego
     # odcisk źródeł nie widzi zmiany mierzonej polityki (#127, #140).
     "ntuple.py",
+    # Rdzeń natywny N-tuple (#184): liczy wartości liścia i wiązkę
+    # `lookahead-ntuple`, a jego opakowanie decyduje, kiedy liczy Python.
+    "ntuple_native.c",
+    "ntuple_native.py",
 ]
 
 STATUS_OK = "ok"
