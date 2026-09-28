@@ -9,7 +9,7 @@
     "td_target": "r_t"
   },
   "seed": 3,
-  "n_odcinkow_lacznie": 62000,
+  "n_odcinkow_lacznie": 70000,
   "rozmiar_okna": 2000,
   "okna": [
     {
@@ -259,6 +259,38 @@
       "sredni_wynik": 3088.6,
       "srednie_przezycie": 90.46,
       "sredni_abs_blad_td": 4.4698
+    },
+    {
+      "od_odcinka": 62001,
+      "do_odcinka": 64000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 3221.64,
+      "srednie_przezycie": 95.33,
+      "sredni_abs_blad_td": 4.5437
+    },
+    {
+      "od_odcinka": 64001,
+      "do_odcinka": 66000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 3094.08,
+      "srednie_przezycie": 92.72,
+      "sredni_abs_blad_td": 4.5542
+    },
+    {
+      "od_odcinka": 66001,
+      "do_odcinka": 68000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 3319.75,
+      "srednie_przezycie": 96.35,
+      "sredni_abs_blad_td": 4.5499
+    },
+    {
+      "od_odcinka": 68001,
+      "do_odcinka": 70000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 3137.87,
+      "srednie_przezycie": 92.85,
+      "sredni_abs_blad_td": 4.5915
     }
   ],
   "ewaluacja": {
@@ -636,12 +668,60 @@
         "sredni_wynik": 2939.36,
         "srednie_przezycie": 88.41,
         "n_partii": 100
+      },
+      {
+        "odcinki": 63000,
+        "sredni_wynik": 3693.58,
+        "srednie_przezycie": 103.34,
+        "n_partii": 100
+      },
+      {
+        "odcinki": 64000,
+        "sredni_wynik": 3148.86,
+        "srednie_przezycie": 93.17,
+        "n_partii": 100
+      },
+      {
+        "odcinki": 65000,
+        "sredni_wynik": 2943.6,
+        "srednie_przezycie": 84.81,
+        "n_partii": 100
+      },
+      {
+        "odcinki": 66000,
+        "sredni_wynik": 3343.82,
+        "srednie_przezycie": 96.72,
+        "n_partii": 100
+      },
+      {
+        "odcinki": 67000,
+        "sredni_wynik": 3631.7,
+        "srednie_przezycie": 105.9,
+        "n_partii": 100
+      },
+      {
+        "odcinki": 68000,
+        "sredni_wynik": 3738.19,
+        "srednie_przezycie": 104.05,
+        "n_partii": 100
+      },
+      {
+        "odcinki": 69000,
+        "sredni_wynik": 2989.09,
+        "srednie_przezycie": 94.53,
+        "n_partii": 100
+      },
+      {
+        "odcinki": 70000,
+        "sredni_wynik": 3175.06,
+        "srednie_przezycie": 89.63,
+        "n_partii": 100
       }
     ],
     "najlepszy": {
-      "odcinki": 39000,
-      "sredni_wynik": 3649.62,
-      "srednie_przezycie": 97.71,
+      "odcinki": 68000,
+      "sredni_wynik": 3738.19,
+      "srednie_przezycie": 104.05,
       "n_partii": 100
     }
   }
