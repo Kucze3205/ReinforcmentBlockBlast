@@ -87,16 +87,74 @@ class TestMergeBenchRefusal(unittest.TestCase):
             )
             self.shard_paths.append(path)
 
-    def test_refuses_different_sha(self):
+    def test_accepts_different_sha_same_source_hashes(self):
+        # Kawałki z kolejnych commitów tego samego kodu (#175): sha inny,
+        # dirty: false wszędzie, source_hashes identyczne -> złożenie OK.
+        # `dirty` jest wymuszone na False tutaj, żeby test nie zależał od
+        # stanu roboczego repo w chwili uruchomienia (może być dirty w trakcie
+        # rozwoju).
+        with open(self.shard_paths[0], encoding="utf-8") as fh:
+            first_data = json.load(fh)
+        first_data["dirty"] = False
+        shard1 = os.path.join(self.tmp.name, "shard1-clean.json")
+        with open(shard1, "w", encoding="utf-8") as fh:
+            json.dump(first_data, fh)
+
         with open(self.shard_paths[1], encoding="utf-8") as fh:
             data = json.load(fh)
         data["sha"] = "deadbeefdeadbeef"
+        data["dirty"] = False
         mutated = os.path.join(self.tmp.name, "shard2-mutated.json")
         with open(mutated, "w", encoding="utf-8") as fh:
             json.dump(data, fh)
 
         out = os.path.join(self.tmp.name, "out.json")
-        rc = merge_bench.main(["--out", out, self.shard_paths[0], mutated])
+        rc = merge_bench.main(["--out", out, shard1, mutated])
+        self.assertEqual(rc, 0)
+        with open(out, encoding="utf-8") as fh:
+            merged = json.load(fh)
+        self.assertEqual(merged["sha"], first_data["sha"])
+
+    def test_refuses_different_sha_different_source_hashes(self):
+        with open(self.shard_paths[0], encoding="utf-8") as fh:
+            first_data = json.load(fh)
+        first_data["dirty"] = False
+        shard1 = os.path.join(self.tmp.name, "shard1-clean.json")
+        with open(shard1, "w", encoding="utf-8") as fh:
+            json.dump(first_data, fh)
+
+        with open(self.shard_paths[1], encoding="utf-8") as fh:
+            data = json.load(fh)
+        data["sha"] = "deadbeefdeadbeef"
+        data["dirty"] = False
+        data["source_hashes"] = dict(data["source_hashes"], **{"game.py": "0000000000000000"})
+        mutated = os.path.join(self.tmp.name, "shard2-mutated.json")
+        with open(mutated, "w", encoding="utf-8") as fh:
+            json.dump(data, fh)
+
+        out = os.path.join(self.tmp.name, "out.json")
+        rc = merge_bench.main(["--out", out, shard1, mutated])
+        self.assertNotEqual(rc, 0)
+        self.assertFalse(os.path.exists(out))
+
+    def test_refuses_different_sha_dirty_true(self):
+        with open(self.shard_paths[0], encoding="utf-8") as fh:
+            first_data = json.load(fh)
+        first_data["dirty"] = False
+        shard1 = os.path.join(self.tmp.name, "shard1-clean.json")
+        with open(shard1, "w", encoding="utf-8") as fh:
+            json.dump(first_data, fh)
+
+        with open(self.shard_paths[1], encoding="utf-8") as fh:
+            data = json.load(fh)
+        data["sha"] = "deadbeefdeadbeef"
+        data["dirty"] = True
+        mutated = os.path.join(self.tmp.name, "shard2-mutated.json")
+        with open(mutated, "w", encoding="utf-8") as fh:
+            json.dump(data, fh)
+
+        out = os.path.join(self.tmp.name, "out.json")
+        rc = merge_bench.main(["--out", out, shard1, mutated])
         self.assertNotEqual(rc, 0)
         self.assertFalse(os.path.exists(out))
 

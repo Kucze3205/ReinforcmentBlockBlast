@@ -45,9 +45,13 @@ za pełny wynik. `tools/merge_bench.py` składa `N` kawałków w plik o tym samy
 kształcie co przebieg bez `--shard` (agregaty — średnia, mediana, p10,
 przeżycie, % uciętych — są niezależne od kolejności seedów, więc złożenie daje
 `arms`/`deltas` bitowo równe pełnemu przebiegowi; `duration_s` to suma
-kawałków). Odmawia (niezerowy kod wyjścia), gdy kawałki mają różny `sha`,
-`issue`, `config`, specyfikację ramienia (polityka albo `weights_hash`), gdy
-brakuje kawałka albo któryś się powtarza.
+kawałków). Odmawia (niezerowy kod wyjścia), gdy kawałki mają różny `issue`,
+`config`, specyfikację ramienia (polityka albo `weights_hash`), gdy brakuje
+kawałka albo któryś się powtarza. `sha` może się różnić między kawałkami —
+polecenia benchmarku commitują każdy kawałek zaraz po policzeniu, więc `HEAD`
+przesuwa się o commit na kawałek mimo tego samego kodu (#175) — o ile wszystkie
+kawałki mają `dirty: false` i identyczne `source_hashes`; w innym razie różny
+`sha` to nadal odmowa.
 
 ```
 python3 benchmark.py --candidate <spec> --record <spec> --issue N --jobs 4 --shard 1/4 --out bench/N-x-shard1.json

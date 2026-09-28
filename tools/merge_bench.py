@@ -11,8 +11,11 @@ samej puli seedów: te same `arms` i `deltas` (agregaty są niezależne od
 kolejności seedów), `duration_s` = suma kawałków.
 
 Odmawia (kod wyjścia != 0), gdy kawałki nie dają się bezpiecznie złożyć: różny
-`sha`, `issue`, `config`, specyfikacja ramienia (nazwa polityki albo
-`weights_hash`), brakujący albo zdublowany kawałek `K/N`.
+`issue`, `config`, specyfikacja ramienia (nazwa polityki albo `weights_hash`),
+brakujący albo zdublowany kawałek `K/N`. Kawałki mogą mieć różny `sha`, gdy
+polecenia benchmarku commitują każdy kawałek osobno (#175) — wtedy wymagane
+jest `dirty: false` na wszystkich kawałkach i identyczne `source_hashes`;
+inaczej różny `sha` też jest odmową. Złożony plik dziedziczy `sha` kawałka 1.
 """
 import argparse
 import json
@@ -85,10 +88,16 @@ def check_consistent(shards):
                 path + ": status `" + str(data.get("status")) + "` — złóż tylko kawałki `ok`"
             )
         if data.get("sha") != first.get("sha"):
-            raise MergeError(
-                "różny `sha`: " + first_path + "=" + str(first.get("sha"))
-                + " vs " + path + "=" + str(data.get("sha"))
-            )
+            if data.get("dirty") or first.get("dirty"):
+                raise MergeError(
+                    "różny `sha` przy dirty=true: " + first_path + "=" + str(first.get("sha"))
+                    + " vs " + path + "=" + str(data.get("sha"))
+                )
+            if data.get("source_hashes") != first.get("source_hashes"):
+                raise MergeError(
+                    "różny `sha` i różne `source_hashes`: " + first_path + "=" + str(first.get("sha"))
+                    + " vs " + path + "=" + str(data.get("sha"))
+                )
         if data.get("issue") != first.get("issue"):
             raise MergeError(
                 "różny `issue`: " + first_path + "=" + str(first.get("issue"))
