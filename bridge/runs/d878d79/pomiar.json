@@ -10,13 +10,18 @@
     {"kawalek": 5, "ruchy": "0-9", "polityka": "lookahead-ntuple", "wynik": "10/10 ok, brak okien, brak reklam, wynik do 10307"},
     {"kawalek": 6, "ruchy": "0-9", "polityka": "lookahead-ntuple", "wynik": "10/10 ok, brak okien, brak reklam, wynik do 10614"},
     {"kawalek": 7, "ruchy": "0-9", "polityka": "lookahead-ntuple", "wynik": "10/10 ok, brak okien, brak reklam, wynik do 11477 (OCR chwilowo niestabilny na ruchu 4: '16983' zamiast ~10743 - ok liczone z porownania plansz, nie z OCR)"},
-    {"kawalek": 8, "ruchy": "0-9", "polityka": "lookahead-ntuple", "wynik": "10/10 ok, brak okien, brak reklam, OCR wyniku bardzo niestabilny caly kawalek (1481, 1495, 499, 11503, 11527, 1531, 11620, 11624, 11678, 1682) - ok liczone z porownania plansz, nie z OCR"}
+    {"kawalek": 8, "ruchy": "0-9", "polityka": "lookahead-ntuple", "wynik": "10/10 ok, brak okien, brak reklam, OCR wyniku bardzo niestabilny caly kawalek (1481, 1495, 499, 11503, 11527, 1531, 11620, 11624, 11678, 1682) - ok liczone z porownania plansz, nie z OCR"},
+    {"kawalek": 9, "ruchy": "0-8 ok, ruch 9 ROZBIEZNOSC (apka spadla do ekranu domowego)", "polityka": "lookahead-ntuple",
+     "wynik": "ruchy 0-8 ok (wynik do 13037). Ruch 9 (slot2->(2,5)): ROZBIEZNOSC - observed plansza CALKOWICIE PUSTA (wszystkie 64 pola), expected mial wypelnione pola. Kawalek zakonczyl sie normalnie (osiagniety max_moves=10, nie awaria bridge.py), ale most NIE wykryl awarii w tym samym wywolaniu (in_game() sprawdzane tylko na poczatku kazdej iteracji petli, a to byla ostatnia z 10). Zrzut bridge/runs/d878d79/chunk9_crash_home.png (=bridge-out/final.png) potwierdza: apka NIE jest na pierwszym planie - widac ekran domowy Androida (launcher, ikony Telefon/Wiadomosci/Play/Chrome/Aparat)."},
+    {"kawalek": 10, "ruchy": "0-2 (kawalek skrocony do 3 ruchow specjalnie do zmierzenia naprawy z kawalka 9)", "polityka": "lookahead-ntuple",
+     "wynik": "restart automatyczny na starcie kawalka ('restart 1/3', 'restart udany, kontynuacja partii'), bez reki verifiera. Po restarcie 3/3 ruchy ok, wynik od 13285 (partia kontynuowana, nie zresetowana - wynik ~zgodny z 13037+ po ruchu 9 ktory sie nie zapisal jako OCR ale liczby punktow sugeruja kontynuacje tej samej partii)."}
   ],
   "pytanie_1_naprawy_na_zywo": {
-    "reklama_statyczna": {"liczba": 0, "bez_reki": "nie dotyczy (brak wystapien dotad)"},
-    "koniec_partii_wariant_niebieski": {"liczba": 0, "bez_reki": "nie dotyczy (brak wystapien dotad)"},
-    "koniec_partii_wariant_purpurowy": {"liczba": 0, "bez_reki": "nie dotyczy (brak wystapien dotad)"},
-    "nowa_partia_auto_play": {"liczba": 0, "bez_reki": "nie dotyczy (brak wystapien dotad)"}
+    "reklama_statyczna": {"liczba": 0, "bez_reki": "nie dotyczy (brak wystapien w calym pomiarze)"},
+    "koniec_partii_wariant_niebieski": {"liczba": 0, "bez_reki": "nie dotyczy (brak wystapien w calym pomiarze)"},
+    "koniec_partii_wariant_purpurowy": {"liczba": 0, "bez_reki": "nie dotyczy (brak wystapien w calym pomiarze - partia przetrwala caly pomiar bez konca gry)"},
+    "nowa_partia_auto_play": {"liczba": 0, "bez_reki": "nie dotyczy (brak konca partii w calym pomiarze, wiec tap_play() nie zostal wywolany ani razu)"},
+    "restart_apki_po_zniknieciu_z_pierwszego_planu": {"liczba": 1, "bez_reki": "tak, w pelni automatycznie - kawalek 10, 'restart 1/3' udany od razu, most sam wznowil partie bez interwencji verifiera (potwierdzenie tej samej naprawy co w c1819ed kawalek 1, na nowszej wersji apki 10.7.5)"}
   },
   "co_odczytane_vs_wnioskowane": {
     "odczytane_ze_zrzutow": [
@@ -28,11 +33,16 @@
       "bridge-out/chunk5.log: 10/10 ruchow OK, wynik do 10307, brak wpisow 'okno:' i brak 'koniec_partii'.",
       "bridge-out/chunk6.log: 10/10 ruchow OK, wynik do 10614, brak wpisow 'okno:' i brak 'koniec_partii'.",
       "bridge-out/chunk7.log: 10/10 ruchow OK, wynik do 11477 (chwilowy blad OCR na ruchu 4, '16983'), brak wpisow 'okno:' i brak 'koniec_partii'.",
-      "bridge-out/chunk8.log: 10/10 ruchow OK, OCR wyniku bardzo niestabilny caly kawalek (skacze miedzy ~1500 a ~11600), brak wpisow 'okno:' i brak 'koniec_partii'."
+      "bridge-out/chunk8.log: 10/10 ruchow OK, OCR wyniku bardzo niestabilny caly kawalek (skacze miedzy ~1500 a ~11600), brak wpisow 'okno:' i brak 'koniec_partii'.",
+      "bridge-out/chunk9.log + bridge-out/moves.jsonl (kopia bridge/runs/d878d79/chunk9_moves.jsonl): ruchy 0-8 ok, ruch 9 'observed' plansza calkowicie pusta (64/64 zer) - ROZBIEZNOSC.",
+      "bridge/runs/d878d79/chunk9_crash_home.png (=bridge-out/final.png po kawalku 9): ekran domowy Androida (launcher) zamiast gry - apka NIE byla na pierwszym planie.",
+      "bridge-out/chunk10.log: 'restart 1/3: com.block.juggle', 'restart udany, kontynuacja partii', nastepnie 3/3 ruchy ok od wyniku 13285."
     ],
     "wnioski": [
-      "Za wczesnie na ocene napraw #180 - w kawalkach 1-2 nie wystapilo zadne z obserwowanych okien ani koniec partii.",
-      "Autozapis apki przetrwal miedzy dwoma niezaleznymi startami bridge.py (wynik ciagly 251->943) - zgodne z zachowaniem z c1819ed."
+      "Za wczesnie na ocene napraw #180 (reklama_statyczna, koniec partii wariant niebieski, auto Play) - w calym pomiarze (94 ruchy, kawalki 1-10) NIE wystapilo zadne z tych trzech zdarzen ani zaden koniec partii; partia przetrwala caly pomiar (jedna, ciagla, wynik do >13500).",
+      "Autozapis apki przetrwal miedzy wszystkimi niezaleznymi startami bridge.py (wynik ciagly rosnacy przez kawalki 1-10, z wyjatkiem OCR-owych bledow odczytu opisanych ponizej) - zgodne z zachowaniem z c1819ed.",
+      "OCR wyniku (nie odczyt planszy uzywany do 'ok') byl niestabilny w kawalkach 3, 7 i szczegolnie 8 - to zjawisko znane juz z c1819ed, nie zwiazane z naprawami #180.",
+      "Kawalek 9->10 pokazuje dzialajaca naprawe z #169/c1819ed na nowszej wersji apki (10.7.5): apka spadla do ekranu domowego w trakcie/miedzy ruchami (przyczyna nieznana - most nie loguje przyczyny, tylko skutek), a nastepne wywolanie bridge.py samo wykrylo brak gry na pierwszym planie i przywrocilo ja restartem 1/3, bez zadnej reki verifiera. Wynik po restarcie (13285) jest zgodny z kontynuacja tej samej partii (nie nowa partia od 0) - autozapis dziala rowniez przez to zdarzenie."
     ]
   }
 }
