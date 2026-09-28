@@ -86,8 +86,8 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from game import Game
-from ntuple import DEFAULT_LAYOUT, LAYOUTS, REWARD_SCORE, REWARD_SURVIVAL, REWARDS, NTupleValue
-from policies import _simulate_placement
+from ntuple import DEFAULT_LAYOUT, LAYOUTS, REWARD_SCORE, REWARD_SURVIVAL, REWARDS, NTupleValue, board_bits
+from policies import _placement_gain, _simulate_placement
 
 BENCH_CONFIG = "bench/config.json"
 DEFAULT_OUT = "ntuple-weights.json"
@@ -193,7 +193,16 @@ def _choose_action(ntuple, game, actions, reward=REWARD_SCORE):
     """Zachłanna o jeden pół-ruch w przód wg `r + ntuple.value(afterstate)`.
 
     Zwraca `(akcja, indeksy łat afterstate, r)` — indeksy i `r` są od razu
-    potrzebne do aktualizacji TD, nie ma po co liczyć ich drugi raz."""
+    potrzebne do aktualizacji TD, nie ma po co liczyć ich drugi raz.
+
+    Z rdzeniem natywnym (#184) stany następcze i ich wartości liczy
+    `ntuple_native` (`_choose_action_native`), bitowo to samo; indeksy łat są
+    wtedy tablicą C, którą `NTupleValue` przyjmuje tak jak listę."""
+    core = getattr(ntuple, "native", None)
+    if core is not None:
+        chosen = _choose_action_native(core, game, actions, reward)
+        if chosen is not None:
+            return chosen
     best_action, best_idxs, best_r, best_score = None, None, None, None
     for action in actions:
         gain, board_after = _simulate_placement(game, action)
@@ -203,6 +212,43 @@ def _choose_action(ntuple, game, actions, reward=REWARD_SCORE):
         if best_score is None or score > best_score:
             best_action, best_idxs, best_r, best_score = action, idxs, r, score
     return best_action, best_idxs, best_r
+
+
+def _choose_action_native(core, game, actions, reward):
+    """`_choose_action` na rdzeniu: `None`, gdy rdzeń tej decyzji nie policzy
+    (nieobsługiwany klocek, nielegalna akcja) — wtedy liczy pętla Pythona.
+
+    `survival`: `r = 1` dla każdej akcji, najlepszą wybiera rdzeń. `score`:
+    rdzeń oddaje wartości, liczbę linii i pustość planszy po każdej akcji, a
+    `gain` składa `policies._placement_gain` z tych samych funkcji punktacji co
+    `_simulate_placement`; porównanie `r + V` idzie w Pythonie, w tej samej
+    kolejności i z tym samym rozstrzyganiem remisów."""
+    if not actions or not core.set_tray(game.pieces):
+        return None
+    bits = board_bits(game.board)
+    if reward == REWARD_SURVIVAL:
+        r = step_reward(reward, None)
+        res = core.afterstates(bits, actions, r_const=r)
+        if res is None:
+            return None
+        best, idx = res
+        return actions[best], idx, r
+    res = core.afterstates(bits, actions)
+    if res is None:
+        return None
+    values, lines, empty = res
+    gains = {}
+    best, best_r, best_score = None, None, None
+    for k, action in enumerate(actions):
+        key = (action[0], lines[k], empty[k])
+        gain = gains.get(key)
+        if gain is None:
+            gain = gains[key] = _placement_gain(game, action[0], key[1], key[2])
+        r = step_reward(reward, gain)
+        score = r + values[k]
+        if best_score is None or score > best_score:
+            best, best_r, best_score = k, r, score
+    return actions[best], core.afterstate_indices(bits, actions[best]), best_r
 
 
 def run_episode(ntuple, seed, move_cap, alpha, reward=REWARD_SCORE, learn=True, start_board=None):

@@ -503,6 +503,18 @@ def _simulate_placement(game, action):
     return gain, board
 
 
+def _placement_gain(game, idx, lines, empty):
+    """`gain` z `_simulate_placement` dla klocka `game.pieces[idx]`, gdy liczbę
+    wyczyszczonych linii i pustość planszy po nich policzył już rdzeń natywny
+    (#184) — ten sam wzór, te same funkcje punktacji, w tej samej kolejności."""
+    gain = placement_points(game.pieces[idx])
+    if lines > 0:
+        gain += clear_points(game.combo + 1, lines)
+        if empty:
+            gain += FULL_CLEAR_BONUS
+    return gain
+
+
 def _immediate_gain(game, action):
     """Punkty, które da to postawienie — wg skalibrowanego wzoru, bez zmiany stanu gry."""
     gain, _ = _simulate_placement(game, action)

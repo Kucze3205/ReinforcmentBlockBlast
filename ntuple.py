@@ -27,6 +27,7 @@ plik z nieznanym układem się nie wczyta.
 """
 import json
 
+import ntuple_native
 from board import Board
 
 WIDTH = Board.WIDTH
@@ -191,31 +192,83 @@ class NTupleValue:
     zerami), zgodnie z kryterium akceptacji #123.
     """
 
-    def __init__(self, weights=None, reward=REWARD_SCORE, layout=None):
+    def __init__(self, weights=None, reward=REWARD_SCORE, layout=None, native=None):
         if reward not in REWARDS:
             raise ValueError("nieznany sygnal nagrody %r (dozwolone: %s)" % (reward, ", ".join(REWARDS)))
         self.reward = reward
         self.layout = layout if layout is not None else LAYOUTS[DEFAULT_LAYOUT]
-        self.weights = weights if weights is not None else zero_weights(self.layout)
-        if len(self.weights) != len(self.layout):
+        self._weights = weights if weights is not None else zero_weights(self.layout)
+        if len(self._weights) != len(self.layout):
             raise ValueError(
                 "liczba tablic wag (%d) nie zgadza sie z liczba lat (%d)"
-                % (len(self.weights), len(self.layout))
+                % (len(self._weights), len(self.layout))
             )
-        for table, positions in zip(self.weights, self.layout):
+        for table, positions in zip(self._weights, self.layout):
             if len(table) != (1 << len(positions)):
                 raise ValueError(
                     "tablica wag o dlugosci %d nie zgadza sie z lata k=%d (2**k=%d)"
                     % (len(table), len(positions), 1 << len(positions))
                 )
+        # Rdzeń natywny (#184): `None` = według `NTUPLE_NATIVE` i dostępności
+        # kompilatora, `False` = zawsze czysty Python. Wagi rdzeń trzyma w
+        # buforze C; `weights` oddaje listy zsynchronizowane z nim.
+        self._core = None
+        self._core_newer = False   # bufor C zmieniony po ostatnim `pull`
+        self._lists_touched = False  # listy wydane na zewnątrz — mogły się zmienić
+        if native is None:
+            native = ntuple_native.enabled()
+        if native and WIDTH == ntuple_native.BOARD_SIZE and HEIGHT == ntuple_native.BOARD_SIZE \
+                and ntuple_native.available():
+            core = ntuple_native.Core(self.layout, self._weights)
+            if core.push(self._weights):
+                self._core = core
+
+    @property
+    def weights(self):
+        """Tablice wag (lista list float). Z rdzeniem: najpierw dociągnięte z
+        bufora C, a przy następnej operacji rdzenia wepchnięte z powrotem — tak
+        zmiana wagi z zewnątrz (`weights[p][i] = ...`) jest widoczna jak dotąd."""
+        if self._core is not None:
+            if self._core_newer:
+                self._core.pull(self._weights)
+                self._core_newer = False
+            self._lists_touched = True
+        return self._weights
+
+    @weights.setter
+    def weights(self, value):
+        self._weights = value
+        self._core_newer = False
+        self._lists_touched = True
+
+    @property
+    def native(self):
+        """Rdzeń gotowy do użycia albo `None` (czysty Python)."""
+        core = self._core
+        if core is not None and self._lists_touched:
+            self._lists_touched = False
+            if not core.push(self._weights):
+                # Listy przestały pasować do rdzenia (np. waga int) — dalej Python.
+                self._core = core = None
+        return core
 
     def indices(self, board):
         return patch_indices(board_bits(board), self.layout)
 
     def value(self, board):
+        core = self.native
+        if core is not None:
+            return core.value_bits(board_bits(board))
         return self.value_from_indices(self.indices(board))
 
     def value_from_indices(self, indices):
+        core = self.native
+        if core is not None:
+            if not isinstance(indices, core.IdxArray):
+                indices = list(indices)
+            idx = core.as_idx(indices)
+            if idx is not None:
+                return core.value_idx(idx)
         return sum(table[i] for table, i in zip(self.weights, indices))
 
     def update(self, indices, delta):
@@ -225,6 +278,15 @@ class NTupleValue:
         z tabeli), a względem wszystkich innych wpisów tej łaty jest 0 — stąd
         aktualizacja dotyka wyłącznie jednej wagi na łatę, nie całej tabeli.
         """
+        core = self.native
+        if core is not None and type(delta) in (float, int):
+            if not isinstance(indices, core.IdxArray):
+                indices = list(indices)
+            idx = core.as_idx(indices)
+            if idx is not None:
+                core.update(idx, delta)
+                self._core_newer = True
+                return
         for table, i in zip(self.weights, indices):
             table[i] += delta
 
@@ -240,7 +302,7 @@ class NTupleValue:
             json.dump(self.to_dict(), fh, indent=2)
 
     @classmethod
-    def load(cls, path):
+    def load(cls, path, native=None):
         with open(path, encoding="utf-8") as fh:
             data = json.load(fh)
         layout = tuple(tuple(p) for p in data["patch_layout"])
@@ -254,4 +316,5 @@ class NTupleValue:
             weights=[list(t) for t in data["weights"]],
             reward=data.get("reward", REWARD_SCORE),
             layout=layout,
+            native=native,
         )
