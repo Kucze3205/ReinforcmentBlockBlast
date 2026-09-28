@@ -1,0 +1,39 @@
+polityka: greedy (źródło: argv)
+reset(seed='36499205925')
+log ruchów: bridge-out/moves.jsonl
+OCR: 
+ruch 0: slot 2 -> (0,0) wynik None ROZBIEŻNOŚĆ
+OCR: 
+ruch 1: slot 1 -> (3,3) wynik None OK
+ruch 2: slot 2 -> (0,0) wynik 38 OK
+ruch 3: slot 0 -> (5,0) wynik 129 OK
+ruch 4: slot 1 -> (0,1) wynik 133 OK
+ruch 5: slot 1 -> (1,1) wynik 137 OK
+ruch 6: slot 0 -> (6,0) wynik 151 OK
+ruch 7: slot 2 -> (0,0) wynik 173 OK
+ruch 8: slot 1 -> (0,0) wynik 175 OK
+ruch 9: slot 2 -> (3,0) wynik 79 OK
+ruch 10: slot 0 -> (4,0) wynik 183 OK
+ruch 11: slot 1 -> (5,0) wynik 185 OK
+ruch 12: slot 0 -> (5,0) wynik 198 OK
+ruch 13: slot 2 -> (4,2) wynik 202 OK
+ruch 14: slot 1 -> (6,1) wynik 206 OK
+ruch 15: slot 0 -> (0,0) wynik 270 OK
+ruch 16: slot 2 -> (4,0) wynik 275 OK
+ruch 17: slot 0 -> (0,0) wynik 280 OK
+ruch 18: slot 1 -> (3,1) wynik 284 OK
+ruch 19: slot 2 -> (3,0) wynik 288 ROZBIEŻNOŚĆ
+OCR: 
+restart 1/3: com.block.juggle
+restart udany, kontynuacja partii
+ruch 20: slot 2 -> (3,0) wynik 288 OK
+ruch 21: slot 1 -> (7,0) wynik 290 OK
+ruch 22: slot 0 -> (0,3) wynik 834 OK
+ruch 23: slot 2 -> (0,0) wynik 867 OK
+ruch 24: slot 0 -> (3,0) wynik 945 OK
+ruch 25: slot 1 -> (5,0) wynik 949 OK
+ruch 26: slot 2 -> (6,0) wynik 953 OK
+ruch 27: slot 0 -> (0,0) wynik 1067 OK
+ruch 28: slot 2 -> (1,1) wynik 1079 OK
+ruch 29: slot 1 -> (1,0) wynik 1216 OK
+najdłuższa seria zgodnych ruchów: 18
