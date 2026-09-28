@@ -101,17 +101,28 @@ kształtów jest zamknięty z dużą pewnością.
 
 ### Z-6 — rozkład doboru klocków
 
-Symulator: niezależnie, 1/15 na typ kanoniczny, potem 1/n na orientację.
-Bez świadomości planszy, bez gwarancji grywalności tacki.
+**Wagi typów: zmierzone (#186).** Symulator losuje typ kanoniczny wg wag policzonych
+z 978 klocków (326 zweryfikowanych tacek mostu, `docs/data/z6-pary.json`), nie 1/15 —
+metoda, tabela wag i przedziały ufności w `docs/generator-wagi-typow.md`. Orientacja w
+obrębie typu zostaje 1/n: test na tych samych danych odrzuca jednostajność orientacji
+tylko dla 2 z 12 testowalnych typów (`beam4`, `L`) po korekcie Bonferroniego, a
+kalibrowanie orientacji punktowo tylko dla tych dwóch typów wykraczałoby poza budżet
+#186 i byłoby niespójne przy obecnej liczności próby (patrz dokument).
 
-To **założenie modelowe autora referencji**, wybrane dla wygody treningu RL
-(stacjonarny MDP), nie pomiar. Klony przeglądarkowe, które chciały być grywalne,
-wszystkie dorzucały świadomość planszy: ważenie kształtów wg zapełnienia i
-sprawdzanie, czy tacka da się rozegrać.
+**Świadomość planszy (Z-6 sensu stricto): dalej NIEROZSTRZYGNIĘTA.** Symulator wciąż
+losuje trzy klocki niezależnie od stanu planszy, bez gwarancji grywalności tacki — #186
+zmieniło wyłącznie rozkład brzegowy typów, świadomie nie dotykając tego pytania (Cel
+#186: "generator nadal ma być ślepy na planszę"). Klony przeglądarkowe, które chciały być
+grywalne, wszystkie dorzucały świadomość planszy: ważenie kształtów wg zapełnienia i
+sprawdzanie, czy tacka da się rozegrać. Pomiar #182 (`docs/z6-tacka-a-plansza.md`,
+sekcja „Pomiar 2") dał sygnał w tym kierunku (testy c/d: obserwacja > H0), ale żaden nie
+przeżył korekty za wielokrotne testowanie przy obecnej liczności próby.
 
-**Pomiar:** ta sama seria tacek co w Z-5, ale analizowana warunkowo względem
-zapełnienia planszy. Jeśli rozkład zależy od stanu planszy, **generator symulatora
-trzeba przepisać na warunkowy**, a nie tylko przestroić.
+**Pomiar:** ta sama seria tacek co w Z-5, analizowana warunkowo względem zapełnienia
+planszy — patrz `docs/z6-tacka-a-plansza.md`, „Ile danych trzeba" (test d wymaga ok.
+4× obecnej próby, ~1200 par, z naciskiem na plansze zapełnione ≥ 30–40%). Jeśli rozkład
+faktycznie zależy od stanu planszy, **generator symulatora trzeba przepisać na
+warunkowy**, a nie tylko przestroić — to osobne zadanie od #186.
 
 ### Z-7 — czy w ogóle są punkty za samo postawienie
 
