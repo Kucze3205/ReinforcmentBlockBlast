@@ -70,10 +70,10 @@ def episode_seed(seed, episode_number, forbidden):
         salt += 1
 
 
-def play_and_collect(spec, config, seed, move_cap, sample_every):
-    """Jedna partia: gra `spec` (`lookahead-ntuple:<plik>`) i zbiera plansze
-    napotkane co `sample_every` postawień. Zwraca `(plansze, liczba postawień)`."""
-    policy = build_policy(spec, config)
+def play_and_collect(policy, seed, move_cap, sample_every):
+    """Jedna partia z gotową `policy` (`lookahead-ntuple:<plik>` z `build_policy`);
+    zbiera plansze napotkane co `sample_every` postawień. Zwraca `(plansze, liczba
+    postawień)`."""
     game = Game(seed=seed)
     policy.reset(seed)
     boards = []
@@ -94,23 +94,22 @@ def play_and_collect(spec, config, seed, move_cap, sample_every):
 
 
 # Globalne, jak w benchmark.py: `Pool` buduje polityke raz na proces roboczy,
-# nie raz na partię.
-_worker_spec = None
-_worker_config = None
+# nie raz na partię — `load_ntuple_weights` czytalby plik wag z dysku przy
+# kazdej partii, gdyby polityke budowac w `_worker_play`.
+_worker_policy = None
 _worker_move_cap = None
 _worker_sample_every = None
 
 
 def _worker_init(spec, config, move_cap, sample_every):
-    global _worker_spec, _worker_config, _worker_move_cap, _worker_sample_every
-    _worker_spec = spec
-    _worker_config = config
+    global _worker_policy, _worker_move_cap, _worker_sample_every
+    _worker_policy = build_policy(spec, config)
     _worker_move_cap = move_cap
     _worker_sample_every = sample_every
 
 
 def _worker_play(seed):
-    return play_and_collect(_worker_spec, _worker_config, seed, _worker_move_cap, _worker_sample_every)
+    return play_and_collect(_worker_policy, seed, _worker_move_cap, _worker_sample_every)
 
 
 def collect(spec, config, seeds, move_cap, sample_every, jobs=1):
@@ -120,7 +119,8 @@ def collect(spec, config, seeds, move_cap, sample_every, jobs=1):
         ) as pool:
             results = pool.map(_worker_play, seeds)
     else:
-        results = [play_and_collect(spec, config, seed, move_cap, sample_every) for seed in seeds]
+        policy = build_policy(spec, config)
+        results = [play_and_collect(policy, seed, move_cap, sample_every) for seed in seeds]
 
     boards = []
     lengths = []
