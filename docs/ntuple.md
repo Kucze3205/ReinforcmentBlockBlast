@@ -545,3 +545,75 @@ nie zmieniam formatu zapisu (np. log w osobnym pliku append-only, albo bez
 przechowywania pełnego logu w state) w tym zadaniu; to osobna decyzja dla
 kolejnego cyklu, bo zmienia format `ntuple-state.json`, na którym opiera się
 wznawianie.
+
+## Starty z późnej gry (#168)
+
+Motywacja: trening zawsze startował z pustej planszy i grał polityką zachłanną,
+która żyje ~90-95 postawień, podczas gdy przeszukiwanie `lookahead-ntuple` z tą
+samą oceną żyje **281,14** postawień (rekord, `bench/record.json`). Ocena prawie
+nie widziała stanów, w których przeszukiwanie naprawdę gra i umiera. Dwa
+narzędzia w dwóch osobnych krokach: zbieranie plansz z partii przeszukiwania i
+opcjonalny start treningu z jednej z nich, zamiast z pustej.
+
+**`tools/collect_states.py`** gra partie polityką `lookahead-ntuple:<wagi>` na
+seedach treningowych (rozłącznych z `bench/seeds_fixed.json`, ten sam wzór co
+`episode_seed` w `tools/train_ntuple.py`, ale własna przestrzeń nazw
+`collect_states:` — kolekcja jest osobnym przebiegiem od treningu, oba zestawy
+seedów nie muszą być rozłączne między sobą) i zapisuje napotkane plansze:
+
+```
+python tools/collect_states.py --weights ntuple/survival-ad-70k.json \
+    --episodes 200 --out ntuple/start-states-ad70k.json --jobs 4
+```
+
+`--sample-every N` zapisuje planszę co `N`-te postawienie (domyślnie każde);
+`--move-cap` domyślnie z `bench/config.json`, jak w benchmarku; `--jobs N`
+liczy partie w N procesach (jak `benchmark.py --jobs`) — polityka jest budowana
+raz na proces roboczy (`build_policy`/`load_ntuple_weights` czytające wagi z
+dysku raz, nie przy każdej partii), wynik bitowo ten sam co `--jobs 1`, bo
+`Pool.map` zwraca wyniki w kolejności zadań. Plik wyjściowy (JSON, bez wcięcia
+— dziesiątki tysięcy plansz pompowałyby rozmiar ~4× bez zysku, bo to wejście
+dla `load_start_states`, nie do ręcznej lektury): `{"format": 1, "weights":
+<plik>, "n_games": <n>, "seed": <seed>, "sample_every": <n>, "move_cap": <n>,
+"boards": [{"board": <siatka 8x8>, "placement": <numer postawienia>,
+"game_seed": <seed partii>}, ...]}`.
+
+**`tools/train_ntuple.py --start-states <plik> --start-prob <p>`**: z
+prawdopodobieństwem `p` odcinek startuje z planszy wylosowanej z `<plik>`
+zamiast z pustej. Tacka i dalsze klocki nadal pochodzą z generatora gry na
+seed odcinka, dokładnie jak dziś — plik podmienia tylko `Game.board`, przez
+`Game.set_board` (nieinwazyjne wobec `step`/punktacji: tacka, generator, wynik
+i combo zostają, jak są po `reset`, zmienia się tylko `board.grid`). Wybór
+(start z pliku czy nie, który wpis) jest deterministyczny z
+`(--seed, numer_odcinka)`, przez `random.Random` w osobnej przestrzeni nazw
+(`train_ntuple_start_state:`) niż ten, który wybiera seed partii
+(`episode_seed`) — nie zużywa jego RNG, więc dodanie tej flagi nie zmienia
+seeda partii, i wznowienie w połowie odtwarza dokładnie ten sam wybór co
+przebieg ciągły. Bez `--start-states` (domyślnie) zachowanie jest bitowo takie
+samo jak przed #168: `choose_start_board` zwraca `None` bez tworzenia
+jakiegokolwiek `random.Random`. `--start-states`/`--start-prob` nie wchodzą do
+`params` sprawdzanych przy wznowieniu — można je dodać do stanu zapisanego bez
+nich (i zmieniać między wywołaniami), bo nie zmieniają kształtu tego, co
+trening mierzy (seed/alpha/move_cap/reward/layout), tylko to, skąd startuje
+plansza; to pozwala rozgałęzić istniejący przebieg (np. `ADC` od 40 000
+odcinków) na start z pliku bez zrywania wznowienia. Ewaluacja (`--eval-every`)
+zawsze startuje z pustej planszy, na tych samych seedach co dotąd, niezależnie
+od tych flag. Wpis odcinka w `<stan>.log.jsonl` niesie `start_from_file`
+(`true`/`false`).
+
+Nagroda środowiska (`game.py`/`scoring.py`/`generator.py`) jest nietknięta:
+`Game.set_board` tylko podmienia siatkę przed pierwszym krokiem, `step` i
+punktacja się nie zmieniają.
+
+**`ntuple/start-states-ad70k.json`**: 200 partii `lookahead-ntuple:ntuple/survival-ad-70k.json`
+(wagi rekordu, `bench/record.json` `survival_mean=281,14/278,86`), `--seed 1
+--jobs 4`. **49 746 plansz** z 200 partii; długość partii zbierających:
+średnia **248,73**, mediana **170,0**, odchylenie 243,81, min 7, max 1999
+(jedna partia trafiła sufit `move_cap=2000` konfiguracji). Średnia jest o
+~11,6% niższa niż rekord benchmarku — mediana leży daleko poniżej średniej
+(silna prawostronna skośność, odchylenie niemal równe średniej), co tłumaczy
+różnicę jako szum próbki 200 gier przy bardzo zmiennej długości partii tej
+polityki, nie systematyczny błąd zbierania: ten sam kod gry (`Game`,
+`policy.act`, `policy.reset(seed)`) co `benchmark.play_game`, inny tylko
+rozłączny zestaw seedów. Trening z tym plikiem to osobne zadanie — tu tylko
+zbieranie.
