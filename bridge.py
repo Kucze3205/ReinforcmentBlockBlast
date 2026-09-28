@@ -31,7 +31,10 @@ SCREEN = (320, 640)
 BOARD_X, BOARD_Y, CELL = 17, 136, 35.6
 TRAY_Y0, TRAY_Y1, TRAY_CELL = 440, 585, 16
 SCORE_BOX = (60, 70, 260, 130)
-GAME_OVER_SCORE_BOX = (60, 312, 260, 368)  # wynik na ekranie "Can you Top that?" (#169)
+GAME_OVER_SCORE_BOX = (60, 312, 260, 368)  # wynik na ekranie fioletowym "Can you Top that?" (#169)
+GAME_OVER_SCORE_BOX_BLUE = (60, 268, 260, 318)  # wynik na ekranie niebieskim "Your Best is Next" (#173):
+# cyfry "20345" na chunk15_after_back.png leżą w wierszach 273-312, wyżej niż na wariancie fioletowym
+# (321-361) — GAME_OVER_SCORE_BOX go nie łapie wcale.
 GAME_OVER_PURPLE_FRAC = 0.5  # próg dla is_game_over_screen: tło ma 0.92-0.96, reszta ekranów <=0.065
 FRAMES = 3
 DRAG_GAIN = 1.5  # zmierzone: klocek przesuwa się 1,5 px na 1 px palca
@@ -43,8 +46,13 @@ HOME_STATUS_BAR_ROWS = 24  # wysokość paska stanu Androida sprawdzana przez is
 HOME_STATUS_BAR_WHITE = 200  # próg jasności kanału uznawanego za piksel paska stanu
 HOME_STATUS_BAR_FRAC = 0.02  # próg odsetka: ekran domowy ma 0.076-0.077, gra zawsze 0.0
 BRIGHT_AD_MIN_COLORS = 20000  # liczba unikalnych kolorów RGB, patrz is_bright_ad_screen
+STATIC_AD_GRAY_TOL = 10  # patrz is_static_ad_screen
+STATIC_AD_GRAY_FRAC = 0.98  # próg: reklama statyczna 1.0, następny najwyższy zrzut z bridge/runs/* 0.964
+GAME_OVER_BLUE_FRAC = 0.8  # próg wariantu niebieskiego is_game_over_screen: 0.921 na chunk15_after_back.png,
+# następny najwyższy zrzut z bridge/runs/* (klocek niebieski na zwykłej planszy) 0.662
 RESTART_TRIES = 3
 RESTART_WAIT = 20
+PLAY_BUTTON = (160, 456)  # przycisk "Play" na obu wariantach ekranu końca partii, zmierzony przez verifiera (#173)
 # Dialog wyjścia „Are you sure you want to leave?" (#150/#163): punkty i kolory zmierzone na
 # bridge/runs/495cd91/loop2_after_no.png i after_back4.png. Tło dialogu (90,130,230), przycisk
 # „No" (8,154,214), przycisk „Yes" (41,170,25) — trójka nie występuje razem na modalu Ustawień
@@ -166,23 +174,63 @@ def is_bright_ad_screen(img):
 
 
 def is_game_over_screen(img):
-    """Natywny ekran końca partii „Can you Top that?"/„Beat Your Best Again!" z przyciskiem
-    Play (#169): most rozpoznawał brak ruchu poprawnie ("brak legalnego ruchu wg odczytu"),
-    ale przez przypadek (tło czytane jako plansza pełna), bez odróżnienia od reklamy/Ustawień
+    """Natywny ekran końca partii z przyciskiem Play, dwa warianty (#169, #173): most
+    rozpoznawał brak ruchu poprawnie ("brak legalnego ruchu wg odczytu"), ale przez
+    przypadek (tło czytane jako plansza pełna), bez odróżnienia od reklamy/Ustawień
     i bez odczytu wyniku końcowego partii — verifier zaczynał nową partię ręcznym stuknięciem.
 
-    Tło to fioletowo-purpurowy gradient bez wyjątku: kanał B > R > G z wyraźnym marginesem na
-    każdym pikselu tła (tekst/przycisk to osobne, małe obszary). Zmierzone na dwóch niezależnych
-    przebiegach z różnym wynikiem i różnym tekstem nagłówka: `bridge/runs/1402cff/
+    Wariant fioletowy „Can you Top that?"/„Beat Your Best Again!": tło to fioletowo-purpurowy
+    gradient bez wyjątku, kanał B > R > G z wyraźnym marginesem na każdym pikselu tła
+    (tekst/przycisk to osobne, małe obszary). Zmierzone na dwóch niezależnych przebiegach z
+    różnym wynikiem i różnym tekstem nagłówka: `bridge/runs/1402cff/
     chunk7_010_gameover_screen.png` („Can you Top that?", wynik 8532) i `bridge/runs/44a8ea2/
     p2_ad_video_closed.png`, `p2_after_tap_score.png` („Can you Top that?"), `p2b_ad_closed_x.png`
     („Beat Your Best Again!") — 0,92-0,96 pikseli spełnia warunek. Na pozostałych ok. 250 zrzutach
     z `bridge/runs/{0d96333,44a8ea2,495cd91,1402cff,1bd38fa}` (plansza, Ustawienia, dialog wyjścia,
     reklamy, ekran domowy) najwyżej 0,065 — próg 0,5 zostawia duży margines z obu stron.
+
+    Wariant niebieski „Your Best is Next" (#173): ten sam test fioletu daje 0,0 na
+    `bridge/runs/c1819ed/chunk15_after_back.png` (wynik 20345) — inny gradient tła, kanał
+    B > G > R zamiast B > R > G. Zmierzone na tym samym zrzucie: 0,921 pikseli spełnia
+    warunek B > G > R z marginesem >=20 na obu różnicach; najwyższy odsetek na pozostałym
+    materiale z `bridge/runs/*` (klocki niebieskiej skórki na zwykłej planszy,
+    `bridge/runs/1bd38fa/071_aim.png` i podobne) to 0,662 — próg 0,8 zostawia margines.
     """
     r, g, b = img[..., 0], img[..., 1], img[..., 2]
     purple = (b > r) & (r > g) & (b - r >= 15) & (r - g >= 15)
-    return purple.mean() > GAME_OVER_PURPLE_FRAC
+    if purple.mean() > GAME_OVER_PURPLE_FRAC:
+        return True
+    blue = (b > g) & (g > r) & (b - g >= 20) & (g - r >= 20)
+    return blue.mean() > GAME_OVER_BLUE_FRAC
+
+
+def game_over_score_box(img):
+    """Który z dwóch warianty końca partii jest na ekranie decyduje, gdzie leży wynik (#173):
+    fioletowy ma cyfry niżej (`GAME_OVER_SCORE_BOX`) niż niebieski (`GAME_OVER_SCORE_BOX_BLUE`)."""
+    r, g, b = img[..., 0], img[..., 1], img[..., 2]
+    purple = (b > r) & (r > g) & (b - r >= 15) & (r - g >= 15)
+    if purple.mean() > GAME_OVER_PURPLE_FRAC:
+        return GAME_OVER_SCORE_BOX
+    return GAME_OVER_SCORE_BOX_BLUE
+
+
+def is_static_ad_screen(img):
+    """Reklama statyczna tekstowa (biało-czarna, np. BlackRock, #173): `is_ad_screen` (próg
+    ciemności) i `is_bright_ad_screen` (liczba kolorów, myli ją z fotorealistyczną reklamą
+    jasną) obie jej nie łapią — most kończył kawałek fałszywym „brak legalnego ruchu wg
+    odczytu" (`bridge/runs/c1819ed/chunk15_unknown.png`, 317 unikalnych kolorów, 0,26
+    pikseli ciemniejszych niż próg, 0,73 niemal białych).
+
+    Ta reklama jest w praktyce w skali szarości — każdy piksel ma kanały R/G/B w rozpiętości
+    poniżej `STATIC_AD_GRAY_TOL`: 100% pikseli na `chunk15_unknown.png`. Żaden inny sprawdzony
+    zrzut z `bridge/runs/*` (ok. 770 klatek — plansza, tacka, Ustawienia, dialog wyjścia,
+    reklama ciemna/jasna, oba warianty końca partii, ekran domowy) nie przekracza 0,964
+    (`bridge/runs/0d96333/121_state.png`, `121_end.png` — reklama ciemna, już łapana przez
+    `is_ad_screen`) — próg 0,98 zostawia margines z obu stron i wyklucza zwykłą planszę
+    z niebieską skórką (`bridge/runs/c1819ed/chunk15_after_play2.png`: 0,917).
+    """
+    gray = ((img.max(axis=-1) - img.min(axis=-1)) < STATIC_AD_GRAY_TOL).mean()
+    return gray > STATIC_AD_GRAY_FRAC
 
 
 def board_and_tray_empty(grid, slots):
@@ -216,6 +264,16 @@ def close_exit_dialog():
     """Zamyka dialog wyjścia stuknięciem w „No" (#163): `press_back` go nie zamyka — to
     natywny dialog Androida, nie modal Ustawień w webview gry."""
     (x, y), _ = EXIT_DIALOG_NO
+    touch("DOWN", x, y)
+    touch("UP", x, y)
+    time.sleep(2)
+
+
+def tap_play():
+    """Stuka przycisk "Play" na ekranie końca partii (oba warianty, #173): punkt zmierzony
+    przez verifiera na żywo, skuteczny dwa razy z rzędu (`chunk9_after_play.png`,
+    `chunk15_after_play2.png`)."""
+    x, y = PLAY_BUTTON
     touch("DOWN", x, y)
     touch("UP", x, y)
     time.sleep(2)
@@ -445,6 +503,7 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
     ok_streak = best_streak = 0
     n = 0
     window_streak = 0
+    game_number = 1
 
     def windowed_entry(okno):
         """Wpis okienkowy bez ruchu: liczy się do bezpiecznika postępu (#163), a po
@@ -480,6 +539,13 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
                 break
             img, grid, slots = stable_state()
             continue
+        if is_static_ad_screen(img):
+            press_back()
+            entry = windowed_entry("reklama_statyczna")
+            if "end" in entry:
+                break
+            img, grid, slots = stable_state()
+            continue
         if is_bright_ad_screen(img):
             entry = {"n": n, "policy": policy.name, "board": grid,
                      "tray": [s[0] if s else None for s in slots], "score": score,
@@ -488,13 +554,23 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
             print(entry["end"], flush=True)
             break
         if is_game_over_screen(img):
-            final_score = read_score(img, GAME_OVER_SCORE_BOX)
+            final_score = read_score(img, game_over_score_box(img))
+            game_number += 1
+            window_streak += 1
             entry = {"n": n, "policy": policy.name, "board": grid,
                      "tray": [s[0] if s else None for s in slots], "score": score,
-                     "end": "koniec_partii", "wynik_koncowy": final_score}
+                     "koniec_partii": True, "wynik_koncowy": final_score, "nowa_partia": game_number}
+            if window_streak >= PROGRESS_SAFEGUARD_TRIES:
+                entry["end"] = "okno: petla_bez_postepu"
             log.write(json.dumps(entry) + "\n")
-            print(f"koniec_partii, wynik {final_score}", flush=True)
-            break
+            log.flush()
+            print(f"koniec_partii, wynik {final_score}, nowa_partia {game_number}"
+                  + (f", {entry['end']}" if "end" in entry else ""), flush=True)
+            if "end" in entry:
+                break
+            tap_play()
+            img, grid, slots = stable_state()
+            continue
         board = Board()
         board.grid = [row[:] for row in grid]
         pieces = [Piece(s[0], f"slot{i}", -1) if s else None for i, s in enumerate(slots)]

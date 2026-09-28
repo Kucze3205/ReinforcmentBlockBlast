@@ -196,11 +196,12 @@ class TestIsGameOverScreen(unittest.TestCase):
 
 class TestMainEndsOnGameOverScreen(unittest.TestCase):
     """Most kończył kawałek poprawnie ale przez przypadek („brak legalnego ruchu wg odczytu",
-    tło czytane jako plansza pełna) — teraz kończy jawnie z `"end": "koniec_partii"` i wynikiem
-    końcowym odczytanym z ekranu (#169). Most nie gra dziś więcej niż jedną partię w wywołaniu,
-    więc rozpoznanie kończy pętlę bez startowania nowej partii."""
+    tło czytane jako plansza pełna) — teraz rozpoznaje jawnie `"koniec_partii": True` z wynikiem
+    końcowym odczytanym z ekranu (#169), stuka „Play" i gra dalej (#173). Ekran końca partii nie
+    znika w tym teście (atrapa `settled_state` zawsze go zwraca), więc bezpiecznik postępu
+    (#163) kończy pętlę po `PROGRESS_SAFEGUARD_TRIES` wpisach zamiast kręcić się bez końca."""
 
-    def test_logs_koniec_partii_with_score(self):
+    def test_logs_koniec_partii_with_score_and_taps_play(self):
         gameover_img = _load("1402cff", "chunk7_010_gameover_screen.png")
         empty_grid = [[0] * 8 for _ in range(8)]
 
@@ -210,17 +211,107 @@ class TestMainEndsOnGameOverScreen(unittest.TestCase):
         with mock.patch("bridge.settled_state", side_effect=fake_settled_state), \
              mock.patch("bridge.in_game", return_value=True), \
              mock.patch("bridge.read_score", return_value=8532), \
+             mock.patch("bridge.tap_play") as tap_play, \
              mock.patch("bridge.annotate"), \
              mock.patch("PIL.Image.Image.save"), \
              mock.patch("bridge.os.makedirs"), \
              mock.patch("builtins.open", mock.mock_open()) as m_open:
-            best_streak = bridge.main(5, policy_spec="greedy")
+            best_streak = bridge.main(50, policy_spec="greedy")
 
         handle = m_open()
         entries = [json.loads(c.args[0]) for c in handle.write.call_args_list]
-        self.assertEqual(entries[-1]["end"], "koniec_partii")
-        self.assertEqual(entries[-1]["wynik_koncowy"], 8532)
+        self.assertTrue(entries[0]["koniec_partii"])
+        self.assertEqual(entries[0]["wynik_koncowy"], 8532)
+        self.assertEqual(entries[0]["nowa_partia"], 2)
+        self.assertTrue(tap_play.called)
+        self.assertEqual(entries[-1]["end"], "okno: petla_bez_postepu")
         self.assertEqual(best_streak, 0)
+
+
+class TestIsStaticAdScreen(unittest.TestCase):
+    """#173: reklama statyczna tekstowa (biało-czarna, np. BlackRock) — ani `is_ad_screen`
+    (próg ciemności), ani `is_bright_ad_screen` (liczba kolorów) jej nie łapią."""
+
+    def test_positive_on_static_ad(self):
+        self.assertTrue(bridge.is_static_ad_screen(_load("c1819ed", "chunk15_unknown.png")))
+
+    def test_negative_on_all_other_screenshots(self):
+        checked = 0
+        for run in os.listdir(RUNS):
+            run_dir = os.path.join(RUNS, run)
+            if not os.path.isdir(run_dir):
+                continue
+            for name in os.listdir(run_dir):
+                if not name.endswith(".png") or (run, name) == ("c1819ed", "chunk15_unknown.png"):
+                    continue
+                img = _load(run, name)
+                if img.shape[:2] != (640, 320):
+                    continue
+                checked += 1
+                with self.subTest(run=run, name=name):
+                    self.assertFalse(bridge.is_static_ad_screen(img))
+        self.assertGreater(checked, 700)
+
+    def test_not_confused_with_known_ads(self):
+        img = _load("c1819ed", "chunk15_unknown.png")
+        self.assertFalse(bridge.is_ad_screen(img))
+        self.assertFalse(bridge.is_bright_ad_screen(img))
+
+
+class TestMainClosesStaticAdWithBack(unittest.TestCase):
+    """`main()` zamyka `reklama_statyczna` klawiszem „wstecz" (#173), tak jak modal Ustawień."""
+
+    def test_press_back_and_logs_okno(self):
+        ad_img = _load("c1819ed", "chunk15_unknown.png")
+        gameover_img = _load("1402cff", "chunk7_010_gameover_screen.png")
+        empty_grid = [[0] * 8 for _ in range(8)]
+        frames = [ad_img]
+
+        def fake_settled_state():
+            return frames.pop(0) if frames else gameover_img, empty_grid, [None, None, None]
+
+        with mock.patch("bridge.settled_state", side_effect=fake_settled_state), \
+             mock.patch("bridge.in_game", return_value=True), \
+             mock.patch("bridge.press_back") as press_back, \
+             mock.patch("bridge.tap_play"), \
+             mock.patch("bridge.read_score", return_value=None), \
+             mock.patch("bridge.annotate"), \
+             mock.patch("PIL.Image.Image.save"), \
+             mock.patch("bridge.os.makedirs"), \
+             mock.patch("builtins.open", mock.mock_open()) as m_open:
+            bridge.main(1, policy_spec="greedy")
+
+        press_back.assert_called_once()
+        handle = m_open()
+        entries = [json.loads(c.args[0]) for c in handle.write.call_args_list]
+        self.assertEqual(entries[0]["okno"], "reklama_statyczna")
+
+
+class TestIsGameOverScreenBlueVariant(unittest.TestCase):
+    """#173: wariant „Your Best is Next" na niebieskim tle — test fioletu daje 0,0 na tym
+    zrzucie, więc `is_game_over_screen` rozpoznaje go po osobnym teście koloru niebieskiego."""
+
+    def test_positive_on_blue_variant(self):
+        self.assertTrue(bridge.is_game_over_screen(_load("c1819ed", "chunk15_after_back.png")))
+
+    def test_purple_variants_still_recognized(self):
+        for run, name in [("1402cff", "chunk7_010_gameover_screen.png"),
+                           ("44a8ea2", "p2_ad_video_closed.png"),
+                           ("c1819ed", "chunk9_gameover.png")]:
+            with self.subTest(run=run, name=name):
+                self.assertTrue(bridge.is_game_over_screen(_load(run, name)))
+
+    def test_score_box_matches_blue_variant(self):
+        img = _load("c1819ed", "chunk15_after_back.png")
+        box = bridge.game_over_score_box(img)
+        self.assertEqual(box, bridge.GAME_OVER_SCORE_BOX_BLUE)
+        x0, y0, x1, y1 = box
+        crop = img[y0:y1, x0:x1]
+        self.assertGreater((crop.min(axis=-1) > 200).mean(), 0.05)
+
+    def test_purple_variant_still_uses_purple_box(self):
+        img = _load("c1819ed", "chunk9_gameover.png")
+        self.assertEqual(bridge.game_over_score_box(img), bridge.GAME_OVER_SCORE_BOX)
 
 
 if __name__ == "__main__":
