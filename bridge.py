@@ -31,12 +31,17 @@ SCREEN = (320, 640)
 BOARD_X, BOARD_Y, CELL = 17, 136, 35.6
 TRAY_Y0, TRAY_Y1, TRAY_CELL = 440, 585, 16
 SCORE_BOX = (60, 70, 260, 130)
+GAME_OVER_SCORE_BOX = (60, 312, 260, 368)  # wynik na ekranie "Can you Top that?" (#169)
+GAME_OVER_PURPLE_FRAC = 0.5  # próg dla is_game_over_screen: tło ma 0.92-0.96, reszta ekranów <=0.065
 FRAMES = 3
 DRAG_GAIN = 1.5  # zmierzone: klocek przesuwa się 1,5 px na 1 px palca
 LIFT = 80.6  # środek podniesionego klocka jest tyle px nad środkiem klocka na tacce
 AD_CLOSE = (285, 34)  # X reklamy międzyplanszowej, zmierzony na bridge/runs/0d96333/121_end.png (#129)
 AD_DARK_FRAC = 0.85  # 121_end.png: 0.95 czarnych pikseli; 120_state.png: 0.0; ekran główny po zabiciu procesu: 0.62
 SETTINGS_DARK_FRAC = (0.44, 0.85)  # przedział pikseli ciemniejszych niż 100 (patrz is_settings_screen)
+HOME_STATUS_BAR_ROWS = 24  # wysokość paska stanu Androida sprawdzana przez is_home_screen (#169)
+HOME_STATUS_BAR_WHITE = 200  # próg jasności kanału uznawanego za piksel paska stanu
+HOME_STATUS_BAR_FRAC = 0.02  # próg odsetka: ekran domowy ma 0.076-0.077, gra zawsze 0.0
 BRIGHT_AD_MIN_COLORS = 20000  # liczba unikalnych kolorów RGB, patrz is_bright_ad_screen
 RESTART_TRIES = 3
 RESTART_WAIT = 20
@@ -99,6 +104,23 @@ def is_exit_dialog_screen(img):
             and _pixel_close(img, *EXIT_DIALOG_YES))
 
 
+def is_home_screen(img):
+    """Ekran główny Androida (launcher) po padzie apki (#129/#169): pasek stanu systemu
+    (zegar, ikony wifi/baterii) w górnych `HOME_STATUS_BAR_ROWS` px, którego gra nigdy nie
+    pokazuje (pełny ekran bez UI systemu we wszystkich stanach gry — plansza, modal Ustawień,
+    dialog wyjścia, reklamy).
+
+    Zmierzone na `bridge/runs/1402cff/chunk2_001_settings_falsepositive_home.png` (i
+    `chunk2_final.png`, `bridge/runs/1bd38fa/111_state.png` — ten sam ekran domowy po innym
+    padzie, #129): 7,7% pikseli w tym pasie jest niemal białych (>200 w każdym kanale) —
+    tekst/ikony paska stanu. Na wszystkich sprawdzonych zrzutach z gry (plansza, Ustawienia,
+    dialog wyjścia, reklama ciemna/jasna — ok. 250 klatek z `bridge/runs/{0d96333,44a8ea2,
+    495cd91,1402cff,1bd38fa}`) ten odsetek wynosi 0.
+    """
+    top = img[:HOME_STATUS_BAR_ROWS]
+    return bool((top >= HOME_STATUS_BAR_WHITE).all(axis=-1).mean() > HOME_STATUS_BAR_FRAC)
+
+
 def is_settings_screen(img):
     """Modal Ustawień (ikona (285,34) trafiona na normalnej planszy zamiast reklamy, #130/#145):
     tło przyciemnione pod białym oknem dialogowym, mniej niż pełnoekranowa reklama.
@@ -111,9 +133,12 @@ def is_settings_screen(img):
     ciemniejszą niż Ustawienia, bo bez prześwitującej planszy pod spodem.
 
     Próg samej jasności myli ten modal z dialogiem wyjścia (`bridge/runs/495cd91/loop2_after_no.png`:
-    0,77, w przedziale) — dialog wyklucza się jawnie przez `is_exit_dialog_screen` (#163).
+    0,77, w przedziale) — dialog wyklucza się jawnie przez `is_exit_dialog_screen` (#163) — i z ciemną
+    tapetą ekranu głównego Androida po padzie apki (`chunk2_001_settings_falsepositive_home.png`: 0,44-0,68,
+    w przedziale) — wykluczana jawnie przez `is_home_screen` (#169), bo most bił wtedy „wstecz" w launcher
+    zamiast wywołać `restart_app`.
     """
-    if is_exit_dialog_screen(img):
+    if is_exit_dialog_screen(img) or is_home_screen(img):
         return False
     lo, hi = SETTINGS_DARK_FRAC
     frac = (img.max(axis=-1) < 100).mean()
@@ -138,6 +163,26 @@ def is_bright_ad_screen(img):
     """
     flat = img.reshape(-1, 3)
     return len(np.unique(flat, axis=0)) > BRIGHT_AD_MIN_COLORS
+
+
+def is_game_over_screen(img):
+    """Natywny ekran końca partii „Can you Top that?"/„Beat Your Best Again!" z przyciskiem
+    Play (#169): most rozpoznawał brak ruchu poprawnie ("brak legalnego ruchu wg odczytu"),
+    ale przez przypadek (tło czytane jako plansza pełna), bez odróżnienia od reklamy/Ustawień
+    i bez odczytu wyniku końcowego partii — verifier zaczynał nową partię ręcznym stuknięciem.
+
+    Tło to fioletowo-purpurowy gradient bez wyjątku: kanał B > R > G z wyraźnym marginesem na
+    każdym pikselu tła (tekst/przycisk to osobne, małe obszary). Zmierzone na dwóch niezależnych
+    przebiegach z różnym wynikiem i różnym tekstem nagłówka: `bridge/runs/1402cff/
+    chunk7_010_gameover_screen.png` („Can you Top that?", wynik 8532) i `bridge/runs/44a8ea2/
+    p2_ad_video_closed.png`, `p2_after_tap_score.png` („Can you Top that?"), `p2b_ad_closed_x.png`
+    („Beat Your Best Again!") — 0,92-0,96 pikseli spełnia warunek. Na pozostałych ok. 250 zrzutach
+    z `bridge/runs/{0d96333,44a8ea2,495cd91,1402cff,1bd38fa}` (plansza, Ustawienia, dialog wyjścia,
+    reklamy, ekran domowy) najwyżej 0,065 — próg 0,5 zostawia duży margines z obu stron.
+    """
+    r, g, b = img[..., 0], img[..., 1], img[..., 2]
+    purple = (b > r) & (r > g) & (b - r >= 15) & (r - g >= 15)
+    return purple.mean() > GAME_OVER_PURPLE_FRAC
 
 
 def board_and_tray_empty(grid, slots):
@@ -219,8 +264,36 @@ def stable_state(tries=6):
 
 
 def is_block(img):
-    """Kolor klocka: nasycony i jasny. Tło, puste pola, duch podpowiedzi i dłoń tutorialu nie przechodzą."""
-    return ((img.max(axis=-1) - img.min(axis=-1)) >= 100) & (img.max(axis=-1) >= 150)
+    """Kolor klocka: nasycony i jasny (próg oryginalny) ALBO wyraźnie zielony (#169).
+
+    Ciemnozielony klocek (`bridge/runs/1402cff/chunk9_stuck_low_saturation_green.png`:
+    RGB (74,142,66), (74,146,66), (41,97,41)) ma rozpiętość kanałów 56-80 i szczyt 97-146 —
+    poniżej progu oryginalnego (rozpiętość>=100, szczyt>=150) — więc `read_board`/`read_tray`
+    czytały pełną tackę jako pustą (kawałki 9-11 z #164, bezpiecznik `petla_bez_postepu`).
+
+    Zwykłe poluzowanie progu nie działa: tło planszy innych skórek leży w tym samym paśmie
+    rozpiętości/jasności (np. bordowe tło `bridge/runs/0d96333/120_state.png`: (132,61,74),
+    rozpiętość 71, szczyt 132 — 5-8 jednostek od najsłabszego zielonego klocka; różowe tło
+    tacki tamże: (255,166,181), rozpiętość 89, szczyt 255 — też w paśmie). Zmierzone tu
+    poluzowanie (rozpiętość>=76, szczyt>=140, dopasowane do najsłabszego zielonego) już nie
+    łapie tych den, ale każde dalsze poluzowanie (np. rozpiętość>=40, szczyt>=100, jak próbował
+    verifier) zaczyna łapać różowe tło tacki — zgodnie z ostrzeżeniem z issue #169: zgadywanie
+    ogólnej reguły "znajdź próg" psuje inne skórki.
+
+    Zamiast przesuwać próg, drugi warunek rozpoznaje ten klocek po dominacji zielonego kanału
+    (G wyraźnie ponad R i B), której żadne sprawdzone tło nie ma — tła mają dominujący R lub B
+    (bordowe, różowe, tan z tacki, brąz planszy z tego samego zielonego motywu:
+    `chunk9_stuck_low_saturation_green.png` samo tło planszy to (74,61,58), R dominujące).
+    Sprawdzone na wszystkich zrzutach z `bridge/runs/{0d96333,44a8ea2,495cd91,1402cff,1bd38fa}`
+    (ok. 250 klatek): żadne realne tło planszy/tacki nie przechodzi obu warunków jednocześnie
+    z zachowanym poprzednim odczytem `read_board`/`read_tray` (zweryfikowane 1:1 z zapisanym
+    stanem `bridge/runs/0d96333/moves.jsonl` na 25 klatkach).
+    """
+    mx, mn = img.max(axis=-1), img.min(axis=-1)
+    saturated_bright = (mx - mn >= 100) & (mx >= 150)
+    r, g, b = img[..., 0], img[..., 1], img[..., 2]
+    dark_green = (g > r) & (g > b) & (g - r >= 40) & (g - b >= 40) & (g >= 90)
+    return saturated_bright | dark_green
 
 
 def read_board(img):
@@ -255,9 +328,12 @@ def read_tray(img):
     return slots
 
 
-def read_score(img):
-    """OCR wyniku przez tesseract; None, gdy się nie da."""
-    x0, y0, x1, y1 = SCORE_BOX
+def read_score(img, box=SCORE_BOX):
+    """OCR wyniku przez tesseract; None, gdy się nie da.
+
+    `box` domyślnie to HUD w trakcie partii (`SCORE_BOX`); ekran końca partii ma wynik
+    w innym miejscu (`GAME_OVER_SCORE_BOX`, #169)."""
+    x0, y0, x1, y1 = box
     crop = img[y0:y1, x0:x1]
     bw = np.where(crop.min(axis=2) > 170, 0, 255).astype(np.uint8)
     path = os.path.join(OUT, "_score.png")
@@ -410,6 +486,14 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
                      "end": "okno: reklama_jasna"}
             log.write(json.dumps(entry) + "\n")
             print(entry["end"], flush=True)
+            break
+        if is_game_over_screen(img):
+            final_score = read_score(img, GAME_OVER_SCORE_BOX)
+            entry = {"n": n, "policy": policy.name, "board": grid,
+                     "tray": [s[0] if s else None for s in slots], "score": score,
+                     "end": "koniec_partii", "wynik_koncowy": final_score}
+            log.write(json.dumps(entry) + "\n")
+            print(f"koniec_partii, wynik {final_score}", flush=True)
             break
         board = Board()
         board.grid = [row[:] for row in grid]
