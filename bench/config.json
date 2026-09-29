@@ -1,6 +1,6 @@
 {
   "n_seeds": 300,
-  "move_cap": 2000,
+  "move_cap": 4000,
   "epsilon": 0.0,
   "torch_seed": 0,
   "threshold_pct": 10.0,
