@@ -1,0 +1,82 @@
+{
+  "sha": "0da49fa62c2ea6111cdbedd9d6bed73bad60c508",
+  "dirty": false,
+  "issue": 234,
+  "status": "ok",
+  "blocked_reason": null,
+  "config": {
+    "n_seeds": 300,
+    "move_cap": 4000,
+    "epsilon": 0.0,
+    "torch_seed": 0,
+    "threshold_pct": 10.0,
+    "fixed_seed_file": "bench/seeds_fixed.json",
+    "rotated_seed_salt": 2654435761
+  },
+  "source_hashes": {
+    "game.py": "9ce7d22a3b62df05",
+    "scoring.py": "1e4a1b8730243ce6",
+    "generator.py": "5b11ec3b1759b05f",
+    "pieces.py": "7241459a3cb11706",
+    "features.py": "3e4c45d8cafa246c",
+    "policies.py": "fbc34f04185350c0",
+    "benchmark.py": "e562f1c1f87689ab",
+    "ntuple.py": "281f545b1d75340b",
+    "ntuple_native.c": "12ca06d5f205d1eb",
+    "ntuple_native.py": "d66d10665c472dc3"
+  },
+  "arms": {
+    "candidate": {
+      "policy": "lookahead-ntuple",
+      "fixed": {
+        "mean": 104412.33,
+        "median": 73081.5,
+        "p10": 7249.2,
+        "survival_mean": 768.63,
+        "capped_pct": 0.33
+      },
+      "rotated": {
+        "mean": 118867.91,
+        "median": 80909.5,
+        "p10": 6320.9,
+        "survival_mean": 853.94,
+        "capped_pct": 1.33
+      },
+      "overfit_gap_pct": -13.84,
+      "spec": "lookahead-ntuple:ntuple/survival-adce-600k.json@beam=128,samples=0",
+      "weights_hash": "847a0ed91da14972"
+    },
+    "record": {
+      "policy": "lookahead-ntuple",
+      "fixed": {
+        "mean": 92772.85,
+        "median": 55989.0,
+        "p10": 5547.8,
+        "survival_mean": 659.17,
+        "capped_pct": 0.0
+      },
+      "rotated": {
+        "mean": 104111.46,
+        "median": 67612.5,
+        "p10": 4950.4,
+        "survival_mean": 717.68,
+        "capped_pct": 0.0
+      },
+      "overfit_gap_pct": -12.22,
+      "spec": "lookahead-ntuple:ntuple/survival-adcga16-800k.json@beam=128,samples=0",
+      "weights_hash": "0ca43a9190d1f1e3"
+    }
+  },
+  "deltas": {
+    "kandydat vs record": {
+      "mean_diff": 11639.49,
+      "pct": 12.55,
+      "sd_diff": 150137.01,
+      "se_diff": 8668.16,
+      "se_pct": 9.34,
+      "mean_diff_over_se": 1.34,
+      "label": "poprawa"
+    }
+  },
+  "duration_s": 1199.5
+}
