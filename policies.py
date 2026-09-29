@@ -227,6 +227,7 @@ class LookaheadPolicy:
             self.beam, root_actions=actions,
         )
         self.last_expanded = expanded
+        frontier = self._complete_frontier(game, pieces0, frontier)
 
         candidates = self._distinct_first_actions(frontier)
         if self.samples <= 0 or len(candidates) < 2:
@@ -247,6 +248,10 @@ class LookaheadPolicy:
             if best_value is None or value > best_value:
                 best_action, best_value = state["first_action"], value
         return best_action
+
+    def _complete_frontier(self, game, pieces, frontier):
+        """Hak gwarancji ułożenia tacki (#239): tu bez zmian, nadpisuje go `NTupleLookaheadPolicy`."""
+        return frontier
 
     def _distinct_first_actions(self, frontier):
         """Najlepszy stan końcowy na każdą odrębną pierwszą akcję, do `branch` sztuk.
@@ -291,12 +296,23 @@ class NTupleLookaheadPolicy(LookaheadPolicy):
     `reward == "survival"` szacują liczbę pozostałych postawień, więc składnik
     ścieżki to liczba postawień (`placed`), nie punkty — inaczej przeszukanie
     dodawałoby punkty do postawień. Wagi `score` sumują `gain` jak dotąd.
+
+    **Gwarancja ułożenia tacki** (`complete=1`, #239). Wiązka o skończonej
+    szerokości potrafi zgubić ułożenie wszystkich pozostałych klocków tacki,
+    które istnieje (#236: 100/100 śmierci rekordu to chybienia wiązki). Przy
+    `complete=1` z ostatniego poziomu wiązki zostają wyłącznie stany, w których
+    tacka jest wykorzystana w całości; wybór wśród nich robi ta sama ocena
+    (`score`). Gdy wiązka takiego stanu nie zawiera, uruchamia się przegląd
+    wyczerpujący (`_tray_complete_search`) z tą samą oceną, a gdy i on nic nie
+    znajdzie (tacka faktycznie nieukładalna) — zostaje wynik wiązki bez zmian.
+    `complete=0` (domyślnie) nie wykonuje żadnego z tych kroków: zachowanie
+    bit w bit jak przed #239. Opis i koszt: `docs/gwarancja-tacki.md`.
     """
 
     name = "lookahead-ntuple"
 
     def __init__(self, ntuple, beam=None, samples=None, branch=None,
-                 inner_beam=None, inner_depth=None, seed=0):
+                 inner_beam=None, inner_depth=None, seed=0, complete=0):
         # `weights` klasy bazowej nie jest tu używane (leaf_value je zastępuje),
         # ale `LookaheadPolicy.__init__` go wymaga — wartość jest obojętna.
         super().__init__(
@@ -304,6 +320,7 @@ class NTupleLookaheadPolicy(LookaheadPolicy):
             branch=branch, inner_beam=inner_beam, inner_depth=inner_depth, seed=seed,
         )
         self.ntuple = ntuple
+        self.complete = complete
         self._leaf_value = self._ntuple_leaf
         if getattr(ntuple, "reward", "score") == "survival":
             self._path_key = "placed"
@@ -311,6 +328,18 @@ class NTupleLookaheadPolicy(LookaheadPolicy):
     def _ntuple_leaf(self, board, combo, combo_counter):
         """Wartość liścia z sieci N-tuple; `combo`/`combo_counter` świadomie bez wpływu."""
         return self.ntuple.value(board)
+
+    def _complete_frontier(self, game, pieces, frontier):
+        if not self.complete:
+            return frontier
+        done = [st for st in frontier if all(p is None for p in st["pieces"])]
+        if done:
+            return done
+        found = _tray_complete_search(
+            game.board, pieces, game.combo, game.combo_counter,
+            self._ntuple_leaf, self._path_key,
+        )
+        return found if found else frontier
 
     def _search(self, board, pieces, combo, combo_counter, beam, root_actions=None, depth=None):
         """Z rdzeniem natywnym (#184) całą wiązkę liczy `_tray_beam_search_native`
@@ -400,6 +429,53 @@ def _tray_beam_search(board, pieces, combo, combo_counter, weights, beam,
                 candidate["board"], candidate["combo"], candidate["combo_counter"],
             )
     return frontier, expanded
+
+
+def _tray_complete_search(board, pieces, combo, combo_counter, value_fn, path_key):
+    """Przegląd wyczerpujący ułożeń **całej** tacki `pieces` (#239).
+
+    Poziom po poziomie, jak `_tray_beam_search`, ale bez przycinania do `beam`:
+    każdy stan rozwija się o każde legalne postawienie każdego pozostałego klocka.
+    Stany identyczne (ta sama plansza, te same klocki zużyte, a dla `gain` także to
+    samo combo i licznik) scala się, zostawiając ten o największej sumie ścieżki
+    (przy remisie — znaleziony pierwszy). Stan bez legalnego ruchu przed końcem
+    tacki odpada. Zwraca stany końcowe (tacka wykorzystana w całości) z polem
+    `score = ścieżka + value_fn(plansza)`, albo `[]`, gdy tacki nie da się ułożyć.
+    Nie mutuje `board`.
+    """
+    levels = sum(1 for p in pieces if p is not None)
+    frontier = [{
+        "board": board.copy(),
+        "pieces": tuple(pieces),
+        "combo": combo,
+        "combo_counter": combo_counter,
+        "gain": 0,
+        "placed": 0,
+        "first_action": None,
+    }]
+    for _ in range(levels):
+        merged = {}
+        for state in frontier:
+            for action in _tray_legal_actions(state["board"], state["pieces"]):
+                nxt = _expand(state, action)
+                key = (
+                    board_bits(nxt["board"]),
+                    tuple(p is None for p in nxt["pieces"]),
+                    nxt["combo"], nxt["combo_counter"],
+                ) if path_key == "gain" else (
+                    board_bits(nxt["board"]),
+                    tuple(p is None for p in nxt["pieces"]),
+                )
+                old = merged.get(key)
+                if old is None or nxt[path_key] > old[path_key]:
+                    merged[key] = nxt
+        frontier = list(merged.values())
+        if not frontier:
+            return []
+    for state in frontier:
+        state["score"] = state[path_key] + value_fn(state["board"], state["combo"], state["combo_counter"])
+    frontier.sort(key=lambda c: c["score"], reverse=True)
+    return frontier
 
 
 # Wiersz planszy (bajt maski) jako lista komórek 0/1 — do odtwarzania `Board` z maski.
