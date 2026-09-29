@@ -14,6 +14,9 @@ Wpis (stan, trójka, ruch, wynik — wejście z #9 dla dopasowania symulatora); 
 menu apki (`menu_glowne`, #204) — kafelki Adventure/Classic/More Games — most odróżnia od
 modalu Ustawień i stuka kafelek „Classic", zamiast „wstecz", żeby wrócić do partii w toku;
 `restart_app` robi to samo, gdy start apki po restarcie ląduje w tym menu zamiast w grze.
+Zawieszenie planszy (#218) — obserwacja po ruchu identyczna z planszą sprzed ruchu przez
+`BOARD_STUCK_TRIES` ruchów z rzędu — kończy kawałek wpisem `okno: plansza_zawieszona` ze
+zrzutem, zamiast powtarzać ten sam ruch bez końca (`docs/most-zawieszenie-planszy.md`).
 
 Geometria zmierzona na zrzutach z sondy #14 — aktualizacja gry może ją zepsuć.
 """
@@ -75,6 +78,17 @@ EXIT_DIALOG_NO = ((97, 360), (8, 154, 214))
 EXIT_DIALOG_YES = ((225, 360), (41, 170, 25))
 EXIT_DIALOG_TOL = 20
 PROGRESS_SAFEGUARD_TRIES = 6  # K wpisów okienkowych z rzędu bez wykonanego ruchu, #163
+BOARD_STUCK_TRIES = 3  # K ruchów z rzędu, po których plansza wcale się nie zmienia (#218):
+# na materiale #212 (`bridge/runs/1b1763a/chunk{25,26,27}_moves.jsonl`) plansza zamarła na
+# 67 ruchów z rzędu (obserwacja == plansza sprzed ruchu, za każdym razem ten sam ruch
+# slot1->(3,5)); w całym pozostałym materiale `bridge/runs/*` taka zbieżność zdarzyła się
+# co najwyżej raz pod rząd (OCR, nie zawieszenie) i nigdy się nie powtórzyła — próg 3
+# odróżnia realne zawieszenie od pojedynczego szumu, tracąc najwyżej 2 ruchy nawigacji.
+GAME_OVER_SCORE_TRIES = 12  # limit prób `stable_score` na ekranie końca partii (#218): wariant
+# fioletowo-złoty z koroną i confetti (`chunk6_025_end.png`, #212) miał serię rosnącą
+# [None, 8004, 14226, 20284, 25644, 30179] z malejącymi przyrostami (8004, 6222, 6058, 5360,
+# 4535) w 6 próbach domyślnych — limit wyczerpał się o próbę za wcześnie, żeby zobaczyć dwa
+# zgodne odczyty z rzędu; margines do 12 daje miejsce na dokończenie animacji tego wariantu.
 
 
 def adb(*args):
@@ -584,6 +598,7 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
     ok_streak = best_streak = 0
     n = 0
     window_streak = 0
+    board_stuck_streak = 0
     game_number = 1
 
     def windowed_entry(okno):
@@ -644,7 +659,7 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
         if is_game_over_screen(img):
             end_path = os.path.join(OUT, f"{n:03d}_end.png")
             Image.fromarray(img.astype(np.uint8)).save(end_path)
-            final_score, score_reads = stable_score(img, game_over_score_box(img))
+            final_score, score_reads = stable_score(img, game_over_score_box(img), tries=GAME_OVER_SCORE_TRIES)
             game_number += 1
             window_streak += 1
             entry = {"n": n, "policy": policy.name, "board": grid,
@@ -715,11 +730,23 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
         Image.fromarray(aim.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_aim.png"))
         img, observed, slots = stable_state()
         ok = observed == expected
+        frozen = observed == board.grid
+        board_stuck_streak = board_stuck_streak + 1 if frozen else 0
         grid = observed
         ok_streak = ok_streak + 1 if ok else 0
         best_streak = max(best_streak, ok_streak)
         entry.update(move={"slot": i, "x": x, "y": y}, drag=info, expected=expected, observed=observed, ok=ok,
                       decision_ms=round(decision_ms, 2))
+        if board_stuck_streak >= BOARD_STUCK_TRIES:
+            stuck_path = os.path.join(OUT, f"{n:03d}_stuck.png")
+            Image.fromarray(img.astype(np.uint8)).save(stuck_path)
+            entry["okno"] = "plansza_zawieszona"
+            entry["end"] = "okno: plansza_zawieszona"
+            entry["zrzut_zawieszenia"] = os.path.basename(stuck_path)
+            log.write(json.dumps(entry) + "\n")
+            log.flush()
+            print(f"okno: plansza_zawieszona, zrzut {stuck_path}", flush=True)
+            break
         log.write(json.dumps(entry) + "\n")
         log.flush()
         print(f"ruch {n}: slot {i} -> ({x},{y}) wynik {score} {'OK' if ok else 'ROZBIEŻNOŚĆ'}", flush=True)
