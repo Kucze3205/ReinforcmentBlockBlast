@@ -28,7 +28,9 @@ from ntuple import (
     NTupleValue,
     _patch_index,
     board_bits,
+    occupied_count,
     patch_indices,
+    stage_of_occupied,
 )
 
 
@@ -323,6 +325,99 @@ class TestNTupleValueSaveLoad(unittest.TestCase):
                 json.dump({"patch_layout": [[0, 1, 2, 3]], "weights": [[0.0] * 16]}, fh)
             with self.assertRaises(ValueError):
                 NTupleValue.load(path)
+
+
+class TestStages(unittest.TestCase):
+    """Etapy N-tuple (#203): domyślnie 1 etap, bitowo bez zmian; przy kilku
+    etapach każdy ma własny komplet wag, wybierany z zajętości planszy."""
+
+    def test_occupied_count(self):
+        self.assertEqual(occupied_count(0), 0)
+        self.assertEqual(occupied_count(1), 1)
+        self.assertEqual(occupied_count((1 << 64) - 1), 64)
+        board = Board()
+        board.grid[0] = [1, 1, 1, 0, 0, 0, 0, 0]
+        self.assertEqual(occupied_count(board_bits(board)), 3)
+
+    def test_stage_of_occupied_no_thresholds_is_always_zero(self):
+        self.assertEqual(stage_of_occupied(0, ()), 0)
+        self.assertEqual(stage_of_occupied(64, ()), 0)
+
+    def test_stage_of_occupied_counts_thresholds_reached(self):
+        thresholds = (10, 30, 50)
+        self.assertEqual(stage_of_occupied(0, thresholds), 0)
+        self.assertEqual(stage_of_occupied(9, thresholds), 0)
+        self.assertEqual(stage_of_occupied(10, thresholds), 1)
+        self.assertEqual(stage_of_occupied(29, thresholds), 1)
+        self.assertEqual(stage_of_occupied(30, thresholds), 2)
+        self.assertEqual(stage_of_occupied(50, thresholds), 3)
+        self.assertEqual(stage_of_occupied(64, thresholds), 3)
+
+    def test_default_stages_is_one_and_single_stage_file_shape_unchanged(self):
+        ntuple = NTupleValue()
+        self.assertEqual(ntuple.stages, 1)
+        self.assertEqual(ntuple.thresholds, ())
+        self.assertEqual(ntuple.stage(Board()), 0)
+        data = ntuple.to_dict()
+        self.assertNotIn("stages", data)
+        self.assertNotIn("thresholds", data)
+        self.assertEqual(data["weights"], ntuple.weights)  # plaska lista tablic, jak przed #203
+
+    def test_rejects_thresholds_count_mismatch(self):
+        with self.assertRaises(ValueError):
+            NTupleValue(stages=2, thresholds=())
+        with self.assertRaises(ValueError):
+            NTupleValue(stages=1, thresholds=(5,))
+
+    def test_rejects_non_ascending_thresholds(self):
+        with self.assertRaises(ValueError):
+            NTupleValue(stages=3, thresholds=(10, 10))
+        with self.assertRaises(ValueError):
+            NTupleValue(stages=3, thresholds=(30, 10))
+
+    def test_rejects_thresholds_out_of_range(self):
+        with self.assertRaises(ValueError):
+            NTupleValue(stages=2, thresholds=(0,))
+        with self.assertRaises(ValueError):
+            NTupleValue(stages=2, thresholds=(64,))
+
+    def test_two_stages_pick_weights_by_occupied_cells(self):
+        ntuple = NTupleValue(stages=2, thresholds=(3,))
+        self.assertEqual(len(ntuple.weights), 2)
+        empty = Board()
+        full3 = Board()
+        full3.grid[0] = [1, 1, 1, 0, 0, 0, 0, 0]
+        self.assertEqual(ntuple.stage(empty), 0)
+        self.assertEqual(ntuple.stage(full3), 1)
+        idxs = ntuple.indices(full3)
+        ntuple.update(idxs, 7.0, 1)
+        self.assertEqual(ntuple.value(full3), ntuple.value_from_indices(idxs, 1))
+        self.assertEqual(ntuple.value_from_indices(idxs, 0), 0.0)
+
+    def test_two_stages_round_trip_through_save_load(self):
+        ntuple = NTupleValue(layout=LAYOUT_AD, stages=2, thresholds=(20,))
+        board = Board()
+        board.grid[3] = [1, 0, 1, 1, 0, 0, 1, 0]
+        stage = ntuple.stage(board)
+        ntuple.update(ntuple.indices(board), 4.0, stage)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "staged.json")
+            ntuple.save(path)
+            loaded = NTupleValue.load(path)
+        self.assertEqual(loaded.stages, 2)
+        self.assertEqual(loaded.thresholds, (20,))
+        self.assertEqual(loaded.layout, LAYOUT_AD)
+        self.assertEqual(loaded.weights, ntuple.weights)
+        self.assertEqual(loaded.value(board), ntuple.value(board))
+
+    def test_single_stage_files_without_stage_fields_load_as_one_stage(self):
+        ntuple = NTupleValue()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "old.json")
+            ntuple.save(path)
+            loaded = NTupleValue.load(path)
+        self.assertEqual(loaded.stages, 1)
+        self.assertEqual(loaded.thresholds, ())
 
 
 class TestNTupleValueSpeed(unittest.TestCase):

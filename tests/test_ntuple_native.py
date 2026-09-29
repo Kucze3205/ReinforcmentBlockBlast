@@ -22,12 +22,13 @@ import ntuple_native
 from benchmark import build_policy, play_game
 from board import Board
 from game import Game
-from ntuple import LAYOUTS, NTupleValue, board_bits
+from ntuple import LAYOUTS, NTupleValue, board_bits, occupied_count, patch_indices
 from policies import NTupleLookaheadPolicy, _tray_beam_search, _tray_beam_search_native
 from tools.train_ntuple import main as train_main, read_log
 
 CONFIG_PATH = "bench/config.json"
 ADC_WEIGHTS = "ntuple/survival-adc-70k.json"
+ADCG_WEIGHTS = "ntuple/survival-adcg-400k.json"
 NATIVE = ntuple_native.available()
 
 
@@ -53,6 +54,27 @@ def _pair(layout, weights):
     native = NTupleValue(weights=[list(t) for t in weights], layout=layout, native=True)
     pure = NTupleValue(weights=[list(t) for t in weights], layout=layout, native=False)
     return native, pure
+
+
+def _pair_staged(layout, stage_weights, thresholds):
+    """Jak `_pair`, ale z kilkoma etapami (#203) — jedna głęboka kopia wag na obiekt."""
+    native = NTupleValue(
+        weights=[[list(t) for t in stage] for stage in stage_weights],
+        layout=layout, thresholds=thresholds, stages=len(stage_weights), native=True,
+    )
+    pure = NTupleValue(
+        weights=[[list(t) for t in stage] for stage in stage_weights],
+        layout=layout, thresholds=thresholds, stages=len(stage_weights), native=False,
+    )
+    return native, pure
+
+
+def _reference_value(weights, layout, board):
+    """Wartość liścia sprzed #203: suma odczytów z LUT po łatach, bez pojęcia
+    etapu — dokładnie formuła `ntuple.NTupleValue.value_from_indices` przed
+    dopisaniem etapów (kryterium akceptacji #203: jeden etap liczy tak samo)."""
+    bits = board_bits(board)
+    return sum(table[i] for table, i in zip(weights, patch_indices(bits, layout)))
 
 
 def _sha(path):
@@ -108,6 +130,83 @@ class TestValueEquivalence(unittest.TestCase):
         self.assertIsNone(native.native)
         board = _random_board(random.Random(5))
         self.assertEqual(native.value(board), pure.value(board))
+
+
+class TestSingleStageUnchanged(unittest.TestCase):
+    """#203, kryterium akceptacji: jeden etap (domyślny) liczy `value()` i
+    decyzję `lookahead-ntuple` dokładnie tak, jak formuła i przeszukanie sprzed
+    dopisania etapów — z rdzeniem natywnym i bez."""
+
+    def test_value_on_1000_boards_matches_pre_stage_formula(self):
+        for native in ((True, False) if NATIVE else (False,)):
+            ntuple = NTupleValue.load(ADCG_WEIGHTS, native=native)
+            self.assertEqual(ntuple.stages, 1)
+            self.assertEqual((ntuple.native is not None), native)
+            rng = random.Random("203-single-value:%s" % native)
+            for _ in range(1000):
+                board = _random_board(rng)
+                self.assertEqual(
+                    ntuple.value(board), _reference_value(ntuple.weights, ntuple.layout, board),
+                )
+
+    def test_lookahead_ntuple_decision_on_50_games_matches_across_native_and_pure(self):
+        with open(CONFIG_PATH, encoding="utf-8") as fh:
+            config = json.load(fh)
+        spec = "lookahead-ntuple:" + ADCG_WEIGHTS
+        native_policy = build_policy(spec, config)
+        with mock.patch.dict(os.environ, {ntuple_native.ENV_FLAG: "0"}):
+            pure_policy = build_policy(spec, config)
+        if NATIVE:
+            self.assertIsNotNone(native_policy.ntuple.native)
+        self.assertIsNone(pure_policy.ntuple.native)
+        rng = random.Random(203)
+        seeds = [rng.randrange(1, 10**7) for _ in range(50)]
+        move_cap = 20  # decyzje, nie partie pelne — szybki test, 50 partii z pelnym move_cap
+        for seed in seeds:
+            self.assertEqual(
+                play_game(native_policy, seed, move_cap),
+                play_game(pure_policy, seed, move_cap),
+                seed,
+            )
+
+
+@unittest.skipUnless(NATIVE, "rdzen natywny niedostepny (brak kompilatora albo NTUPLE_NATIVE=0)")
+class TestTwoStageEquivalence(unittest.TestCase):
+    """#203, kryterium akceptacji: dla 2 etapów rdzeń natywny i ścieżka Pythonowa
+    dają te same wartości i tę samą aktualizację TD."""
+
+    def test_value_and_stage_on_1000_random_boards(self):
+        for name in ("A", "AD"):
+            layout = LAYOUTS[name]
+            rng = random.Random("203-2stage:" + name)
+            threshold = rng.randint(1, 63)
+            stage_weights = [_random_weights(layout, rng), _random_weights(layout, rng)]
+            native, pure = _pair_staged(layout, stage_weights, (threshold,))
+            self.assertIsNotNone(native.native)
+            self.assertIsNone(pure.native)
+            for _ in range(1000):
+                board = _random_board(rng)
+                bits = board_bits(board)
+                expected_stage = 1 if occupied_count(bits) >= threshold else 0
+                self.assertEqual(native.stage(board), expected_stage, name)
+                self.assertEqual(pure.stage(board), expected_stage, name)
+                self.assertEqual(native.value(board), pure.value(board), name)
+
+    def test_td_updates_leave_identical_weights(self):
+        layout = LAYOUTS["AD"]
+        rng = random.Random(2037)
+        threshold = 30
+        stage_weights = [_random_weights(layout, rng), _random_weights(layout, rng)]
+        native, pure = _pair_staged(layout, stage_weights, (threshold,))
+        for _ in range(300):
+            board = _random_board(rng)
+            delta = rng.uniform(-1.0, 1.0) * 10.0 ** rng.randint(-6, 3)
+            stage = native.stage(board)
+            self.assertEqual(stage, pure.stage(board))
+            native.update(native.indices(board), delta, stage)
+            pure.update(pure.indices(board), delta, stage)
+            self.assertEqual(native.value(board), pure.value(board))
+        self.assertEqual(native.weights, pure.weights)
 
 
 @unittest.skipUnless(NATIVE, "rdzen natywny niedostepny (brak kompilatora albo NTUPLE_NATIVE=0)")
@@ -218,6 +317,14 @@ class TestTrainingEquivalence(unittest.TestCase):
     def test_score_reward_same_weights_and_log(self):
         self._check([
             "--episodes", "30", "--episodes-per-run", "30", "--reward", "score", "--layout", "AD",
+        ])
+
+    def test_200_survival_episodes_two_stages_same_weights_and_log(self):
+        """#203: rdzeń i Python dają identyczne wagi i log (w tym `stage_placements`)
+        także z dwoma etapami — nie tylko z jednym (testy powyżej)."""
+        self._check([
+            "--episodes", "200", "--episodes-per-run", "200", "--reward", "survival", "--layout", "AD",
+            "--stages", "2", "--thresholds", "30",
         ])
 
 
