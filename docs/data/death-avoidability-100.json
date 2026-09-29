@@ -1,0 +1,1823 @@
+{
+ "policy": "lookahead-ntuple:ntuple/survival-adcga16-800k.json@beam=128,samples=0",
+ "n_games": 100,
+ "elapsed_s": 233.8,
+ "summary": {
+  "n_games": 100,
+  "n_capped": 0,
+  "n_deaths": 100,
+  "a_search_miss": 100,
+  "a_search_miss_pct": 100.0,
+  "n_deaths_with_previous_tray": 100,
+  "b_any_survive": 100,
+  "b_any_survive_pct": 100.0,
+  "b_median_survive_frac": 1.0,
+  "b_median_survive_frac_among_avoidable": 1.0,
+  "b_median_chosen_rank": 1.0,
+  "b_median_best_survivor_rank": 1.0,
+  "b_median_n_final_boards": 2261.0,
+  "b_times_sampled": 26
+ },
+ "games": [
+  {
+   "seed": 1259289227,
+   "placements": 440,
+   "score": 62079,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 11319,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1358106528,
+   "placements": 545,
+   "score": 85821,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 163,
+    "sampled": false,
+    "n_evaluated": 163,
+    "n_survive": 163,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1524307444,
+   "placements": 76,
+   "score": 5366,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 174,
+    "sampled": false,
+    "n_evaluated": 174,
+    "n_survive": 174,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 601855227,
+   "placements": 989,
+   "score": 248599,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 806,
+    "sampled": false,
+    "n_evaluated": 806,
+    "n_survive": 806,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 274288237,
+   "placements": 527,
+   "score": 75607,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 2656,
+    "sampled": false,
+    "n_evaluated": 2656,
+    "n_survive": 2656,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 972234272,
+   "placements": 1085,
+   "score": 125719,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 390,
+    "sampled": false,
+    "n_evaluated": 390,
+    "n_survive": 390,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1934775205,
+   "placements": 1853,
+   "score": 297504,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 988,
+    "sampled": false,
+    "n_evaluated": 988,
+    "n_survive": 988,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1747973984,
+   "placements": 170,
+   "score": 18075,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 6350,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 880427736,
+   "placements": 1076,
+   "score": 143117,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 4088,
+    "sampled": false,
+    "n_evaluated": 4088,
+    "n_survive": 4088,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 744386736,
+   "placements": 551,
+   "score": 45114,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 8432,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 2,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 518084881,
+   "placements": 95,
+   "score": 12264,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 2052,
+    "sampled": false,
+    "n_evaluated": 2052,
+    "n_survive": 2052,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 2056331490,
+   "placements": 689,
+   "score": 69881,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 1149,
+    "sampled": false,
+    "n_evaluated": 1149,
+    "n_survive": 1149,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 940942013,
+   "placements": 2594,
+   "score": 329013,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 10058,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 744895268,
+   "placements": 1013,
+   "score": 194095,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 672,
+    "sampled": false,
+    "n_evaluated": 672,
+    "n_survive": 672,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 45415092,
+   "placements": 143,
+   "score": 27150,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 4011,
+    "sampled": false,
+    "n_evaluated": 4011,
+    "n_survive": 4011,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 271614896,
+   "placements": 749,
+   "score": 92961,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 5660,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1552100809,
+   "placements": 247,
+   "score": 18709,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 3122,
+    "sampled": false,
+    "n_evaluated": 3122,
+    "n_survive": 3122,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 627979578,
+   "placements": 341,
+   "score": 31154,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 1986,
+    "sampled": false,
+    "n_evaluated": 1986,
+    "n_survive": 1986,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1097272728,
+   "placements": 716,
+   "score": 66653,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 956,
+    "sampled": false,
+    "n_evaluated": 956,
+    "n_survive": 956,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1960580164,
+   "placements": 140,
+   "score": 24628,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 15,
+    "sampled": false,
+    "n_evaluated": 15,
+    "n_survive": 15,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1010319230,
+   "placements": 338,
+   "score": 41924,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 1085,
+    "sampled": false,
+    "n_evaluated": 1085,
+    "n_survive": 1085,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1890378441,
+   "placements": 317,
+   "score": 23660,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 1786,
+    "sampled": false,
+    "n_evaluated": 1786,
+    "n_survive": 1786,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 2065278419,
+   "placements": 113,
+   "score": 6234,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 3479,
+    "sampled": false,
+    "n_evaluated": 3479,
+    "n_survive": 3479,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1753735256,
+   "placements": 38,
+   "score": 1587,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 1512,
+    "sampled": false,
+    "n_evaluated": 1512,
+    "n_survive": 1512,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1861471757,
+   "placements": 56,
+   "score": 2142,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 641,
+    "sampled": false,
+    "n_evaluated": 641,
+    "n_survive": 641,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 845134674,
+   "placements": 50,
+   "score": 1969,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 5095,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 2,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 267172474,
+   "placements": 2204,
+   "score": 275135,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 2443,
+    "sampled": false,
+    "n_evaluated": 2443,
+    "n_survive": 2443,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 147396881,
+   "placements": 880,
+   "score": 129718,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 6666,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 402901329,
+   "placements": 1061,
+   "score": 203661,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 1464,
+    "sampled": false,
+    "n_evaluated": 1464,
+    "n_survive": 1464,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 539433230,
+   "placements": 242,
+   "score": 26670,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 8929,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 922091521,
+   "placements": 1001,
+   "score": 138631,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 830,
+    "sampled": false,
+    "n_evaluated": 830,
+    "n_survive": 830,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1804264909,
+   "placements": 104,
+   "score": 4140,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 6285,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 397344031,
+   "placements": 524,
+   "score": 55941,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 1131,
+    "sampled": false,
+    "n_evaluated": 1131,
+    "n_survive": 1131,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 812529795,
+   "placements": 146,
+   "score": 9778,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 2182,
+    "sampled": false,
+    "n_evaluated": 2182,
+    "n_survive": 2182,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1059250567,
+   "placements": 26,
+   "score": 742,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 1721,
+    "sampled": false,
+    "n_evaluated": 1721,
+    "n_survive": 1721,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1980003958,
+   "placements": 1073,
+   "score": 139406,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 97,
+    "sampled": false,
+    "n_evaluated": 97,
+    "n_survive": 97,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1026010006,
+   "placements": 113,
+   "score": 5559,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 1230,
+    "sampled": false,
+    "n_evaluated": 1230,
+    "n_survive": 1230,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 2,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1202745611,
+   "placements": 659,
+   "score": 91480,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 735,
+    "sampled": false,
+    "n_evaluated": 735,
+    "n_survive": 735,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1930098392,
+   "placements": 767,
+   "score": 160703,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 1796,
+    "sampled": false,
+    "n_evaluated": 1796,
+    "n_survive": 1796,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 472886800,
+   "placements": 1334,
+   "score": 138626,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 5404,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 693632570,
+   "placements": 758,
+   "score": 107990,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 263,
+    "sampled": false,
+    "n_evaluated": 263,
+    "n_survive": 263,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1489780161,
+   "placements": 119,
+   "score": 12278,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 461,
+    "sampled": false,
+    "n_evaluated": 461,
+    "n_survive": 461,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1404084448,
+   "placements": 194,
+   "score": 12374,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 2514,
+    "sampled": false,
+    "n_evaluated": 2514,
+    "n_survive": 2514,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1709245083,
+   "placements": 494,
+   "score": 50005,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 296,
+    "sampled": false,
+    "n_evaluated": 296,
+    "n_survive": 296,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1123530228,
+   "placements": 1271,
+   "score": 309323,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 1027,
+    "sampled": false,
+    "n_evaluated": 1027,
+    "n_survive": 1027,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 3,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1755648216,
+   "placements": 3101,
+   "score": 429841,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 342,
+    "sampled": false,
+    "n_evaluated": 342,
+    "n_survive": 342,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1073487714,
+   "placements": 188,
+   "score": 25744,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 3423,
+    "sampled": false,
+    "n_evaluated": 3423,
+    "n_survive": 3423,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 2,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 764368907,
+   "placements": 1027,
+   "score": 127806,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 1056,
+    "sampled": false,
+    "n_evaluated": 1056,
+    "n_survive": 1056,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1002475626,
+   "placements": 191,
+   "score": 48579,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 13178,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 490370838,
+   "placements": 524,
+   "score": 54718,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 3159,
+    "sampled": false,
+    "n_evaluated": 3159,
+    "n_survive": 3159,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1175570807,
+   "placements": 1160,
+   "score": 139344,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 346,
+    "sampled": false,
+    "n_evaluated": 346,
+    "n_survive": 346,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 899361502,
+   "placements": 152,
+   "score": 12297,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 2340,
+    "sampled": false,
+    "n_evaluated": 2340,
+    "n_survive": 2340,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1331642425,
+   "placements": 2201,
+   "score": 434253,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 3461,
+    "sampled": false,
+    "n_evaluated": 3461,
+    "n_survive": 3461,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 465760831,
+   "placements": 419,
+   "score": 54824,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 2166,
+    "sampled": false,
+    "n_evaluated": 2166,
+    "n_survive": 2166,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 73550638,
+   "placements": 1745,
+   "score": 421228,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 1537,
+    "sampled": false,
+    "n_evaluated": 1537,
+    "n_survive": 1537,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 318047465,
+   "placements": 215,
+   "score": 19165,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 137,
+    "sampled": false,
+    "n_evaluated": 137,
+    "n_survive": 137,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 766587763,
+   "placements": 710,
+   "score": 121479,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 147,
+    "sampled": false,
+    "n_evaluated": 147,
+    "n_survive": 147,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 952875461,
+   "placements": 1178,
+   "score": 144463,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 3815,
+    "sampled": false,
+    "n_evaluated": 3815,
+    "n_survive": 3815,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1210991944,
+   "placements": 635,
+   "score": 107967,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 85,
+    "sampled": false,
+    "n_evaluated": 85,
+    "n_survive": 85,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1452296205,
+   "placements": 1508,
+   "score": 182166,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 7373,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1141460000,
+   "placements": 1460,
+   "score": 183019,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 3293,
+    "sampled": false,
+    "n_evaluated": 3293,
+    "n_survive": 3293,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1662955949,
+   "placements": 527,
+   "score": 139420,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 4343,
+    "sampled": false,
+    "n_evaluated": 4343,
+    "n_survive": 4343,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1298895214,
+   "placements": 320,
+   "score": 53854,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 9385,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 165167596,
+   "placements": 1385,
+   "score": 167267,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 179,
+    "sampled": false,
+    "n_evaluated": 179,
+    "n_survive": 179,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1447881562,
+   "placements": 50,
+   "score": 2140,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 8595,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 663435151,
+   "placements": 1549,
+   "score": 247839,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 2441,
+    "sampled": false,
+    "n_evaluated": 2441,
+    "n_survive": 2441,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 575251091,
+   "placements": 488,
+   "score": 53220,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 10795,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 386863463,
+   "placements": 143,
+   "score": 9347,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 786,
+    "sampled": false,
+    "n_evaluated": 786,
+    "n_survive": 786,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 418207320,
+   "placements": 1883,
+   "score": 192139,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 241,
+    "sampled": false,
+    "n_evaluated": 241,
+    "n_survive": 241,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 472373926,
+   "placements": 3215,
+   "score": 442290,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 658,
+    "sampled": false,
+    "n_evaluated": 658,
+    "n_survive": 658,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 632107432,
+   "placements": 470,
+   "score": 47202,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 7064,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 406454441,
+   "placements": 926,
+   "score": 106460,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 8755,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1465359090,
+   "placements": 191,
+   "score": 30474,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 1530,
+    "sampled": false,
+    "n_evaluated": 1530,
+    "n_survive": 1530,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 529960289,
+   "placements": 638,
+   "score": 85900,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 3368,
+    "sampled": false,
+    "n_evaluated": 3368,
+    "n_survive": 3368,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 182775449,
+   "placements": 764,
+   "score": 132482,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 13151,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1876339943,
+   "placements": 275,
+   "score": 15653,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 244,
+    "sampled": false,
+    "n_evaluated": 244,
+    "n_survive": 244,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 471328750,
+   "placements": 356,
+   "score": 39428,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 920,
+    "sampled": false,
+    "n_evaluated": 920,
+    "n_survive": 920,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1413455680,
+   "placements": 319,
+   "score": 24315,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 3933,
+    "sampled": false,
+    "n_evaluated": 3933,
+    "n_survive": 3933,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 2099492394,
+   "placements": 476,
+   "score": 56037,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 3448,
+    "sampled": false,
+    "n_evaluated": 3448,
+    "n_survive": 3448,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1121732061,
+   "placements": 1355,
+   "score": 183743,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 2756,
+    "sampled": false,
+    "n_evaluated": 2756,
+    "n_survive": 2756,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 576994311,
+   "placements": 110,
+   "score": 14899,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 1318,
+    "sampled": false,
+    "n_evaluated": 1318,
+    "n_survive": 1318,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 76644251,
+   "placements": 44,
+   "score": 2091,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 5705,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1508512885,
+   "placements": 1034,
+   "score": 119898,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 1423,
+    "sampled": false,
+    "n_evaluated": 1423,
+    "n_survive": 1423,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1487586717,
+   "placements": 886,
+   "score": 103165,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 757,
+    "sampled": false,
+    "n_evaluated": 757,
+    "n_survive": 757,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1925576782,
+   "placements": 134,
+   "score": 7945,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 4783,
+    "sampled": false,
+    "n_evaluated": 4783,
+    "n_survive": 4783,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 3,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1967752689,
+   "placements": 302,
+   "score": 38918,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 365,
+    "sampled": false,
+    "n_evaluated": 365,
+    "n_survive": 365,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 159321334,
+   "placements": 1256,
+   "score": 195412,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 12023,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1072778833,
+   "placements": 833,
+   "score": 126448,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 8361,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 17424019,
+   "placements": 278,
+   "score": 40305,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 4515,
+    "sampled": false,
+    "n_evaluated": 4515,
+    "n_survive": 4515,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1034362922,
+   "placements": 317,
+   "score": 34475,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 3099,
+    "sampled": false,
+    "n_evaluated": 3099,
+    "n_survive": 3099,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 2,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 581713841,
+   "placements": 590,
+   "score": 76977,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 6993,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 934576817,
+   "placements": 73,
+   "score": 7257,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 38,
+    "sampled": false,
+    "n_evaluated": 38,
+    "n_survive": 38,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 963570903,
+   "placements": 329,
+   "score": 70429,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 8012,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1444082261,
+   "placements": 791,
+   "score": 78907,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 1564,
+    "sampled": false,
+    "n_evaluated": 1564,
+    "n_survive": 1564,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 182316929,
+   "placements": 1547,
+   "score": 246157,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 2776,
+    "sampled": false,
+    "n_evaluated": 2776,
+    "n_survive": 2776,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1226199450,
+   "placements": 230,
+   "score": 22504,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 1451,
+    "sampled": false,
+    "n_evaluated": 1451,
+    "n_survive": 1451,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1470897327,
+   "placements": 530,
+   "score": 80782,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 5849,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 952022991,
+   "placements": 1082,
+   "score": 134043,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 7139,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 1190538927,
+   "placements": 245,
+   "score": 44760,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 6730,
+    "sampled": true,
+    "n_evaluated": 5000,
+    "n_survive": 5000,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 1,
+    "best_survivor_rank": 1
+   }
+  },
+  {
+   "seed": 824741646,
+   "placements": 434,
+   "score": 97938,
+   "capped": false,
+   "a_solvable": true,
+   "b": {
+    "n_final_boards": 3128,
+    "sampled": false,
+    "n_evaluated": 3128,
+    "n_survive": 3128,
+    "survive_frac": 1.0,
+    "any_survive": true,
+    "chosen_in_set": true,
+    "chosen_rank": 2,
+    "best_survivor_rank": 1
+   }
+  }
+ ]
+}
