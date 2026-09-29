@@ -9,7 +9,9 @@ punktu.
 Dlatego porównywane są **całe sekwencje ruchów pełnych partii**, nie wyniki:
 jedna inna decyzja rozjeżdża resztę partii, a dwie polityki potrafią dać ten sam
 wynik zupełnie innymi ruchami. Złote sekwencje z `tests/data/` zapisano na
-commicie 1bd38fa, czyli na kodzie sprzed dodania combo do oceny liścia.
+commicie 1bd38fa, czyli na kodzie sprzed dodania combo do oceny liścia, i
+ponownie nagrano na #221 (`Game` domyślnie świadoma planszy zmienia strumień
+tacek — ruchy same w sobie się nie zmieniły, tylko generator, który je karmi).
 
 Dlaczego test ma prawo przechodzić: `weights.json` ma sześć wag planszowych,
 `benchmark.load_tuned_weights` dopełnia ogon combo zerami, a `x + 0.0 == x`.

@@ -7,7 +7,8 @@ bench/seeds_fixed.json PRZED modyfikacja policies.py (przed dodaniem
 NTupleLookaheadPolicy i haka `_leaf_value` w LookaheadPolicy). Ten test
 odtwarza te sama gre na biezacym kodzie i porownuje sekwencje znak w znak —
 to jest ramie odniesienia kazdego przyszlego pomiaru (#123, kryterium
-akceptacji).
+akceptacji). Ponownie nagrany na #221 (Game domyslnie swiadoma planszy zmienia
+strumien tacek) — policies.py nietkniete.
 """
 import json
 import os
