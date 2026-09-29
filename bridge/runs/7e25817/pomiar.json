@@ -6,6 +6,8 @@
     {"kawalek": 1, "plik_ruchow": "chunk1_moves.jsonl", "ruchy": "0-59", "polityka": "greedy",
      "wynik": "60/60 zapisanych, wszystkie ok, brak 'okno' w logu, brak reklamy, brak konca partii. Ruch 15: most SAM wykryl awarie procesu (in_game()==False) i SAM zrobil restart 1/3 (monkey, bez ToS/instalacji) - kontynuacja partii bez utraty stanu (score przed 214, po restarcie 237, plansza zgodna). Partia 1 w toku: wynik do 1891 (pole score)."},
     {"kawalek": 2, "plik_ruchow": "chunk2_moves.jsonl", "ruchy": "0-59", "polityka": "greedy",
-     "wynik": "60/60 zapisanych, wszystkie ok, brak 'okno' w logu, brak reklamy, brak konca partii, brak restartow. Partia 1 kontynuowana: wynik do 21161 (pole score, rosnie spojnie)."}
+     "wynik": "60/60 zapisanych, wszystkie ok, brak 'okno' w logu, brak reklamy, brak konca partii, brak restartow. Partia 1 kontynuowana: wynik do 21161 (pole score, rosnie spojnie)."},
+    {"kawalek": 3, "plik_ruchow": "chunk3_moves.jsonl", "ruchy": "0-59", "polityka": "greedy",
+     "wynik": "60/60 zapisanych, wszystkie ok, brak 'okno' w logu, brak reklamy, brak konca partii, brak restartow. Partia 1 kontynuowana, plansza pelna: wynik do 32253 (pole score)."}
   ]
 }
