@@ -36,6 +36,10 @@
     {"kawalek": 16, "plik_ruchow": "chunk16_moves.jsonl", "ruchy": "0-29", "polityka": "greedy",
      "wynik": "30/30 ok, brak okien, brak reklam, brak konca partii. Partia 3 kontynuowana: wynik do 11279 (jeden odczyt zaszumiony na ruchu 28: 1)."},
     {"kawalek": 17, "plik_ruchow": "chunk17_moves.jsonl", "ruchy": "0-29", "polityka": "greedy",
-     "wynik": "30/30 ok, brak okien, brak reklam, brak konca partii. Partia 3 kontynuowana: wynik do 14818."}
+     "wynik": "30/30 ok, brak okien, brak reklam, brak konca partii. Partia 3 kontynuowana: wynik do 14818."},
+    {"kawalek": 18, "plik_ruchow": "chunk18_moves.jsonl", "ruchy": "0-29", "polityka": "greedy",
+     "wynik": "30/30 ok, brak okien, brak reklam, brak konca partii. Partia 3 kontynuowana: wynik do 17045."},
+    {"kawalek": 19, "plik_ruchow": "chunk19_moves.jsonl", "ruchy": "0-29", "polityka": "greedy",
+     "wynik": "30/30 ok, brak okien, brak reklam, brak konca partii. Partia 3 kontynuowana: wynik do 18400."}
   ]
 }
