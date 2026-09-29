@@ -11,7 +11,7 @@
     "thresholds": []
   },
   "seed": 3,
-  "n_odcinkow_lacznie": 400000,
+  "n_odcinkow_lacznie": 500000,
   "rozmiar_okna": 2000,
   "okna": [
     {
@@ -1613,6 +1613,406 @@
       "sredni_wynik": 12431.57,
       "srednie_przezycie": 209.65,
       "sredni_abs_blad_td": 6.4223
+    },
+    {
+      "od_odcinka": 400001,
+      "do_odcinka": 402000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12845.48,
+      "srednie_przezycie": 218.44,
+      "sredni_abs_blad_td": 6.4968
+    },
+    {
+      "od_odcinka": 402001,
+      "do_odcinka": 404000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12327.44,
+      "srednie_przezycie": 209.51,
+      "sredni_abs_blad_td": 6.5666
+    },
+    {
+      "od_odcinka": 404001,
+      "do_odcinka": 406000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 13203.16,
+      "srednie_przezycie": 218.9,
+      "sredni_abs_blad_td": 6.4855
+    },
+    {
+      "od_odcinka": 406001,
+      "do_odcinka": 408000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12345.34,
+      "srednie_przezycie": 208.0,
+      "sredni_abs_blad_td": 6.521
+    },
+    {
+      "od_odcinka": 408001,
+      "do_odcinka": 410000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12570.49,
+      "srednie_przezycie": 213.6,
+      "sredni_abs_blad_td": 6.5687
+    },
+    {
+      "od_odcinka": 410001,
+      "do_odcinka": 412000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12902.37,
+      "srednie_przezycie": 218.9,
+      "sredni_abs_blad_td": 6.5143
+    },
+    {
+      "od_odcinka": 412001,
+      "do_odcinka": 414000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12091.42,
+      "srednie_przezycie": 206.38,
+      "sredni_abs_blad_td": 6.5221
+    },
+    {
+      "od_odcinka": 414001,
+      "do_odcinka": 416000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12354.23,
+      "srednie_przezycie": 211.52,
+      "sredni_abs_blad_td": 6.4666
+    },
+    {
+      "od_odcinka": 416001,
+      "do_odcinka": 418000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12490.19,
+      "srednie_przezycie": 211.14,
+      "sredni_abs_blad_td": 6.4834
+    },
+    {
+      "od_odcinka": 418001,
+      "do_odcinka": 420000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12996.82,
+      "srednie_przezycie": 221.76,
+      "sredni_abs_blad_td": 6.5538
+    },
+    {
+      "od_odcinka": 420001,
+      "do_odcinka": 422000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12081.15,
+      "srednie_przezycie": 202.43,
+      "sredni_abs_blad_td": 6.4934
+    },
+    {
+      "od_odcinka": 422001,
+      "do_odcinka": 424000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12304.36,
+      "srednie_przezycie": 209.48,
+      "sredni_abs_blad_td": 6.3781
+    },
+    {
+      "od_odcinka": 424001,
+      "do_odcinka": 426000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12491.71,
+      "srednie_przezycie": 216.39,
+      "sredni_abs_blad_td": 6.5216
+    },
+    {
+      "od_odcinka": 426001,
+      "do_odcinka": 428000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12492.21,
+      "srednie_przezycie": 210.12,
+      "sredni_abs_blad_td": 6.5774
+    },
+    {
+      "od_odcinka": 428001,
+      "do_odcinka": 430000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12388.73,
+      "srednie_przezycie": 208.84,
+      "sredni_abs_blad_td": 6.4947
+    },
+    {
+      "od_odcinka": 430001,
+      "do_odcinka": 432000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12335.74,
+      "srednie_przezycie": 208.45,
+      "sredni_abs_blad_td": 6.5246
+    },
+    {
+      "od_odcinka": 432001,
+      "do_odcinka": 434000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12564.54,
+      "srednie_przezycie": 215.63,
+      "sredni_abs_blad_td": 6.4901
+    },
+    {
+      "od_odcinka": 434001,
+      "do_odcinka": 436000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 13001.31,
+      "srednie_przezycie": 219.47,
+      "sredni_abs_blad_td": 6.5237
+    },
+    {
+      "od_odcinka": 436001,
+      "do_odcinka": 438000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12939.94,
+      "srednie_przezycie": 215.68,
+      "sredni_abs_blad_td": 6.4782
+    },
+    {
+      "od_odcinka": 438001,
+      "do_odcinka": 440000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12421.21,
+      "srednie_przezycie": 210.59,
+      "sredni_abs_blad_td": 6.4871
+    },
+    {
+      "od_odcinka": 440001,
+      "do_odcinka": 442000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12835.24,
+      "srednie_przezycie": 218.36,
+      "sredni_abs_blad_td": 6.5268
+    },
+    {
+      "od_odcinka": 442001,
+      "do_odcinka": 444000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12701.08,
+      "srednie_przezycie": 215.54,
+      "sredni_abs_blad_td": 6.5906
+    },
+    {
+      "od_odcinka": 444001,
+      "do_odcinka": 446000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12376.8,
+      "srednie_przezycie": 213.08,
+      "sredni_abs_blad_td": 6.5266
+    },
+    {
+      "od_odcinka": 446001,
+      "do_odcinka": 448000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12976.5,
+      "srednie_przezycie": 215.4,
+      "sredni_abs_blad_td": 6.5057
+    },
+    {
+      "od_odcinka": 448001,
+      "do_odcinka": 450000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12741.29,
+      "srednie_przezycie": 218.22,
+      "sredni_abs_blad_td": 6.5118
+    },
+    {
+      "od_odcinka": 450001,
+      "do_odcinka": 452000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12618.74,
+      "srednie_przezycie": 213.32,
+      "sredni_abs_blad_td": 6.559
+    },
+    {
+      "od_odcinka": 452001,
+      "do_odcinka": 454000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12898.3,
+      "srednie_przezycie": 215.79,
+      "sredni_abs_blad_td": 6.4863
+    },
+    {
+      "od_odcinka": 454001,
+      "do_odcinka": 456000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12826.5,
+      "srednie_przezycie": 209.33,
+      "sredni_abs_blad_td": 6.4673
+    },
+    {
+      "od_odcinka": 456001,
+      "do_odcinka": 458000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12227.88,
+      "srednie_przezycie": 204.03,
+      "sredni_abs_blad_td": 6.5142
+    },
+    {
+      "od_odcinka": 458001,
+      "do_odcinka": 460000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12533.67,
+      "srednie_przezycie": 211.21,
+      "sredni_abs_blad_td": 6.4406
+    },
+    {
+      "od_odcinka": 460001,
+      "do_odcinka": 462000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12804.91,
+      "srednie_przezycie": 216.86,
+      "sredni_abs_blad_td": 6.4303
+    },
+    {
+      "od_odcinka": 462001,
+      "do_odcinka": 464000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12746.6,
+      "srednie_przezycie": 217.18,
+      "sredni_abs_blad_td": 6.491
+    },
+    {
+      "od_odcinka": 464001,
+      "do_odcinka": 466000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12558.75,
+      "srednie_przezycie": 209.96,
+      "sredni_abs_blad_td": 6.5164
+    },
+    {
+      "od_odcinka": 466001,
+      "do_odcinka": 468000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12932.14,
+      "srednie_przezycie": 219.38,
+      "sredni_abs_blad_td": 6.4546
+    },
+    {
+      "od_odcinka": 468001,
+      "do_odcinka": 470000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12390.16,
+      "srednie_przezycie": 209.88,
+      "sredni_abs_blad_td": 6.4685
+    },
+    {
+      "od_odcinka": 470001,
+      "do_odcinka": 472000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 13015.47,
+      "srednie_przezycie": 221.44,
+      "sredni_abs_blad_td": 6.5241
+    },
+    {
+      "od_odcinka": 472001,
+      "do_odcinka": 474000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12739.41,
+      "srednie_przezycie": 216.0,
+      "sredni_abs_blad_td": 6.521
+    },
+    {
+      "od_odcinka": 474001,
+      "do_odcinka": 476000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12772.62,
+      "srednie_przezycie": 220.02,
+      "sredni_abs_blad_td": 6.4752
+    },
+    {
+      "od_odcinka": 476001,
+      "do_odcinka": 478000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12292.49,
+      "srednie_przezycie": 210.41,
+      "sredni_abs_blad_td": 6.6199
+    },
+    {
+      "od_odcinka": 478001,
+      "do_odcinka": 480000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12248.01,
+      "srednie_przezycie": 209.49,
+      "sredni_abs_blad_td": 6.5189
+    },
+    {
+      "od_odcinka": 480001,
+      "do_odcinka": 482000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12661.24,
+      "srednie_przezycie": 212.22,
+      "sredni_abs_blad_td": 6.3672
+    },
+    {
+      "od_odcinka": 482001,
+      "do_odcinka": 484000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 13141.16,
+      "srednie_przezycie": 219.61,
+      "sredni_abs_blad_td": 6.4169
+    },
+    {
+      "od_odcinka": 484001,
+      "do_odcinka": 486000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12820.74,
+      "srednie_przezycie": 219.78,
+      "sredni_abs_blad_td": 6.5475
+    },
+    {
+      "od_odcinka": 486001,
+      "do_odcinka": 488000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 13294.98,
+      "srednie_przezycie": 223.53,
+      "sredni_abs_blad_td": 6.5637
+    },
+    {
+      "od_odcinka": 488001,
+      "do_odcinka": 490000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12524.92,
+      "srednie_przezycie": 209.57,
+      "sredni_abs_blad_td": 6.4607
+    },
+    {
+      "od_odcinka": 490001,
+      "do_odcinka": 492000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12490.4,
+      "srednie_przezycie": 212.26,
+      "sredni_abs_blad_td": 6.4006
+    },
+    {
+      "od_odcinka": 492001,
+      "do_odcinka": 494000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 13107.15,
+      "srednie_przezycie": 220.13,
+      "sredni_abs_blad_td": 6.5187
+    },
+    {
+      "od_odcinka": 494001,
+      "do_odcinka": 496000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12510.35,
+      "srednie_przezycie": 212.57,
+      "sredni_abs_blad_td": 6.4692
+    },
+    {
+      "od_odcinka": 496001,
+      "do_odcinka": 498000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 12443.1,
+      "srednie_przezycie": 209.02,
+      "sredni_abs_blad_td": 6.4599
+    },
+    {
+      "od_odcinka": 498001,
+      "do_odcinka": 500000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 13031.41,
+      "srednie_przezycie": 218.03,
+      "sredni_abs_blad_td": 6.5897
     }
   ],
   "ewaluacja": {
@@ -1858,12 +2258,72 @@
         "sredni_wynik": 10742.94,
         "srednie_przezycie": 173.9,
         "n_partii": 50
+      },
+      {
+        "odcinki": 410000,
+        "sredni_wynik": 11725.96,
+        "srednie_przezycie": 190.62,
+        "n_partii": 50
+      },
+      {
+        "odcinki": 420000,
+        "sredni_wynik": 11036.7,
+        "srednie_przezycie": 201.86,
+        "n_partii": 50
+      },
+      {
+        "odcinki": 430000,
+        "sredni_wynik": 14130.14,
+        "srednie_przezycie": 223.24,
+        "n_partii": 50
+      },
+      {
+        "odcinki": 440000,
+        "sredni_wynik": 11819.14,
+        "srednie_przezycie": 209.72,
+        "n_partii": 50
+      },
+      {
+        "odcinki": 450000,
+        "sredni_wynik": 13984.08,
+        "srednie_przezycie": 249.42,
+        "n_partii": 50
+      },
+      {
+        "odcinki": 460000,
+        "sredni_wynik": 17510.5,
+        "srednie_przezycie": 262.58,
+        "n_partii": 50
+      },
+      {
+        "odcinki": 470000,
+        "sredni_wynik": 10967.4,
+        "srednie_przezycie": 199.8,
+        "n_partii": 50
+      },
+      {
+        "odcinki": 480000,
+        "sredni_wynik": 13878.58,
+        "srednie_przezycie": 236.14,
+        "n_partii": 50
+      },
+      {
+        "odcinki": 490000,
+        "sredni_wynik": 11918.8,
+        "srednie_przezycie": 193.58,
+        "n_partii": 50
+      },
+      {
+        "odcinki": 500000,
+        "sredni_wynik": 11835.2,
+        "srednie_przezycie": 203,
+        "n_partii": 50
       }
     ],
     "najlepszy": {
-      "odcinki": 230000,
-      "sredni_wynik": 14861.4,
-      "srednie_przezycie": 238.6,
+      "odcinki": 460000,
+      "sredni_wynik": 17510.5,
+      "srednie_przezycie": 262.58,
       "n_partii": 50
     }
   }
