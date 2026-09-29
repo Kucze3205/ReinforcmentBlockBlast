@@ -15,6 +15,14 @@ liniowa względem tych binarnych cech, tak jak `features.py`, tylko z cechami
 dobranymi automatycznie (każdy wzorzec na łacie to osobna waga) zamiast sześciu
 ręcznie zaprojektowanych.
 
+Liczba **etapów** (`stages`, #203) jest opcjonalna i domyślnie `1` — wtedy plik wag,
+wartości i decyzje są bitowo identyczne ze sprzed #203. Przy `stages > 1` każdy etap
+ma własny komplet tablic wag tego samego układu łat; etap danej planszy wybiera
+`stage_of_bits` z liczby jej **własnych** zajętych komórek i rosnących progów
+`thresholds` (`len(thresholds) == stages - 1`) — etap afterstate'u pochodzi z tego
+afterstate'u, nie ze stanu, z którego powstał (`docs/research/przeszukanie-z-wyuczona-ocena.md`,
+sekcja 1: N-tuple TD po afterstate'ach, „multi-stage” jako jedno z ulepszeń).
+
 Układ łat jest **danymi**, w jednym miejscu (`LAYOUTS`, nazwane warianty), nie
 rozsianymi po kodzie: wariant A z `docs/research/budzet-wyuczonej-oceny.md`
 (#120) — 8 wierszy + 8 kolumn, każda łata 8 komórek, `16 × 2**8 = 4096` wag —
@@ -92,6 +100,9 @@ LAYOUT_ADC = LAYOUT_AD + LAYOUT_C
 # Nazwane układy łat — jedyne, które `NTupleValue.load` przyjmuje (#149).
 LAYOUTS = {"A": LAYOUT_A, "AD": LAYOUT_AD, "ADC": LAYOUT_ADC}
 DEFAULT_LAYOUT = "A"
+
+# Liczba komórek zajętych na planszy 8x8 (0..64) — jednostka progów etapów (#203).
+MAX_OCCUPIED = WIDTH * HEIGHT
 
 
 def board_bits(board):
@@ -173,6 +184,25 @@ def patch_indices(bits, layout=PATCH_LAYOUT):
     return result
 
 
+def occupied_count(bits):
+    """Liczba zajętych komórek planszy (0..64) — jednostka progów etapów (#203)."""
+    return bin(bits).count("1")
+
+
+def stage_of_occupied(occupied, thresholds):
+    """Numer etapu (0-indeksowany) dla liczby zajętych komórek i progów rosnących.
+
+    `thresholds[i]` to najmniejsza liczba zajętych komórek etapu `i + 1` — etap
+    afterstate'u jest wybierany z jego własnej planszy (#203, sekcja 1 badania
+    `docs/research/przeszukanie-z-wyuczona-ocena.md`), nie ze stanu, z którego
+    powstał."""
+    stage = 0
+    for threshold in thresholds:
+        if occupied >= threshold:
+            stage += 1
+    return stage
+
+
 # Sygnał, na którym wagi się uczyły (#140). `score`: nagroda to `gain` gry, V
 # szacuje punkty; `survival`: nagroda 1 za postawienie, V szacuje liczbę
 # pozostałych postawień. Plik wag bez pola `reward` (sprzed #140) to `score`.
@@ -192,23 +222,54 @@ class NTupleValue:
     zerami), zgodnie z kryterium akceptacji #123.
     """
 
-    def __init__(self, weights=None, reward=REWARD_SCORE, layout=None, native=None):
+    def __init__(self, weights=None, reward=REWARD_SCORE, layout=None, native=None,
+                 stages=1, thresholds=()):
         if reward not in REWARDS:
             raise ValueError("nieznany sygnal nagrody %r (dozwolone: %s)" % (reward, ", ".join(REWARDS)))
         self.reward = reward
         self.layout = layout if layout is not None else LAYOUTS[DEFAULT_LAYOUT]
-        self._weights = weights if weights is not None else zero_weights(self.layout)
-        if len(self._weights) != len(self.layout):
+        if stages < 1:
+            raise ValueError("liczba etapow musi byc >= 1 (jest %r)" % (stages,))
+        thresholds = tuple(thresholds)
+        if len(thresholds) != stages - 1:
             raise ValueError(
-                "liczba tablic wag (%d) nie zgadza sie z liczba lat (%d)"
-                % (len(self._weights), len(self.layout))
+                "liczba progow (%d) musi byc o jeden mniejsza niz liczba etapow (%d)"
+                % (len(thresholds), stages)
             )
-        for table, positions in zip(self._weights, self.layout):
-            if len(table) != (1 << len(positions)):
+        for a, b in zip(thresholds, thresholds[1:]):
+            if not a < b:
+                raise ValueError("progi etapow musza scisle rosnac: %r" % (thresholds,))
+        if thresholds and not (0 < thresholds[0] and thresholds[-1] < MAX_OCCUPIED):
+            raise ValueError(
+                "progi etapow musza miescic sie w (0, %d): %r" % (MAX_OCCUPIED, thresholds)
+            )
+        self.stages = stages
+        self.thresholds = thresholds
+        # 1 etap (domyslnie): `self._stage_weights == [tablice_wag]`, dokladnie
+        # jak dawne `self._weights` — plik jednoetapowy wczytuje sie i liczy
+        # bitowo tak samo jak przed #203 (kryterium akceptacji #203).
+        if stages == 1:
+            self._stage_weights = [weights if weights is not None else zero_weights(self.layout)]
+        else:
+            self._stage_weights = weights if weights is not None else \
+                [zero_weights(self.layout) for _ in range(stages)]
+        if len(self._stage_weights) != stages:
+            raise ValueError(
+                "liczba zestawow wag (%d) nie zgadza sie z liczba etapow (%d)"
+                % (len(self._stage_weights), stages)
+            )
+        for stage_weights in self._stage_weights:
+            if len(stage_weights) != len(self.layout):
                 raise ValueError(
-                    "tablica wag o dlugosci %d nie zgadza sie z lata k=%d (2**k=%d)"
-                    % (len(table), len(positions), 1 << len(positions))
+                    "liczba tablic wag (%d) nie zgadza sie z liczba lat (%d)"
+                    % (len(stage_weights), len(self.layout))
                 )
+            for table, positions in zip(stage_weights, self.layout):
+                if len(table) != (1 << len(positions)):
+                    raise ValueError(
+                        "tablica wag o dlugosci %d nie zgadza sie z lata k=%d (2**k=%d)"
+                        % (len(table), len(positions), 1 << len(positions))
+                    )
         # Rdzeń natywny (#184): `None` = według `NTUPLE_NATIVE` i dostępności
         # kompilatora, `False` = zawsze czysty Python. Wagi rdzeń trzyma w
         # buforze C; `weights` oddaje listy zsynchronizowane z nim.
@@ -219,25 +280,41 @@ class NTupleValue:
             native = ntuple_native.enabled()
         if native and WIDTH == ntuple_native.BOARD_SIZE and HEIGHT == ntuple_native.BOARD_SIZE \
                 and ntuple_native.available():
-            core = ntuple_native.Core(self.layout, self._weights)
-            if core.push(self._weights):
+            core = ntuple_native.Core(self.layout, self._stage_weights, self.thresholds)
+            if core.push(self._stage_weights):
                 self._core = core
+
+    def _sync_from_core(self):
+        if self._core is not None:
+            if self._core_newer:
+                self._core.pull(self._stage_weights)
+                self._core_newer = False
+            self._lists_touched = True
+
+    def stage_of_bits(self, bits):
+        """Etap afterstate'u `bits` (0-indeksowany), wybrany z jego wlasnej planszy
+        wedlug liczby zajetych komorek (#203). Zawsze `0` dla jednego etapu."""
+        if self.stages == 1:
+            return 0
+        return stage_of_occupied(occupied_count(bits), self.thresholds)
+
+    def stage(self, board):
+        return self.stage_of_bits(board_bits(board))
 
     @property
     def weights(self):
-        """Tablice wag (lista list float). Z rdzeniem: najpierw dociągnięte z
+        """Tablice wag jednego etapu (lista list float), albo — przy kilku etapach
+        — lista takich list, po jednej na etap. Z rdzeniem: najpierw dociągnięte z
         bufora C, a przy następnej operacji rdzenia wepchnięte z powrotem — tak
         zmiana wagi z zewnątrz (`weights[p][i] = ...`) jest widoczna jak dotąd."""
-        if self._core is not None:
-            if self._core_newer:
-                self._core.pull(self._weights)
-                self._core_newer = False
-            self._lists_touched = True
-        return self._weights
+        self._sync_from_core()
+        if self.stages == 1:
+            return self._stage_weights[0]
+        return self._stage_weights
 
     @weights.setter
     def weights(self, value):
-        self._weights = value
+        self._stage_weights = [value] if self.stages == 1 else value
         self._core_newer = False
         self._lists_touched = True
 
@@ -247,7 +324,7 @@ class NTupleValue:
         core = self._core
         if core is not None and self._lists_touched:
             self._lists_touched = False
-            if not core.push(self._weights):
+            if not core.push(self._stage_weights):
                 # Listy przestały pasować do rdzenia (np. waga int) — dalej Python.
                 self._core = core = None
         return core
@@ -257,22 +334,24 @@ class NTupleValue:
 
     def value(self, board):
         core = self.native
+        bits = board_bits(board)
         if core is not None:
-            return core.value_bits(board_bits(board))
-        return self.value_from_indices(self.indices(board))
+            return core.value_bits(bits)
+        return self.value_from_indices(patch_indices(bits, self.layout), self.stage_of_bits(bits))
 
-    def value_from_indices(self, indices):
+    def value_from_indices(self, indices, stage=0):
         core = self.native
         if core is not None:
             if not isinstance(indices, core.IdxArray):
                 indices = list(indices)
             idx = core.as_idx(indices)
             if idx is not None:
-                return core.value_idx(idx)
-        return sum(table[i] for table, i in zip(self.weights, indices))
+                return core.value_idx(idx, stage)
+        self._sync_from_core()
+        return sum(table[i] for table, i in zip(self._stage_weights[stage], indices))
 
-    def update(self, indices, delta):
-        """TD(0): dopisuje `delta` do każdej aktywnej wagi.
+    def update(self, indices, delta, stage=0):
+        """TD(0): dopisuje `delta` do każdej aktywnej wagi etapu `stage`.
 
         Gradient wartości względem wagi aktywnego wzorca danej łaty jest 1 (odczyt
         z tabeli), a względem wszystkich innych wpisów tej łaty jest 0 — stąd
@@ -284,18 +363,26 @@ class NTupleValue:
                 indices = list(indices)
             idx = core.as_idx(indices)
             if idx is not None:
-                core.update(idx, delta)
+                core.update(idx, delta, stage)
                 self._core_newer = True
                 return
-        for table, i in zip(self.weights, indices):
+        self._sync_from_core()
+        for table, i in zip(self._stage_weights[stage], indices):
             table[i] += delta
 
     def to_dict(self):
-        return {
+        self._sync_from_core()
+        data = {
             "reward": self.reward,
             "patch_layout": [list(p) for p in self.layout],
-            "weights": self.weights,
         }
+        if self.stages > 1:
+            data["stages"] = self.stages
+            data["thresholds"] = list(self.thresholds)
+            data["weights"] = self._stage_weights
+        else:
+            data["weights"] = self._stage_weights[0]
+        return data
 
     def save(self, path):
         with open(path, "w", encoding="utf-8") as fh:
@@ -312,9 +399,17 @@ class NTupleValue:
                 "wariantow ntuple.LAYOUTS (%s) — #149: load przyjmuje kazdy "
                 "znany uklad, nie jeden ustalony" % (path, ", ".join(sorted(LAYOUTS)))
             )
+        stages = data.get("stages", 1)
+        thresholds = tuple(data.get("thresholds", ()))
+        if stages > 1:
+            weights = [[list(t) for t in stage_weights] for stage_weights in data["weights"]]
+        else:
+            weights = [list(t) for t in data["weights"]]
         return cls(
-            weights=[list(t) for t in data["weights"]],
+            weights=weights,
             reward=data.get("reward", REWARD_SCORE),
             layout=layout,
             native=native,
+            stages=stages,
+            thresholds=thresholds,
         )

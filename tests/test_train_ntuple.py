@@ -85,8 +85,8 @@ class TestRunEpisode(unittest.TestCase):
         idx1 = [0] * len(ntuple.weights)
         idx2 = [1] * len(ntuple.weights)
         script = iter([
-            ("action-1", idx1, 3.0),
-            ("action-2", idx2, 5.0),
+            ("action-1", idx1, 3.0, 0),
+            ("action-2", idx2, 5.0, 0),
         ])
 
         class FakeGame:

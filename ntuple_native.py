@@ -45,6 +45,10 @@ class Ctx(ctypes.Structure):
     _fields_ = [
         ("n_patches", c_i32),
         ("sum_mode", c_i32),
+        ("n_stages", c_i32),
+        ("n_thresholds", c_i32),
+        ("thresholds", P(c_i32)),
+        ("stage_base", P(c_i64)),
         ("run_end", P(c_i32)),
         ("run_src", P(ctypes.c_uint8)),
         ("run_dst", P(ctypes.c_uint8)),
@@ -140,16 +144,18 @@ def _bind(lib):
     lib.nt_value_bits.restype = c_dbl
     lib.nt_indices.argtypes = [ctx_p, c_u64, P(c_i32)]
     lib.nt_indices.restype = None
-    lib.nt_value_idx.argtypes = [ctx_p, P(c_i32)]
+    lib.nt_value_idx.argtypes = [ctx_p, P(c_i32), c_i32]
     lib.nt_value_idx.restype = c_dbl
-    lib.nt_update.argtypes = [ctx_p, P(c_i32), c_dbl]
+    lib.nt_update.argtypes = [ctx_p, P(c_i32), c_dbl, c_i32]
     lib.nt_update.restype = None
     lib.nt_afterstates.argtypes = [
         ctx_p, c_u64, P(c_u64), P(c_i32), P(c_i32), ctypes.c_int, P(ctypes.c_int8), ctypes.c_int,
-        ctypes.c_int, c_dbl, P(c_dbl), P(c_i32), P(ctypes.c_int8), P(c_i32),
+        ctypes.c_int, c_dbl, P(c_dbl), P(c_i32), P(ctypes.c_int8), P(c_i32), P(c_i32),
     ]
     lib.nt_afterstates.restype = ctypes.c_int
-    lib.nt_afterstate_indices.argtypes = [ctx_p, c_u64, c_u64, ctypes.c_int, ctypes.c_int, P(c_i32)]
+    lib.nt_afterstate_indices.argtypes = [
+        ctx_p, c_u64, c_u64, ctypes.c_int, ctypes.c_int, P(c_i32), P(c_i32),
+    ]
     lib.nt_afterstate_indices.restype = None
     lib.nt_search.argtypes = [
         ctx_p, P(Search), c_u64, c_i32, c_i32, P(State), ctypes.c_int, P(c_i64), P(c_i32),
@@ -197,7 +203,7 @@ def _self_check():
          for _ in range(1 << len(positions))]
         for positions in layout
     ]
-    core = Core(layout, weights)
+    core = Core(layout, [weights])
     for _ in range(300):
         bits = rng.getrandbits(64)
         idx = [
@@ -243,15 +249,21 @@ def piece_geometry(piece):
 
 
 class Core:
-    """Wagi jednej `NTupleValue` w buforze C i operacje rdzenia na nich.
+    """Wagi jednej `NTupleValue` (wszystkich jej etapów, #203) w buforze C i
+    operacje rdzenia na nich.
 
-    Bufor wag jest kopią list z `NTupleValue.weights`; `push`/`pull` przenoszą
-    wartości w obie strony bez żadnej konwersji (float Pythona to `double`)."""
+    Bufor wag jest kopią list z `NTupleValue._stage_weights` — jedna lista na
+    etap, każda w dawnym kształcie (lista tablic po łatach); `push`/`pull`
+    przenoszą wartości w obie strony bez żadnej konwersji (float Pythona to
+    `double`). `thresholds` ma `len(stage_weights) - 1` progów rosnąco;
+    domyślne `()` z jednym etapem liczy bitowo jak przed #203."""
 
-    def __init__(self, layout, weights):
+    def __init__(self, layout, stage_weights, thresholds=()):
         lib = _lib
         self.lib = lib
         self.n_patches = len(layout)
+        self.n_stages = len(stage_weights)
+        self.thresholds = tuple(thresholds)
         runs = [_runs(p) for p in layout]
         n_runs = sum(len(r) for r in runs)
         self._run_end = (c_i32 * self.n_patches)()
@@ -272,15 +284,19 @@ class Core:
         for size in self.sizes:
             self.offsets.append(off)
             off += size
+        self.stage_size = off
         self._w_off = (c_i64 * self.n_patches)(*self.offsets)
-        self.w = (c_dbl * max(off, 1))()
+        self._stage_base = (c_i64 * self.n_stages)(*(s * off for s in range(self.n_stages)))
+        self._thresholds = (c_i32 * max(len(self.thresholds), 1))(*self.thresholds)
+        self.w = (c_dbl * max(self.n_stages * off, 1))()
         self.ctx = Ctx(
-            self.n_patches, _sum_mode, self._run_end, self._run_src, self._run_dst,
+            self.n_patches, _sum_mode, self.n_stages, len(self.thresholds), self._thresholds,
+            self._stage_base, self._run_end, self._run_src, self._run_dst,
             self._run_mask, self._w_off, self.w,
         )
         self.ctx_ref = ctypes.byref(self.ctx)
         self.IdxArray = c_i32 * self.n_patches
-        self.push(weights)
+        self.push(stage_weights)
         # Bufory wielokrotnego użytku na decyzję treningu (do 3 slotów tacki i
         # 3*64 akcji na slot to z zapasem więcej, niż daje plansza 8x8).
         self._masks = (c_u64 * 8)()
@@ -291,22 +307,31 @@ class Core:
 
     # -- wagi --------------------------------------------------------------
 
-    def push(self, weights):
-        """Listy -> bufor. `False`, gdy kształt się nie zgadza albo waga nie jest
-        dokładnie `float` (`sum()` traktuje int inaczej niż float) — wtedy
-        rdzeń nie może liczyć tych wag bitowo tak samo."""
-        if len(weights) != self.n_patches:
+    def push(self, stage_weights):
+        """Listy (po jednej na etap) -> bufor. `False`, gdy liczba etapów albo
+        kształt tablic się nie zgadza, albo waga nie jest dokładnie `float`
+        (`sum()` traktuje int inaczej niż float) — wtedy rdzeń nie może liczyć
+        tych wag bitowo tak samo."""
+        if len(stage_weights) != self.n_stages:
             return False
-        for table, size, off in zip(weights, self.sizes, self.offsets):
-            if len(table) != size or not all(type(v) is float for v in table):
+        for weights in stage_weights:
+            if len(weights) != self.n_patches:
                 return False
-            self.w[off:off + size] = table
+            for table, size in zip(weights, self.sizes):
+                if len(table) != size or not all(type(v) is float for v in table):
+                    return False
+        for s, weights in enumerate(stage_weights):
+            base = s * self.stage_size
+            for table, size, off in zip(weights, self.sizes, self.offsets):
+                self.w[base + off:base + off + size] = table
         return True
 
-    def pull(self, weights):
+    def pull(self, stage_weights):
         """Bufor -> listy, w miejscu (te same obiekty list, nowe wartości)."""
-        for table, size, off in zip(weights, self.sizes, self.offsets):
-            table[:] = self.w[off:off + size]
+        for s, weights in enumerate(stage_weights):
+            base = s * self.stage_size
+            for table, size, off in zip(weights, self.sizes, self.offsets):
+                table[:] = self.w[base + off:base + off + size]
 
     # -- ocena i aktualizacja ---------------------------------------------
 
@@ -336,11 +361,11 @@ class Core:
             out[p] = i
         return out
 
-    def value_idx(self, idx):
-        return self.lib.nt_value_idx(self.ctx_ref, idx)
+    def value_idx(self, idx, stage=0):
+        return self.lib.nt_value_idx(self.ctx_ref, idx, stage)
 
-    def update(self, idx, delta):
-        self.lib.nt_update(self.ctx_ref, idx, delta)
+    def update(self, idx, delta, stage=0):
+        self.lib.nt_update(self.ctx_ref, idx, delta, stage)
 
     # -- stany następcze (trening) ------------------------------------------
 
@@ -374,7 +399,8 @@ class Core:
         """Wartości stanów następczych akcji `actions` na tacce z `set_tray`.
 
         Z `r_const` zwraca `(numer najlepszej akcji wg r_const + V, jej indeksy
-        łat)`; bez — `(wartości, linie, czy_pusta)` jako tablice C. `None`, gdy
+        łat, jej etap #203)`; bez — `(wartości, linie, czy_pusta)` jako tablice C
+        (wartości już liczone z etapu każdego stanu z osobna). `None`, gdy
         któraś akcja jest nielegalna."""
         n = len(actions)
         self._ensure_actions(n)
@@ -385,26 +411,29 @@ class Core:
             k += 3
         if r_const is not None:
             best_idx = self.IdxArray()
+            best_stage = c_i32()
             best = self.lib.nt_afterstates(
                 self.ctx_ref, bits, self._masks, self._hs, self._ws, self._n_slots, acts, n,
-                1, r_const, self._vals, self._lines, self._empty, best_idx,
+                1, r_const, self._vals, self._lines, self._empty, best_idx, ctypes.byref(best_stage),
             )
             if best < 0:
                 return None
-            return best, best_idx
+            return best, best_idx, best_stage.value
         res = self.lib.nt_afterstates(
             self.ctx_ref, bits, self._masks, self._hs, self._ws, self._n_slots, acts, n,
-            0, 0.0, self._vals, self._lines, self._empty, None,
+            0, 0.0, self._vals, self._lines, self._empty, None, None,
         )
         if res < 0:
             return None
         return self._vals, self._lines, self._empty
 
     def afterstate_indices(self, bits, action):
+        """Indeksy łat i etap (#203) stanu następczego jednej akcji."""
         s, x, y = action
         out = self.IdxArray()
-        self.lib.nt_afterstate_indices(self.ctx_ref, bits, self._masks[s], x, y, out)
-        return out
+        stage = c_i32()
+        self.lib.nt_afterstate_indices(self.ctx_ref, bits, self._masks[s], x, y, out, ctypes.byref(stage))
+        return out, stage.value
 
     # -- przeszukanie wiązką (lookahead-ntuple) -----------------------------
 

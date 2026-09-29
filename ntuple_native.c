@@ -11,7 +11,13 @@
  * - wartość: suma wag po łatach w kolejności łat, dokładnie tym algorytmem, którym
  *   liczy `sum()` CPythona (`sum_mode`: 1 = Neumaier, CPython >= 3.12; 0 = zwykłe
  *   dodawanie), zaczynając od `0 + w[0]` jak `sum(generator)` ze startem int 0;
- * - aktualizacja: `w += delta` na każdej aktywnej wadze, w kolejności łat;
+ * - etapy (#203): `n_stages` kompletów tablic wag tego samego układu łat, po
+ *   `stage_base[s]` doubli każdy. Etap dowolnej planszy (bits) to `stage_of()` —
+ *   liczba progów `thresholds[0..n_thresholds)`, które liczba jej zajętych komórek
+ *   (`popcount`) osiąga albo przekracza. `n_stages == 1` (dzisiejsze pliki wag):
+ *   `stage_of` zawsze zwraca 0, bitowo jak przed #203;
+ * - aktualizacja: `w += delta` na każdej aktywnej wadze **wybranego etapu**, w
+ *   kolejności łat;
  * - stan następczy: postawienie, czyszczenie pełnych wierszy i kolumn (plansza 8x8)
  *   i przejście combo jak `policies._expand`; punkty (`scoring.py`) przychodzą z
  *   Pythona jako tabele policzone tamtymi funkcjami, nie są tu przepisane.
@@ -29,13 +35,30 @@ typedef uint64_t u64;
 typedef struct {
     int32_t n_patches;
     int32_t sum_mode;
+    int32_t n_stages;            /* liczba etapow (>=1); 1 = zachowanie sprzed #203 */
+    int32_t n_thresholds;        /* n_stages - 1 */
+    const int32_t *thresholds;   /* progi zajetych komorek, rosnaco */
+    const int64_t *stage_base;   /* poczatek bufora etapu s we `w` (n_stages wpisow) */
     const int32_t *run_end;   /* koniec przebiegów łaty p (wyłącznie) */
     const uint8_t *run_src;   /* przesunięcie bitu planszy */
     const uint8_t *run_dst;   /* przesunięcie w indeksie łaty */
     const uint32_t *run_mask; /* (1 << długość) - 1 */
-    const int64_t *w_off;     /* początek tabeli łaty p we `w` */
+    const int64_t *w_off;     /* początek tabeli łaty p w buforze etapu */
     double *w;
 } nt_ctx;
+
+/* Etap planszy `bits`: liczba progow `c->thresholds`, ktore jej popcount osiaga. */
+static inline int stage_of(const nt_ctx *c, u64 bits)
+{
+    if (c->n_stages <= 1)
+        return 0;
+    int occ = __builtin_popcountll(bits);
+    int stage = 0;
+    for (int i = 0; i < c->n_thresholds; i++)
+        if (occ >= c->thresholds[i])
+            stage++;
+    return stage;
+}
 
 static inline uint32_t patch_index(const nt_ctx *c, u64 bits, int p, int *r)
 {
@@ -86,9 +109,10 @@ static double value_bits(const nt_ctx *c, u64 bits)
 {
     acc_t a = {0.0, 0.0};
     int r = 0;
+    int64_t base = c->stage_base[stage_of(c, bits)];
     for (int p = 0; p < c->n_patches; p++) {
         uint32_t idx = patch_index(c, bits, p, &r);
-        acc_add(&a, c->w[c->w_off[p] + idx], p == 0, c->sum_mode);
+        acc_add(&a, c->w[base + c->w_off[p] + idx], p == 0, c->sum_mode);
     }
     return acc_result(&a, c->sum_mode);
 }
@@ -105,18 +129,20 @@ void nt_indices(const nt_ctx *c, u64 bits, int32_t *out)
         out[p] = (int32_t)patch_index(c, bits, p, &r);
 }
 
-double nt_value_idx(const nt_ctx *c, const int32_t *idx)
+double nt_value_idx(const nt_ctx *c, const int32_t *idx, int32_t stage)
 {
     acc_t a = {0.0, 0.0};
+    int64_t base = c->stage_base[stage];
     for (int p = 0; p < c->n_patches; p++)
-        acc_add(&a, c->w[c->w_off[p] + idx[p]], p == 0, c->sum_mode);
+        acc_add(&a, c->w[base + c->w_off[p] + idx[p]], p == 0, c->sum_mode);
     return acc_result(&a, c->sum_mode);
 }
 
-void nt_update(const nt_ctx *c, const int32_t *idx, double delta)
+void nt_update(const nt_ctx *c, const int32_t *idx, double delta, int32_t stage)
 {
+    int64_t base = c->stage_base[stage];
     for (int p = 0; p < c->n_patches; p++)
-        c->w[c->w_off[p] + idx[p]] += delta;
+        c->w[base + c->w_off[p] + idx[p]] += delta;
 }
 
 /* Plansza 8x8: postawienie maski `m`, potem czyszczenie pełnych wierszy i kolumn
@@ -156,14 +182,15 @@ static inline int legal(u64 bits, u64 mask, int h, int w, int x, int y)
  * Trening (`tools/train_ntuple._choose_action`): stany następcze wszystkich akcji
  * `acts` (trójki slot, x, y), ich wartości, liczba linii i czy plansza pusta.
  * Gdy `mode == 1`, dodatkowo wybiera akcję o największym `r_const + V` (pierwsza
- * przy remisie, jak `score > best_score`) i zapisuje jej indeksy łat do `best_idx`.
+ * przy remisie, jak `score > best_score`) i zapisuje jej indeksy łat do `best_idx`
+ * oraz jej etap (#203, z jej WŁASNYCH zajętych komórek) do `*best_stage`.
  * Zwraca numer najlepszej akcji (mode 1), 0 (mode 0) albo -1, gdy któraś akcja
  * jest nielegalna (wtedy wołający liczy po staremu).
  */
 int nt_afterstates(const nt_ctx *c, u64 bits, const u64 *masks, const int32_t *hs,
                    const int32_t *ws, int n_slots, const int8_t *acts, int n, int mode,
                    double r_const, double *out_val, int32_t *out_lines, int8_t *out_empty,
-                   int32_t *best_idx)
+                   int32_t *best_idx, int32_t *best_stage)
 {
     int best = -1;
     double best_score = 0.0;
@@ -188,18 +215,23 @@ int nt_afterstates(const nt_ctx *c, u64 bits, const u64 *masks, const int32_t *h
         }
     }
     if (mode == 1) {
-        if (best >= 0)
+        if (best >= 0) {
             nt_indices(c, best_bits, best_idx);
+            *best_stage = stage_of(c, best_bits);
+        }
         return best;
     }
     return 0;
 }
 
-/* Indeksy łat stanu następczego jednej akcji. */
-void nt_afterstate_indices(const nt_ctx *c, u64 bits, u64 mask, int x, int y, int32_t *out)
+/* Indeksy łat i etap (#203) stanu następczego jednej akcji. */
+void nt_afterstate_indices(const nt_ctx *c, u64 bits, u64 mask, int x, int y, int32_t *out,
+                           int32_t *stage_out)
 {
     int lines;
-    nt_indices(c, place_and_clear(bits, mask << (8 * y + x), &lines), out);
+    u64 nb = place_and_clear(bits, mask << (8 * y + x), &lines);
+    nt_indices(c, nb, out);
+    *stage_out = stage_of(c, nb);
 }
 
 /* ---- przeszukanie wiązką (`policies._tray_beam_search` z liściem N-tuple) ---- */

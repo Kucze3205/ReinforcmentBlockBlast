@@ -205,37 +205,41 @@ def step_reward(reward, gain):
 def _choose_action(ntuple, game, actions, reward=REWARD_SCORE):
     """Zachłanna o jeden pół-ruch w przód wg `r + ntuple.value(afterstate)`.
 
-    Zwraca `(akcja, indeksy łat afterstate, r)` — indeksy i `r` są od razu
-    potrzebne do aktualizacji TD, nie ma po co liczyć ich drugi raz.
+    Zwraca `(akcja, indeksy łat afterstate, r, etap afterstate'u)` — indeksy,
+    `r` i etap (#203, wybrany z afterstate'u samego) są od razu potrzebne do
+    aktualizacji TD, nie ma po co liczyć ich drugi raz.
 
     Z rdzeniem natywnym (#184) stany następcze i ich wartości liczy
     `ntuple_native` (`_choose_action_native`), bitowo to samo; indeksy łat są
     wtedy tablicą C, którą `NTupleValue` przyjmuje tak jak listę."""
     core = getattr(ntuple, "native", None)
     if core is not None:
-        chosen = _choose_action_native(core, game, actions, reward)
+        chosen = _choose_action_native(core, ntuple, game, actions, reward)
         if chosen is not None:
             return chosen
-    best_action, best_idxs, best_r, best_score = None, None, None, None
+    best_action, best_idxs, best_r, best_stage, best_score = None, None, None, None, None
     for action in actions:
         gain, board_after = _simulate_placement(game, action)
         r = step_reward(reward, gain)
         idxs = ntuple.indices(board_after)
-        score = r + ntuple.value_from_indices(idxs)
+        stage = ntuple.stage(board_after)
+        score = r + ntuple.value_from_indices(idxs, stage)
         if best_score is None or score > best_score:
-            best_action, best_idxs, best_r, best_score = action, idxs, r, score
-    return best_action, best_idxs, best_r
+            best_action, best_idxs, best_r, best_stage, best_score = action, idxs, r, stage, score
+    return best_action, best_idxs, best_r, best_stage
 
 
-def _choose_action_native(core, game, actions, reward):
+def _choose_action_native(core, ntuple, game, actions, reward):
     """`_choose_action` na rdzeniu: `None`, gdy rdzeń tej decyzji nie policzy
     (nieobsługiwany klocek, nielegalna akcja) — wtedy liczy pętla Pythona.
 
-    `survival`: `r = 1` dla każdej akcji, najlepszą wybiera rdzeń. `score`:
-    rdzeń oddaje wartości, liczbę linii i pustość planszy po każdej akcji, a
-    `gain` składa `policies._placement_gain` z tych samych funkcji punktacji co
-    `_simulate_placement`; porównanie `r + V` idzie w Pythonie, w tej samej
-    kolejności i z tym samym rozstrzyganiem remisów."""
+    `survival`: `r = 1` dla każdej akcji, najlepszą wybiera rdzeń (i jej etap,
+    #203, z jej własnych zajętych komórek). `score`: rdzeń oddaje wartości
+    (już liczone z etapu każdego stanu z osobna), liczbę linii i pustość
+    planszy po każdej akcji, a `gain` składa `policies._placement_gain` tymi
+    samymi funkcjami punktacji co `_simulate_placement`; porównanie `r + V`
+    idzie w Pythonie, w tej samej kolejności i z tym samym rozstrzyganiem
+    remisów."""
     if not actions or not core.set_tray(game.pieces):
         return None
     bits = board_bits(game.board)
@@ -244,8 +248,8 @@ def _choose_action_native(core, game, actions, reward):
         res = core.afterstates(bits, actions, r_const=r)
         if res is None:
             return None
-        best, idx = res
-        return actions[best], idx, r
+        best, idx, stage = res
+        return actions[best], idx, r, stage
     res = core.afterstates(bits, actions)
     if res is None:
         return None
@@ -261,7 +265,8 @@ def _choose_action_native(core, game, actions, reward):
         score = r + values[k]
         if best_score is None or score > best_score:
             best, best_r, best_score = k, r, score
-    return actions[best], core.afterstate_indices(bits, actions[best]), best_r
+    idx, stage = core.afterstate_indices(bits, actions[best])
+    return actions[best], idx, best_r, stage
 
 
 def run_episode(ntuple, seed, move_cap, alpha, reward=REWARD_SCORE, learn=True, start_board=None):
@@ -279,35 +284,44 @@ def run_episode(ntuple, seed, move_cap, alpha, reward=REWARD_SCORE, learn=True, 
     który dopiero doprowadził do `afterstate_{t-1}`, więc `gain` tego ruchu był
     liczony do wartości dwa razy — raz w V, raz wprost w polityce).
 
+    Etapy (#203): `V(afterstate_t)` i aktualizacja `V(afterstate_{t-1})` liczą
+    się z etapu **tego konkretnego** afterstate'u (`ntuple.stage`, z jego
+    własnych zajętych komórek) — `_choose_action` oddaje etap razem z
+    indeksami, więc nie trzeba go liczyć drugi raz.
+
     Zwraca statystyki partii (do logu) — same wagi `ntuple` są modyfikowane
     w miejscu. `learn=False` to ewaluacja: ta sama polityka, wagi nietknięte."""
     game = Game(seed=seed)
     if start_board is not None:
         game.set_board(start_board)
     prev_idxs = None
+    prev_stage = None
     steps = 0
     td_errors = []
+    stage_placements = [0] * ntuple.stages
     while not game.done and steps < move_cap:
         actions = game.available_actions()
         if not actions:
             break
-        action, idxs, r = _choose_action(ntuple, game, actions, reward)
+        action, idxs, r, stage = _choose_action(ntuple, game, actions, reward)
         if learn and prev_idxs is not None:
-            target = r + ntuple.value_from_indices(idxs)
-            error = target - ntuple.value_from_indices(prev_idxs)
-            ntuple.update(prev_idxs, alpha * error)
+            target = r + ntuple.value_from_indices(idxs, stage)
+            error = target - ntuple.value_from_indices(prev_idxs, prev_stage)
+            ntuple.update(prev_idxs, alpha * error, prev_stage)
             td_errors.append(error)
         game.step(action)
         prev_idxs = idxs
+        prev_stage = stage
+        stage_placements[stage] += 1
         steps += 1
 
     if learn and prev_idxs is not None:
         # Stan terminalny: żadnej przyszłej nagrody nie będzie, target = 0.
-        error = 0.0 - ntuple.value_from_indices(prev_idxs)
-        ntuple.update(prev_idxs, alpha * error)
+        error = 0.0 - ntuple.value_from_indices(prev_idxs, prev_stage)
+        ntuple.update(prev_idxs, alpha * error, prev_stage)
         td_errors.append(error)
 
-    return {
+    result = {
         "seed": seed,
         "score": game.score,
         "placements": game.placements,
@@ -315,6 +329,9 @@ def run_episode(ntuple, seed, move_cap, alpha, reward=REWARD_SCORE, learn=True, 
         "mean_abs_td_error": round(statistics.mean(abs(e) for e in td_errors), 4) if td_errors else 0.0,
         "start_from_file": start_board is not None,
     }
+    if ntuple.stages > 1:
+        result["stage_placements"] = stage_placements
+    return result
 
 
 def evaluate(ntuple, seeds, move_cap, reward):
@@ -424,6 +441,8 @@ def new_state(args, forbidden_seeds):
             "reward": args.reward,
             "layout": args.layout,
             "td_target": TD_TARGET_VERSION,
+            "stages": args.stages,
+            "thresholds": args.thresholds,
         },
         "bench_seeds_n": len(forbidden_seeds),
         "log_bytes": 0,
@@ -457,6 +476,9 @@ def load_state(path, args, forbidden_seeds):
     state["params"].setdefault("reward", REWARD_SCORE)
     # Stan sprzed #149 nie ma pola `layout` — trenował na wariancie A.
     state["params"].setdefault("layout", DEFAULT_LAYOUT)
+    # Stan sprzed #203 nie ma pol `stages`/`thresholds` — jeden etap, bez progow.
+    state["params"].setdefault("stages", 1)
+    state["params"].setdefault("thresholds", [])
     # Stan `score` sprzed #153 liczyl cel TD jako r_{t-1} + V(afterstate_t) —
     # nieporownywalny z dzisiejszym r_t + V(afterstate_t). `survival` ma r ≡ 1,
     # wiec przesuniecie sie znosi i stare stany wczytuja sie bez zmian.
@@ -471,7 +493,7 @@ def load_state(path, args, forbidden_seeds):
     # co mierzyl (wzor z tools/tune_weights.load_state, #104).
     expected = {
         "seed": args.seed, "alpha": args.alpha, "move_cap": args.move_cap, "reward": args.reward,
-        "layout": args.layout,
+        "layout": args.layout, "stages": args.stages, "thresholds": list(args.thresholds),
     }
     for key, value in expected.items():
         if state["params"][key] != value:
@@ -587,15 +609,19 @@ def run_generational(args, config, forbidden_seeds):
     layout = LAYOUTS[args.layout]
     if os.path.exists(args.state):
         state = load_state(args.state, args, forbidden_seeds)
-        ntuple = NTupleValue(weights=state["weights"], reward=args.reward, layout=layout) if state["weights"] \
-            else NTupleValue(reward=args.reward, layout=layout)
+        ntuple = NTupleValue(
+            weights=state["weights"], reward=args.reward, layout=layout,
+            stages=args.stages, thresholds=args.thresholds,
+        ) if state["weights"] else NTupleValue(
+            reward=args.reward, layout=layout, stages=args.stages, thresholds=args.thresholds,
+        )
         print(
             "Wznawiam {0}: odcinek {1}/{2}".format(args.state, state["episode"], args.episodes),
             file=sys.stderr,
         )
     else:
         state = new_state(args, forbidden_seeds)
-        ntuple = NTupleValue(reward=args.reward, layout=layout)
+        ntuple = NTupleValue(reward=args.reward, layout=layout, stages=args.stages, thresholds=args.thresholds)
         for lp in _log_block_paths(args.state):
             os.remove(lp)  # log osierocony po stanie, ktorego juz nie ma
         print("Nowy przebieg {0}: 0/{1} odcinkow".format(args.state, args.episodes), file=sys.stderr)
@@ -685,6 +711,17 @@ def main(argv=None):
              "ADC = AD plus prostokaty 2x3/3x2 we wszystkich polozeniach (#162)",
     )
     parser.add_argument(
+        "--stages", type=int, default=1,
+        help="liczba etapow N-tuple (#203): kazdy ma wlasny komplet wag tego samego "
+             "ukladu lat; domyslnie 1 (zachowanie sprzed #203, bitowo bez zmian)",
+    )
+    parser.add_argument(
+        "--thresholds", default="",
+        help="progi etapow (#203), rosnaco, oddzielone przecinkami: liczba zajetych "
+             "komorek planszy afterstate'u, od ktorej zaczyna sie kolejny etap "
+             "(dlugosc = --stages - 1); wymagane, gdy --stages > 1",
+    )
+    parser.add_argument(
         "--save-every", type=int, default=DEFAULT_SAVE_EVERY,
         help="co ile odcinkow zapisac stan i wagi (plus przy ewaluacji i na koncu wywolania); "
              "przerwany blok traci najwyzej tyle minus jeden odcinkow",
@@ -716,6 +753,17 @@ def main(argv=None):
     parser.add_argument("--config", default=BENCH_CONFIG)
     args = parser.parse_args(argv)
 
+    if args.stages < 1:
+        parser.error("--stages musi byc >= 1")
+    raw_thresholds = args.thresholds.strip()
+    try:
+        thresholds = tuple(int(t) for t in raw_thresholds.split(",")) if raw_thresholds else ()
+    except ValueError:
+        parser.error("--thresholds musi byc lista liczb calkowitych oddzielonych przecinkami")
+    if len(thresholds) != args.stages - 1:
+        parser.error("--thresholds musi miec dokladnie --stages - 1 progow (ma %d, trzeba %d)"
+                     % (len(thresholds), args.stages - 1))
+    args.thresholds = thresholds
     if args.save_every < 1:
         parser.error("--save-every musi byc >= 1")
     if not 0.0 <= args.start_prob <= 1.0:
