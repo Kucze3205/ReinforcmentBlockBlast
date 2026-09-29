@@ -415,7 +415,7 @@ class TestMainStopsOnBrightAdWindow(unittest.TestCase):
         self.assertEqual(press_back.call_count, bridge.PROGRESS_SAFEGUARD_TRIES)
 
     def test_bright_ad_closed_by_one_back_lets_game_continue(self):
-        bright_ad_img = _load("7e25817", "chunk6_029_bright_ad.png")
+        bright_ad_img = _load("44a8ea2", "p2b_ad_before.png")
         after_back = _load("7e25817", "chunk6_manual_ad_after_back.png")
         empty_grid = [[0] * 8 for _ in range(8)]
         states = iter([(bright_ad_img, empty_grid, [None] * 3)])
@@ -437,7 +437,7 @@ class TestMainStopsOnBrightAdWindow(unittest.TestCase):
              mock.patch("builtins.open", mock.mock_open()) as m_open:
             bridge.main(1, policy_spec="greedy")
         entries = [json.loads(c.args[0]) for c in m_open().write.call_args_list]
-        self.assertEqual(press_back.call_count >= 1, True)
+        press_back.assert_called_once()
         self.assertEqual(entries[0]["okno"], "reklama_jasna")
         self.assertNotIn("end", entries[0])
         self.assertTrue(entries[1].get("koniec_partii"))  # po „wstecz" widać koniec partii
