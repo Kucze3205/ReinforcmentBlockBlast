@@ -17,7 +17,7 @@
     "round_episodes": 40
   },
   "seed": 3,
-  "n_odcinkow_lacznie": 8000,
+  "n_odcinkow_lacznie": 16000,
   "rozmiar_okna": 2000,
   "okna": [
     {
@@ -51,6 +51,38 @@
       "sredni_wynik": 30807.77,
       "srednie_przezycie": 359.21,
       "sredni_abs_blad_td": 6.2409
+    },
+    {
+      "od_odcinka": 8001,
+      "do_odcinka": 10000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 28367.15,
+      "srednie_przezycie": 341.51,
+      "sredni_abs_blad_td": 6.408
+    },
+    {
+      "od_odcinka": 10001,
+      "do_odcinka": 12000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 26137.67,
+      "srednie_przezycie": 325.11,
+      "sredni_abs_blad_td": 6.5591
+    },
+    {
+      "od_odcinka": 12001,
+      "do_odcinka": 14000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 24589.04,
+      "srednie_przezycie": 310.06,
+      "sredni_abs_blad_td": 6.6798
+    },
+    {
+      "od_odcinka": 14001,
+      "do_odcinka": 16000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 24276.65,
+      "srednie_przezycie": 310.36,
+      "sredni_abs_blad_td": 6.7597
     }
   ],
   "ewaluacja": {
