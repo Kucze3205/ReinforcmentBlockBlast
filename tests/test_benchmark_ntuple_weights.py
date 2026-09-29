@@ -60,6 +60,24 @@ class TestBuildPolicyNTupleWeights(unittest.TestCase):
         self.assertEqual(policy.inner_depth, 3)
         self.assertEqual(policy.beam, 6)
 
+    def test_spec_without_margin_uses_default_none(self):
+        path = os.path.join(self.tmpdir.name, "w.json")
+        NTupleValue().save(path)
+        policy = build_policy("lookahead-ntuple:" + path, self.config)
+        self.assertIsNone(policy.margin)
+
+    def test_spec_with_integer_margin_sets_it_as_float(self):
+        path = os.path.join(self.tmpdir.name, "w.json")
+        NTupleValue().save(path)
+        policy = build_policy("lookahead-ntuple:" + path + "@beam=128,margin=2", self.config)
+        self.assertEqual(policy.margin, 2)
+
+    def test_spec_with_fractional_margin_is_accepted(self):
+        path = os.path.join(self.tmpdir.name, "w.json")
+        NTupleValue().save(path)
+        policy = build_policy("lookahead-ntuple:" + path + "@margin=0.5", self.config)
+        self.assertEqual(policy.margin, 0.5)
+
     def test_weights_file_for_spec_strips_params(self):
         self.assertEqual(
             weights_file_for_spec("lookahead-ntuple:w.json@samples=8,branch=4"), "w.json"

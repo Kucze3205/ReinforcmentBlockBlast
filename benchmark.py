@@ -141,18 +141,22 @@ NTUPLE_POLICY_PREFIX = "lookahead-ntuple"
 
 # Parametry przeszukania, które `lookahead-ntuple:<plik>@...` (#195) wolno nadpisać —
 # dokładnie kwargs konstruktora `NTupleLookaheadPolicy` poza `ntuple` i `seed`.
-NTUPLE_SEARCH_PARAMS = ("beam", "samples", "branch", "inner_beam", "inner_depth")
+# `margin` (#210): opcja domyślnie wyłączona (`None`), jedyna spośród tych kluczy,
+# która bywa ułamkowa (jednostka `score` pierwszego poziomu, nie liczba całkowita
+# jak `beam`/`samples`/`branch`/`inner_*`) — stąd fallback na `float` niżej.
+NTUPLE_SEARCH_PARAMS = ("beam", "samples", "branch", "inner_beam", "inner_depth", "margin")
 
 
 def parse_ntuple_spec(spec):
-    """`<plik>` albo `<plik>@k=v,k=v` -> `(plik, {k: int(v), ...})` (#195).
+    """`<plik>` albo `<plik>@k=v,k=v` -> `(plik, {k: liczba, ...})` (#195, `margin` #210).
 
     Bez `@...` zwraca słownik pusty, więc `NTupleLookaheadPolicy(ntuple, **{})` bierze
     te same wartości domyślne co dziś — specyfikacja bez parametrów zostaje bitowo tym
     samym ramieniem. Nazwa spoza `NTUPLE_SEARCH_PARAMS` albo wartość, która nie jest
-    liczbą całkowitą, ma kończyć się błędem czytelnym dla człowieka, nie cichym
-    pominięciem (kryterium akceptacji #195) — stąd `ArmUnavailable`, nie `ValueError`
-    z głębi `int()`.
+    liczbą (całkowitą — próbowaną jako pierwsza, żeby `beam=8` zostało `int` jak dotąd
+    — albo, gdy to się nie uda, zmiennoprzecinkową), ma kończyć się błędem czytelnym
+    dla człowieka, nie cichym pominięciem (kryterium akceptacji #195) — stąd
+    `ArmUnavailable`, nie `ValueError` z głębi `int()`/`float()`.
     """
     path, sep, param_str = spec.partition("@")
     if not sep:
@@ -173,10 +177,13 @@ def parse_ntuple_spec(spec):
             raise ArmUnavailable("parametr " + key + " podany dwa razy w specyfikacji: " + spec)
         try:
             params[key] = int(value)
-        except ValueError as exc:
-            raise ArmUnavailable(
-                "parametr " + key + " wymaga liczby całkowitej, otrzymano: " + value
-            ) from exc
+        except ValueError:
+            try:
+                params[key] = float(value)
+            except ValueError as exc:
+                raise ArmUnavailable(
+                    "parametr " + key + " wymaga liczby, otrzymano: " + value
+                ) from exc
     return path, params
 
 

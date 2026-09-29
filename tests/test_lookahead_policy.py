@@ -183,6 +183,39 @@ class TestLookaheadAvoidsTrapBoard(unittest.TestCase):
         self.assertEqual(spots, [(0, 0)])
 
 
+class TestLookaheadMarginFiltersCandidates(unittest.TestCase):
+    """Opcja `margin` (#210, domyślnie `None`): ogranicza `branch` do kandydatów,
+    których `score` pierwszego poziomu jest w zadanym marginesie od najlepszego."""
+
+    FRONTIER = [
+        {"score": 10.0, "first_action": "a"},
+        {"score": 9.0, "first_action": "b"},
+        {"score": 7.0, "first_action": "c"},
+        {"score": 1.0, "first_action": "d"},
+    ]
+
+    def test_margin_none_keeps_default_branch_behaviour(self):
+        policy = LookaheadPolicy(branch=3)
+        self.assertIsNone(policy.margin)
+        out = policy._distinct_first_actions(self.FRONTIER)
+        self.assertEqual([c["first_action"] for c in out], ["a", "b", "c"])
+
+    def test_margin_cuts_off_candidates_below_threshold_even_if_branch_allows_more(self):
+        policy = LookaheadPolicy(branch=3, margin=1.5)
+        out = policy._distinct_first_actions(self.FRONTIER)
+        self.assertEqual([c["first_action"] for c in out], ["a", "b"])
+
+    def test_margin_zero_keeps_only_exact_ties_with_the_best(self):
+        policy = LookaheadPolicy(branch=3, margin=0)
+        out = policy._distinct_first_actions(self.FRONTIER)
+        self.assertEqual([c["first_action"] for c in out], ["a"])
+
+    def test_default_margin_is_none_and_unset_by_constructor(self):
+        self.assertIsNone(LookaheadPolicy().margin)
+        self.assertIsNone(LookaheadPolicy(margin=None).margin)
+        self.assertEqual(LookaheadPolicy(margin=2).margin, 2)
+
+
 class TestLookaheadAcceptsWeightsLikeTray(unittest.TestCase):
     """`build_policy` konstruuje ramiona `lookahead:<plik>` przez `weights=`."""
 

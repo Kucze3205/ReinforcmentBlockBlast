@@ -181,15 +181,25 @@ class LookaheadPolicy:
     DEFAULT_BRANCH = 2
     DEFAULT_INNER_BEAM = 1
     DEFAULT_INNER_DEPTH = 1
+    # `None` (domyślnie) = zachowanie sprzed #210, bez zmian: `branch` najlepszych
+    # stanów po `score` pierwszego poziomu, bez dalszego filtra. Liczba != None
+    # ogranicza kandydatów do tych, których `score` pierwszego poziomu mieści się
+    # w zadanym marginesie od najlepszego — tania poprawka z #210 (diagnoza #202:
+    # drugi poziom ma być rozstrzyganiem bliskich alternatyw, nie ponownym `max`
+    # po całym `branch`, w tym kandydatach dużo gorszych już na płytkiej ocenie).
+    # Opcja spec., domyślnie wyłączona — nie zmienia wyniku `lookahead-ntuple:<plik>`
+    # bez `margin=...` w specyfikacji.
+    DEFAULT_MARGIN = None
 
     def __init__(self, weights=None, beam=None, samples=None, branch=None,
-                 inner_beam=None, inner_depth=None, seed=0):
+                 inner_beam=None, inner_depth=None, margin=None, seed=0):
         self.weights = tuple(weights) if weights is not None else self.DEFAULT_WEIGHTS
         self.beam = beam if beam is not None else self.DEFAULT_BEAM
         self.samples = samples if samples is not None else self.DEFAULT_SAMPLES
         self.branch = branch if branch is not None else self.DEFAULT_BRANCH
         self.inner_beam = inner_beam if inner_beam is not None else self.DEFAULT_INNER_BEAM
         self.inner_depth = inner_depth if inner_depth is not None else self.DEFAULT_INNER_DEPTH
+        self.margin = margin if margin is not None else self.DEFAULT_MARGIN
         self._seed = seed
         self.last_expanded = 0
         # `None` = wartość liścia z `_weighted_features` (plansza + człon combo,
@@ -254,12 +264,25 @@ class LookaheadPolicy:
         Bez tego wiązka potrafi oddać `beam` wariantów **tej samej** pierwszej
         akcji — drugi poziom liczyłby się wtedy po kilka razy dla jednego ruchu
         i nie rozstrzygałby niczego.
+
+        `self.margin` (opcja z #210, domyślnie `None` = bez zmiany): gdy ustawiony,
+        odcina kandydatów, których `score` pierwszego poziomu jest gorszy niż
+        `margin` od najlepszego w `frontier` — drugi poziom (zaszumiony estymator
+        Monte Carlo, `docs/przeszukanie-glebokie-diagnoza.md`) dostaje wtedy tylko
+        realnie bliskie alternatywy, nie cały `branch` niezależnie od tego, jak
+        daleko w tyle są już na płytkiej ocenie.
         """
         out, seen = [], set()
+        top_score = None
         for state in sorted(frontier, key=lambda c: c["score"], reverse=True):
             action = state["first_action"]
             if action in seen:
                 continue
+            score = state["score"]
+            if top_score is None:
+                top_score = score
+            elif self.margin is not None and score < top_score - self.margin:
+                break
             seen.add(action)
             out.append(state)
             if len(out) >= self.branch:
@@ -296,12 +319,13 @@ class NTupleLookaheadPolicy(LookaheadPolicy):
     name = "lookahead-ntuple"
 
     def __init__(self, ntuple, beam=None, samples=None, branch=None,
-                 inner_beam=None, inner_depth=None, seed=0):
+                 inner_beam=None, inner_depth=None, margin=None, seed=0):
         # `weights` klasy bazowej nie jest tu używane (leaf_value je zastępuje),
         # ale `LookaheadPolicy.__init__` go wymaga — wartość jest obojętna.
         super().__init__(
             weights=HeuristicPolicy.DEFAULT_WEIGHTS, beam=beam, samples=samples,
-            branch=branch, inner_beam=inner_beam, inner_depth=inner_depth, seed=seed,
+            branch=branch, inner_beam=inner_beam, inner_depth=inner_depth,
+            margin=margin, seed=seed,
         )
         self.ntuple = ntuple
         self._leaf_value = self._ntuple_leaf
