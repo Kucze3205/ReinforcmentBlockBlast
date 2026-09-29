@@ -1,0 +1,62 @@
+{
+  "opis": "Sredni wynik i srednie przezycie polityki behawioralnej (zachlanna, N-tuple) w kolejnych oknach treningu oraz punkty ewaluacji bez uczenia (#140)",
+  "params": {
+    "seed": 3,
+    "alpha": 7.352941176470588e-06,
+    "move_cap": 2000,
+    "reward": "survival",
+    "layout": "ADC",
+    "stages": 1,
+    "thresholds": [],
+    "search_beam": 8,
+    "search_samples": 0,
+    "search_branch": 2,
+    "search_inner_beam": 1,
+    "search_inner_depth": 1,
+    "jobs": 4,
+    "round_episodes": 40
+  },
+  "seed": 3,
+  "n_odcinkow_lacznie": 8000,
+  "rozmiar_okna": 2000,
+  "okna": [
+    {
+      "od_odcinka": 1,
+      "do_odcinka": 2000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 55432.27,
+      "srednie_przezycie": 497.76,
+      "sredni_abs_blad_td": 4.4154
+    },
+    {
+      "od_odcinka": 2001,
+      "do_odcinka": 4000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 55212.12,
+      "srednie_przezycie": 513.89,
+      "sredni_abs_blad_td": 5.4397
+    },
+    {
+      "od_odcinka": 4001,
+      "do_odcinka": 6000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 39759.55,
+      "srednie_przezycie": 414.86,
+      "sredni_abs_blad_td": 5.8566
+    },
+    {
+      "od_odcinka": 6001,
+      "do_odcinka": 8000,
+      "n_odcinkow": 2000,
+      "sredni_wynik": 30807.77,
+      "srednie_przezycie": 359.21,
+      "sredni_abs_blad_td": 6.2409
+    }
+  ],
+  "ewaluacja": {
+    "co_ile_odcinkow": null,
+    "n_partii": null,
+    "punkty": [],
+    "najlepszy": null
+  }
+}
