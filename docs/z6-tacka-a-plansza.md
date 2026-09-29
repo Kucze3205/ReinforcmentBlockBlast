@@ -445,6 +445,125 @@ mogą wymagać dalszej kalibracji (więcej danych) niezależnie od pytania o św
 danych mostu, z naciskiem na trudne (zapełnienie ≥ 30–40%) plansze, żeby test (d) miał szansę rozstrzygnąć
 (c) niezależnie — orchestrator decyduje o kolejnym pomiarze.
 
+## Pomiar 4 (#206)
+
+Bilet: [#206](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/206) · powód: od pomiaru 3 doszły dwie
+sesje mostu na dysku — `bridge/runs/4a1796f/` (#199, cztery całe partie) i `bridge/runs/4fb5ed9/` (sesja danych
+tego cyklu, pięć całych partii, w tym po raz pierwszy dwa różne warianty niebieskiego ekranu końca gry). Ten
+pomiar: (1) uruchamia `tools/z6_pomiar2.py` ponownie z tymi dwiema sesjami na dysku (bez zmiany logiki
+ekstrakcji/testów — `CALIBRATION_RUN_DIRS`, `is_out_of_calibration()`, próg H0 bez zmian od #191), (2) liczy
+test (a) tylko na parach spoza próby kalibracyjnej wag (teraz trzy przebiegi: `cb91077`, `4a1796f`, `4fb5ed9`),
+(3) liczy moc testu (d) poprawionym `power_normal_approx` (parametr `alpha` już nie jest ignorowany, naprawione
+w #198). `generator.py`, `scoring.py`, `game.py`, `pieces.py` **nietknięte** (`reward_shape_changed: no`).
+
+### Dane
+
+`tools/z6_pomiar2.py` daje **693 pary** (wzrost z 431 w pomiarze 3), z czego **367 spoza próby kalibracyjnej**
+(wzrost z 105) — rozbicie źródeł nowych par: `cb91077` 105 (bez zmian, już policzone w pomiarze 3), `4a1796f`
+70 (nowe, #199), `4fb5ed9` 192 (nowe, sesja tego cyklu). Zapełnienie ≥ 40%: **150 / 693** w całej próbie
+(21,6%, wzrost z 17,6% w pomiarze 3), **92 / 367** wśród par spoza kalibracji (25,1%). Zapełnienie w całej
+próbie: min 0,000, mediana 0,281, max 0,688 (maksimum wyżej niż w pomiarze 3 — `0,625` — dzięki `4fb5ed9`,
+gdzie kawałki 1–4 i 18–21 doszły do plansz bardzo pełnych, patrz `pomiar.json` tej sesji).
+
+### Testy (b)–(d): H0 = skalibrowany `generator.py`, wszystkie 693 pary
+
+H0 Monte Carlo (`Generator(seed=182)`, 500 powtórzeń na planszę, bez zmian od pomiaru 2). Korekta Bonferroniego
+za 8 testów (2 z (a) + 4 kwartyle z (b) + 1 z (c) + 1 z (d), bez zmian co do liczby): α = 0,05/8 = **0,00625**.
+
+**(b) Test 1 z pomiaru 1, stratyfikowany** (progi kwartyli tej próby: 0,172 / 0,281 / 0,375):
+
+| kwartyl | n par | zapełnienie | obs. grywalne | oczek. H0 | p (jednostronne) |
+|---|---|---|---|---|---|
+| 0 | 177 | 0,000–0,172 | 531 | 531,00 | 1,000 |
+| 1 | 196 | 0,188–0,281 | 588 | 588,00 | 1,000 |
+| 2 | 155 | 0,297–0,375 | 464 | 463,00 | 0,397 |
+| 3 | 165 | 0,391–0,688 | 477 | 478,80 | 0,738 |
+
+Bez zmian jakościowych względem pomiarów 2 i 3: żaden kwartyl nie pokazuje faworyzowania grywalnych typów —
+ten test pozostaje strukturalnie mniej czuły niż (c)/(d) niezależnie od liczby par (patrz pomiar 1).
+
+**(c) Grywalność całej tacki** na wszystkich 693 planszach: obserwowane **693/693 grywalnych (100%)** wobec
+oczekiwanych pod skalibrowanym H0 **677,57 (97,8%)**. p (jednostronne) = **1,164·10⁻⁸**, dwustronne =
+**1,599·10⁻⁸** — **przechodzi korektę Bonferroniego** (0,00625/8) z dużym marginesem, o cztery rzędy wielkości
+mocniej niż w pomiarze 3 (tam p=0,0025).
+
+**(d) To samo, tylko na planszach gdzie H0 daje grywalność < 0,9** — **52 z 693** (7,5%, udział wyższy niż w
+pomiarze 3, gdzie było 18/431=4,2% — więcej trudnych/pełnych plansz w nowych sesjach, zgodnie z uwagą o
+zapełnieniu wyżej). Obserwowane **52/52 (100%)** wobec oczekiwanych **39,91 (76,7%)** — różnica ok. 23 punkty
+procentowe, w tym samym kierunku i rzędzie co w pomiarach 2–3. p (jednostronne) = **3,583·10⁻⁷**, dwustronne =
+**4,571·10⁻⁷** — **przechodzi korektę Bonferroniego** (próg 0,00625) po raz pierwszy w tej serii pomiarów.
+
+**Moc testu (d), poprawionym `power_normal_approx`** (#198 — `alpha` już nie jest po cichu ignorowany, próg
+liczony `norm_ppf(1 - alpha)` naprawdę zależny od podanego `alpha`):
+
+| α | moc dla obserwowanego efektu (delta = (52−39,91)/52 = 0,233) |
+|---|---|
+| 0,05 (nieskorygowane) | 0,9995 |
+| 0,00625 (Bonferroni/8) | **0,939** |
+
+Test (d) ma teraz moc 0,939 przy progu skorygowanym za wielokrotne testowanie — **wystarczającą** (próg
+zwyczajowy 0,80), pierwszy raz w tej serii pomiarów. W pomiarze 3 ten sam test miał moc 0,065 przy mniejszej
+próbie (18 trudnych plansz) i mniejszym obserwowanym efekcie; wzrost próby trudnych plansz do 52 (razem ze
+wzrostem samego efektu, 0,204→0,233) wystarczył, żeby przekroczyć próg mocy bez ekstrapolacji „ile potrzeba” —
+w przeciwieństwie do pomiarów 2–3, ten pomiar **nie wymaga** już oddzielnej tabeli k-krotności do rozstrzygnięcia.
+
+### Test (a): tylko pary spoza próby kalibracyjnej (367 par, 1101 klocków, z `cb91077`+`4a1796f`+`4fb5ed9`)
+
+H0 = skalibrowany `generator.py` (`PIECE_TYPE_WEIGHTS`). Liczony wyłącznie na 367 nowych parach (poza próbą
+326 par, na której wyliczono wagi w #186) — nie kołowy z tego samego powodu co w pomiarze 3.
+
+**Chi-kwadrat typów:** χ² = 114,302, df = 14, **p = 8,160·10⁻¹⁸**. **Chi-kwadrat orientacji:** χ² = 170,757,
+df = 40, **p = 4,352·10⁻¹⁸**. Oba przechodzą korektę Bonferroniego (0,00625) z ogromnym marginesem — **silniej
+niż w pomiarze 3** (tam p≈0,0031/typy — o 15 rzędów wielkości bliżej progu niż tutaj), czyli sygnał
+niezgodności skalibrowanych wag typów z nową próbą **rośnie**, nie zanika, wraz z liczbą par spoza kalibracji.
+Obserwowane liczności na 367 tackach (1101 klocków) wobec oczekiwanych pod skalibrowanym H0:
+
+| typ | obs. | oczek. (H0 skalibrowane) | stosunek |
+|---|---:|---:|---:|
+| L | 188 | 158,73 | 1,18× |
+| beam4 | 110 | 151,98 | 0,72× |
+| rect23 | 112 | 130,59 | 0,86× |
+| square2 | 79 | 112,58 | 0,70× |
+| T | 72 | 100,19 | 0,72× |
+| S | 86 | 88,94 | 0,97× |
+| beam3 | 69 | 63,04 | 1,09× |
+| beam5 | 90 | 65,29 | 1,38× |
+| beam2 | 65 | 67,55 | 0,96× |
+| square3 | 67 | 59,67 | 1,12× |
+| corner3 | 35 | 37,15 | 0,94× |
+| corner5 | 63 | 36,02 | 1,75× |
+| 1x1 | 34 | 14,63 | 2,32× |
+| diag2 | 19 | 7,88 | 2,41× |
+| diag3 | 12 | 6,75 | 1,78× |
+
+Kierunek jest częściowo spójny z pomiarem 3 (`beam5`, `1x1`, `diag2` wciąż wyraźnie nad oczekiwaniami; `T`,
+`square2` wciąż pod), ale `corner5` i `diag3` — blisko oczekiwań w pomiarze 3 — są tu wyraźnie nad, a `beam4`,
+które w pomiarze 3 było lekko pod (0,85×), pogłębia to odchylenie (0,72×). To nie wygląda już wyłącznie na
+szum próby wielkości 105 tacek z pomiaru 3 — przy 367 tackach (3,5× więcej) odchylenia w większości utrzymują
+kierunek albo rosną, nie zanikają w stronę zgodności z H0, co sugeruje że same wagi typów z #186 potrzebują
+przekalibrowania na szerszej próbie (osobna decyzja od pytania Z-6 o świadomość planszy — patrz `## Cel`
+tego biletu).
+
+### Liczba par i moc
+
+693 par łącznie (367 spoza kalibracji), 150 z zapełnieniem ≥ 40%. Test (d) ma teraz moc 0,939 przy
+obserwowanym efekcie i skorygowanym progu — **wystarczającą**, bez potrzeby ekstrapolacji na kolejne pomiary
+tylko dla tego testu.
+
+### Werdykt (pomiar 4)
+
+**Rozstrzygnięte, w stronę „generator (przynajmniej efektywnie) uwzględnia stan planszy”.** Testy (c) i (d) —
+grywalność całej tacki wobec H0 liczonego już ze skalibrowanymi wagami typów (odporne na zarzut kołowości
+testu (a)) — **oba przechodzą korektę Bonferroniego** z bardzo małymi p-wartościami (1,16·10⁻⁸ i 3,58·10⁻⁷),
+w tym samym kierunku co w pomiarach 2–3 (obserwacja > H0, apka daje grywalne tacki częściej niż losowy model
+bez wiedzy o planszy). Kluczowa różnica względem pomiaru 3: test (d), dotąd niedomocowany (moc 0,065 przy
+431 parach), ma teraz moc **0,939** przy progu skorygowanym — więc jego istotność nie jest już wynikiem
+przypadku przy niskiej mocy, tylko wiarygodnym rozstrzygnięciem. Jednocześnie test (a), liczony na 367 świeżych
+parach, odrzuca dosłowne `PIECE_TYPE_WEIGHTS` jeszcze mocniej niż w pomiarze 3 (p spadło z ~0,003 do ~8·10⁻¹⁸)
+— wagi typów z #186 prawdopodobnie wymagają przekalibrowania na szerszej próbie, niezależnie od pytania Z-6,
+które ten pomiar właśnie rozstrzyga. Decyzja o ewentualnej zmianie `generator.py` (warunkowy na stan planszy,
+i/lub przekalibrowane wagi typów) należy do orchestratora — ten bilet **zaraportował, nie naprawił**.
+
 ## Odkrycia
 
 - `tools.analiza_z6.power_normal_approx` (bez zmian w tym zadaniu, plik poza budżetem #191) ignoruje
