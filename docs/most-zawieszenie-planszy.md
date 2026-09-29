@@ -90,3 +90,21 @@ dokładnie zmierzoną serię z jedną dodatkową próbą (powtórzenie 30179):
 `tests/test_bridge_moves_log.py::TestStableScore::test_slow_gold_variant_animation_converges_within_game_over_tries`.
 Rozpoznanie samego wariantu jest sprawdzone osobno:
 `tests/test_bridge_moves_log.py::TestIsGameOverScreenGoldVariant`.
+
+## #235: „wstecz" na jasnej reklamie, seria pustych plansz, luźniejszy bezpiecznik
+
+Materiał: sesja danych #223 (`bridge/runs/7e25817/`), dwa kawałki skończone
+`okno: petla_bez_postepu`, choć most mógł iść dalej.
+
+- **`reklama_jasna`** nie kończy już kawałka: most naciska „wstecz" i liczy wpis do bezpiecznika
+  (pomiar #223: jeden „wstecz" zamknął jasną reklamę). `BRIGHT_AD_MIN_COLORS` bez zmian.
+- **Seria `plansza_pusta_przejsciowo`** (kawałek 6: reklama Nike o 7 895 kolorach czytana jako
+  pusta plansza sześć razy z rzędu): po `EMPTY_BOARD_BACK_TRIES = 3` z rzędu jeden „wstecz"
+  (wpis `plansza_pusta_wstecz`). Trzy dają zwykłej przejściowej klatce szansę, a seria sześciu
+  z #223 nie dochodzi do końca. Dialog wyjścia, gdyby „wstecz" go otworzył, obsługuje
+  `is_exit_dialog_screen`.
+- **`PROGRESS_SAFEGUARD_TRIES` 6 → 12**: sekwencja z kawałka 10 (2× `reklama_statyczna`,
+  `ustawienia_wstecz`, koniec partii, `ustawienia_wstecz`, `menu_glowne`) ma 6 wpisów i kończyła
+  się grywalną planszą; pętla z #159 miała setki wpisów na stałym `n`, więc 12 nadal ją łapie.
+- Każda nowa gałąź „wstecz" idzie przez `windowed_entry`, więc ekran, który się nie zmienia, nie
+  kręci się bez końca (testy: stała jasna reklama, stała pusta plansza, 30 naprzemiennych okien).
