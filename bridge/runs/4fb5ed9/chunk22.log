@@ -1,0 +1,8 @@
+polityka: greedy (źródło: argv)
+reset(seed='36499205925')
+log ruchów: bridge-out/moves.21.jsonl
+ruch 0: slot 2 -> (2,5) wynik 9 OK
+OCR: 
+ruch 1: slot 1 -> (0,0) wynik None ROZBIEŻNOŚĆ
+okno: reklama_jasna
+najdłuższa seria zgodnych ruchów: 1
