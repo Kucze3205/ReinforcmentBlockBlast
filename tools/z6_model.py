@@ -46,6 +46,15 @@ DOWOLNEGO `w` (w tym w trakcie optymalizacji) pi(w) liczy się jako ważona
 średnia tych samych próbek (waga = iloraz gęstości w/jednostajnej) -- bez
 ponownego wywoływania `tray_playable` (kosztownego, DFS) przy każdej
 iteracji dopasowania.
+
+#217 (wdrożenie): #211 zostawiło dopasowane `p=1,0`/`k=5` na górnej granicy
+siatki `{1,2,3,5}` -- siatka `K_CANDIDATES` tu poszerzona o {10,20,50,
+K_DO_SKUTKU=1000} ("do skutku" to ten sam wzór z `k` tak dużym, że w
+praktyce nigdy nie jest osiągane na obserwowanych planszach). Dodano też
+`fit_m2_simple`: M2 z wagami ZAMROŻONYMI na M0 (tylko `p`,`k` dopasowane) --
+kryterium wyboru między nim a M2 z wagami dopasowanymi razem ("M2-fit") to
+różnica log-wiarygodności testowej > 1 SE (patrz `main`), zgodnie z ideą
+#211 "wagi typów to szum, różnicę robi samo odrzucanie".
 """
 import hashlib
 import json
@@ -87,7 +96,14 @@ N_IMPORTANCE_SAMPLES = 400
 IMPORTANCE_SEED = 211
 
 SMOOTH_ALPHA = 0.5  # Laplace, żeby typy o 0 obserwacjach w train nie dawały log(0) w test.
-K_CANDIDATES = (1, 2, 3, 5)
+# #217: poszerzenie siatki o {10,20,50} (#211 zostawił p=1,0/k=5 na górnej granicy
+# starej siatki {1,2,3,5} -- dane "chciały" więcej odrzucania) plus wariant „do
+# skutku" (losuj aż grywalna, bez ograniczenia poza awaryjnym limitem prób) -- w
+# tym samym wzorze na S(p,k,pi) to po prostu k tak duże, że w praktyce nigdy nie
+# jest osiągane na obserwowanych planszach (K_DO_SKUTKU), więc nie trzeba osobnego
+# wzoru: "do skutku" = punkt na tej samej siatce, nie inny model.
+K_DO_SKUTKU = 1000
+K_CANDIDATES = (1, 2, 3, 5, 10, 20, 50, K_DO_SKUTKU)
 P_GRID = np.linspace(0.0, 1.0, 101)
 N_COORD_ROUNDS = 4
 N_COORD_SWEEPS = 2
@@ -322,6 +338,29 @@ def fit_m2(train_rows, train_samples, w1):
     return best
 
 
+def fit_m2_simple_given_k(train_rows, train_samples, k, w_fixed):
+    """M2 z WAGAMI ZAMROŻONYMI na `w_fixed` (#217 kryterium 2) -- dopasowuje
+    wyłącznie `p` (złoty podział), różnica samego odrzucania bez przeliczania
+    wag typów."""
+    def ll_p(p):
+        return total_loglik(w_fixed, p, k, train_rows, train_samples)
+
+    p_scores = np.array([ll_p(p) for p in P_GRID])
+    p = float(P_GRID[np.argmax(p_scores)])
+    p, _ = golden_section_max(ll_p, max(0.0, p - 0.05), min(1.0, p + 0.05))
+    return w_fixed, p
+
+
+def fit_m2_simple(train_rows, train_samples, w_fixed):
+    best = None
+    for k in K_CANDIDATES:
+        w, p = fit_m2_simple_given_k(train_rows, train_samples, k, w_fixed)
+        train_ll = total_loglik(w, p, k, train_rows, train_samples)
+        if best is None or train_ll > best["train_ll"]:
+            best = {"k": k, "w": w, "p": p, "train_ll": train_ll}
+    return best
+
+
 # ---------------------------------------------------------------------------
 # ewaluacja: log-wiarygodność testowa, różnica vs M0 z SE, grywalność na trudnych planszach
 # ---------------------------------------------------------------------------
@@ -473,7 +512,8 @@ def main():
 
     w0 = fit_m0()
     w1 = fit_m1(train_rows)
-    m2 = fit_m2(train_rows, train_samples, w1)
+    m2_simple = fit_m2_simple(train_rows, train_samples, w0)
+    m2_fit = fit_m2(train_rows, train_samples, w1)
 
     m0_test_ll_rows = loglik_rows(w0, 0.0, 1, test_rows, test_samples)
 
@@ -484,7 +524,12 @@ def main():
     results.append(evaluate_model("M1", w1, 0.0, 1, N_TYPES - 1, train_rows, train_samples,
                                    test_rows, test_samples, m0_test_ll_rows,
                                    hard_rows, hard_samples))
-    results.append(evaluate_model("M2", m2["w"], m2["p"], m2["k"], N_TYPES,
+    # #217 kryterium 2: M2 z wagami M0 zamrożonymi (tylko p,k -- "prostszy") kontra
+    # M2 z wagami dopasowanymi RAZEM z p,k ("M2-fit", to, co #211 nazywało "M2").
+    results.append(evaluate_model("M2-simple", m2_simple["w"], m2_simple["p"], m2_simple["k"], 1,
+                                   train_rows, train_samples, test_rows, test_samples,
+                                   m0_test_ll_rows, hard_rows, hard_samples))
+    results.append(evaluate_model("M2-fit", m2_fit["w"], m2_fit["p"], m2_fit["k"], N_TYPES,
                                    train_rows, train_samples, test_rows, test_samples,
                                    m0_test_ll_rows, hard_rows, hard_samples))
 
@@ -495,15 +540,31 @@ def main():
               f"diff_vs_M0={res['test_loglik_diff_vs_m0']:.2f} (se={res['test_loglik_diff_se']:.2f}) "
               f"pred_playable_hard={res['predicted_playable_hard']:.4f}")
 
+    # Decyzja kryterium 2: prostszy (wagi M0) wygrywa, chyba że dopasowane wagi
+    # biją go na teście o WIĘCEJ NIŻ 1 SE różnicy parowanej (nie SE każdego z
+    # osobna -- to by zawyżało próg, patrz `paired_diff_se`).
+    simple_res = next(r for r in results if r["name"] == "M2-simple")
+    fit_res = next(r for r in results if r["name"] == "M2-fit")
+    simple_ll_rows = loglik_rows(np.array(simple_res["weights"]), simple_res["p"], simple_res["k"],
+                                  test_rows, test_samples)
+    fit_ll_rows = loglik_rows(np.array(fit_res["weights"]), fit_res["p"], fit_res["k"],
+                               test_rows, test_samples)
+    fit_vs_simple_diff, fit_vs_simple_se = paired_diff_se(fit_ll_rows, simple_ll_rows)
+    fit_wins = fit_vs_simple_diff > fit_vs_simple_se
+    chosen_name = "M2-fit" if fit_wins else "M2-simple"
+    chosen = fit_res if fit_wins else simple_res
+    print(f"\nM2-fit vs M2-simple na teście: diff={fit_vs_simple_diff:.2f} (se={fit_vs_simple_se:.2f}) "
+          f"-> {'dopasowane wagi wygrywają o >1 SE' if fit_wins else 'wagi M0 wystarczą (prostszy)'}")
+    print(f"wybrany model kryterium 2: {chosen_name} (k={chosen['k']}, p={chosen['p']:.4f})")
+
     best = max(results, key=lambda r: r["test_loglik"])
-    print(f"\nnajlepszy na teście: {best['name']}")
+    print(f"\nnajlepszy na teście (log-wiarygodność, informacyjnie): {best['name']}")
 
     print(f"\n=== kryterium 3: skutek dla benchmarku ({BENCH_N_EPISODES} partii "
           f"{BENCH_POLICY_SPEC}) ===")
     boards = sample_boards_from_bench_games()
-    best_res = next(r for r in results if r["name"] == best["name"])
-    w_best = np.array(best_res["weights"])
-    impact = estimate_bench_impact(boards, w0, w_best, best_res["p"], best_res["k"])
+    w_chosen = np.array(chosen["weights"])
+    impact = estimate_bench_impact(boards, w0, w_chosen, chosen["p"], chosen["k"])
     print(impact)
 
     return {
@@ -512,7 +573,10 @@ def main():
         "n_test": len(test_rows),
         "observed_playable_hard": observed_playable_hard,
         "results": results,
-        "best": best["name"],
+        "best_test_loglik": best["name"],
+        "fit_vs_simple_diff": fit_vs_simple_diff,
+        "fit_vs_simple_se": fit_vs_simple_se,
+        "chosen": chosen_name,
         "bench_impact": impact,
     }
 

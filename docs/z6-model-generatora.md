@@ -149,7 +149,7 @@ tabelą wyżej: M2 prawie eliminuje nieukładalne tacki, gdziekolwiek by ich szu
   optimum. Nie zweryfikowano wielostartowo (różne inicjalizacje); jeśli powierzchnia wiarygodności ma więcej
   niż jedno lokalne maksimum, zgłoszone `w`/`p` dla M2 mogą nie być globalnym MLE.
 
-## Zmiana w kodzie
+## Zmiana w kodzie (#211)
 
 `tools/z6_model.py` (nowy plik) + `tests/test_z6_model.py`. `generator.py`, `pieces.py`, `game.py`,
 `scoring.py`, `policies.py`, `ntuple*`, `bench/*`, `docs/data/z6-pary.json` — nietknięte, tylko odczyt (import)
@@ -157,3 +157,89 @@ tam, gdzie kryterium 3 wymagało uruchomienia partii `lookahead-ntuple` (`benchm
 
 `reward_shape_changed: no` — to pomiar; nie zmienia `game.step`, punktacji ani żadnej wartości, którą agent
 optymalizuje.
+
+---
+
+## #217: poszerzona siatka `k`, wariant „do skutku", decyzja o wagach, wdrożenie
+
+Bilet: [#217](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/217). Kontynuacja pomiaru wyżej —
+**#211 zostawiło `p=1,0000` i `k=5` na górnej granicy siatki** (`P_GRID=[0,1]`, `K_CANDIDATES=(1,2,3,5)`),
+z jawną notatką w `## Odkrycia`, że dane chcą więcej odrzucania niż siatka dopuszczała. #217 poszerza siatkę i
+faktycznie wdraża wynik w `generator.py` (w przeciwieństwie do #211, które było **tylko pomiarem**).
+
+### Poszerzenie siatki i wariant „do skutku"
+
+`K_CANDIDATES` w `tools/z6_model.py` poszerzone do `(1, 2, 3, 5, 10, 20, 50, K_DO_SKUTKU=1000)`. Wariant „do
+skutku" (losuj, aż tacka będzie grywalna, z awaryjnym limitem prób) **nie wymaga osobnego wzoru** — w tym
+samym modelu `S(p,k,π) = Σ_{m=0}^{k-1}((1−π)p)^m` to po prostu `k` tak duże (`1000`), że na żadnej z 693
+obserwowanych plansz nie jest w praktyce osiągane (limit działa wyłącznie jako zapora przeciw nieskończonej
+pętli na planszy, na której naprawdę nie ma grywalnej tacki). `p` zostaje w `[0,1]`, dopasowywane siatką +
+złotym podziałem jak dotąd.
+
+### Kryterium 2: wagi M0 kontra wagi dopasowane razem z `p`,`k`
+
+Dodano `fit_m2_simple` (`tools/z6_model.py`): M2 z wagami typów **zamrożonymi na `PIECE_TYPE_WEIGHTS`** (M0),
+dopasowywane jest wyłącznie `p` (siatka `K_CANDIDATES` × złoty podział po `p`) — w przeciwieństwie do
+dotychczasowego M2 (tu: **M2-fit**), które dopasowuje wagi i `p` RAZEM. Nazwane **M2-simple**.
+
+### Wyniki (`python3 tools/z6_model.py`, deterministyczne, ~6 min 52 s na tej maszynie)
+
+| model | n. parametrów | k | p | log-wiar. ucząca | log-wiar. testowa | różnica vs M0 (SE) | przewidywana grywalność na trudnych (obs. 1,000) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| M0 | 0 | — | 0 | −5651,74 | −1615,04 | 0,00 (—) | 0,9114 |
+| M1 | 14 | — | 0 | −5624,75 | −1616,44 | −1,40 (SE 4,61) | 0,9114 |
+| M2-simple (wagi M0) | 1 | 1000 („do skutku") | 1,0000 | −5638,53 | **−1611,22** | **+3,82 (SE 1,65)** | **1,0000** |
+| M2-fit (wagi dopasowane) | 15 | 1000 („do skutku") | 1,0000 | −5610,95 | −1613,30 | +1,74 (SE 4,93) | 1,0000 |
+
+Oba warianty M2 zbiegają do **`k=1000` (górna nowa granica siatki -> „do skutku") i `p=1,0000`** — spójne z
+sygnałem z #211, że proces chce nieograniczonego odrzucania, nie skończonej liczby prób. Podniesienie granicy
+siatki z 5 do 1000 nie napotkało nowego sufitu pośredniego — optymalizator idzie od razu na sam koniec
+poszerzonej siatki, co jest zgodne z odkryciem #211 i potwierdza, że model **rzeczywiście chce „do skutku"**,
+nie jakiejś pośredniej wartości `k` między 5 a 1000.
+
+### Decyzja kryterium 2: M2-simple (wagi M0, bez zmian)
+
+`M2-fit` vs `M2-simple` na teście: różnica log-wiarygodności = **−2,09 (SE 4,57)** — M2-fit **NIE** wygrywa o
+więcej niż 1 SE (wygrywa 0 z 4: różnica jest nawet ujemna). Zgodnie z regułą wyboru z `## Cel` #217
+(„wdrażasz prostszy, chyba że dopasowane wygrywają o > 1 SE") **wdrożony jest M2-simple: `PIECE_TYPE_WEIGHTS`
+bez zmian + odrzucanie „do skutku"**. Potwierdza to wniosek #211 `docs/z6-model-generatora.md` (ten plik) i
+`docs/z6-tacka-a-plansza.md`: **wagi typów to szum, różnicę robi samo odrzucanie planszowe** — nie trzeba
+przeliczać `PIECE_TYPE_WEIGHTS`, tylko dodać warstwę odrzucania nad istniejącym losowaniem.
+
+### Kryterium 3 (zaktualizowane): skutek dla benchmarku pod wybranym modelem
+
+Ta sama metoda co w #211 (20 partii `lookahead-ntuple:ntuple/survival-ad-70k.json`, sufit 240 postawień,
+1203 próbkowane plansze, 150 rzutów/planszę), teraz z wybranym M2-simple (`p=1,0000`, `k=1000`):
+
+| wielkość | wartość |
+|---|---:|
+| **odsetek nieukładalnych tacek, M0** | **0,3037%** (548/180450) |
+| **odsetek nieukładalnych tacek, M2-simple (wybrany)** | **0,0000%** (0/180450) |
+
+Na próbce 1203 plansz z realnych partii przeszukiwania `lookahead-ntuple`, odrzucanie „do skutku" **nie
+wylosowało ani jednej nieukładalnej tacki** (0/180450 rzutów) — różnica jest jakościowa (eliminacja), nie
+tylko ilościowa poprawa, bo `p=1` nigdy nie akceptuje niegrywalnej tacki, dopóki limit 1000 prób nie zostanie
+wyczerpany (na tej próbce nigdy).
+
+### Wdrożenie w `generator.py`
+
+Skoro wybrany model to `PIECE_TYPE_WEIGHTS` bez zmian + `p=1,0000` (zawsze redraw) + `k=1000` (limit
+awaryjny), wdrożenie sprowadza się do: losuj tackę jak dotychczas (`_next_piece` × 3); jeśli `tray_playable`
+(z `board.py`, ta sama funkcja co #211/testy (c)/(d)) na BIEŻĄCEJ planszy zwraca `False`, losuj ponownie, aż
+do 1000 razy; po 1000 nieudanych próbach przyjmij ostatni losowany zestaw (awaryjny limit — patrz `Generator`
+niżej). `None` z `tray_playable` (limit węzłów DFS wyczerpany, `board.TRAY_PLAYABLE_NODE_BUDGET`) traktowany
+jak `False` (redraw) — brak rozstrzygnięcia nie jest dowodem grywalności.
+
+**Generator pozostaje ślepy na planszę, gdy nikt mu jej nie poda** — `Generator.__init__`/`next_pieces` mają
+dziś (przed #217) sygnaturę bez planszy, a `game.py`/`policies.py` są w tym bilecie NIETKNIĘTE (patrz
+`## Kryteria akceptacji` #217), więc `next_pieces()` wywoływane bez planszy (jak dziś w `game.py`,
+`policies.py`) **zachowuje się DOKŁADNIE jak dotąd, bit w bit** — świadomość planszy jest **opt-in** przez
+nowy, opcjonalny parametr (`Generator(seed, board=...)` / `generator.board = ...`), nieużywany przez żadne
+dzisiejsze wywołanie w kodzie produkcyjnym. To NIE jest obejście zakazu dotykania `game.py` — to jest
+dokładnie granica tego bloku pracy: #217 przygotowuje i mierzy generator świadomy planszy jako bibliotekę,
+wpięcie go w pętlę `Game`/`benchmark.py` na stałe to osobna decyzja (zmieniłaby odcisk benchmarku przez
+`game.py`, nie tylko `generator.py`, i wymaga własnego pomiaru). Koszt sprawdzania grywalności i sam
+przełącznik `legacy` — patrz `docs/generator-swiadomy-planszy.md`.
+
+`reward_shape_changed: no` — generator nie zmienia `game.step` ani punktacji; zmienia się DYNAMIKA środowiska
+(rozkład tacek zależny od planszy zamiast stałego), nie sama nagroda.
