@@ -1,0 +1,81 @@
+{
+  "n_seeds": 200,
+  "seed_salt": "pilot-216",
+  "jobs": 4,
+  "weights": [
+    "ntuple/survival-adcga16-800k.json",
+    "ntuple/survival-adcgx-8k.json",
+    "ntuple/survival-adcgx-16k.json",
+    "ntuple/survival-adcgctrl-895k.json"
+  ],
+  "search": "beam=128",
+  "results": [
+    {
+      "label": "ntuple/survival-adcga16-800k.json",
+      "spec": "lookahead-ntuple:ntuple/survival-adcga16-800k.json@beam=128",
+      "n_games": 200,
+      "mean": 90597.1,
+      "se": 6847.17,
+      "survival_mean": 671.58,
+      "s_per_game": 1.042,
+      "duration_s": 208.4
+    },
+    {
+      "label": "ntuple/survival-adcgx-8k.json",
+      "spec": "lookahead-ntuple:ntuple/survival-adcgx-8k.json@beam=128",
+      "n_games": 200,
+      "mean": 48414.21,
+      "se": 3758.87,
+      "survival_mean": 478.17,
+      "s_per_game": 0.7427,
+      "duration_s": 148.5,
+      "vs_baza": {
+        "mean_diff": -42182.9,
+        "pct": -46.56,
+        "sd_diff": 104294.52,
+        "se_diff": 7374.74,
+        "se_pct": 8.14,
+        "mean_diff_over_se": -5.72,
+        "label": "regresja"
+      }
+    },
+    {
+      "label": "ntuple/survival-adcgx-16k.json",
+      "spec": "lookahead-ntuple:ntuple/survival-adcgx-16k.json@beam=128",
+      "n_games": 200,
+      "mean": 36648.86,
+      "se": 2901.42,
+      "survival_mean": 425.79,
+      "s_per_game": 0.6554,
+      "duration_s": 131.1,
+      "vs_baza": {
+        "mean_diff": -53948.24,
+        "pct": -59.55,
+        "sd_diff": 103139.52,
+        "se_diff": 7293.07,
+        "se_pct": 8.05,
+        "mean_diff_over_se": -7.4,
+        "label": "regresja"
+      }
+    },
+    {
+      "label": "ntuple/survival-adcgctrl-895k.json",
+      "spec": "lookahead-ntuple:ntuple/survival-adcgctrl-895k.json@beam=128",
+      "n_games": 200,
+      "mean": 78978.67,
+      "se": 5898.53,
+      "survival_mean": 625.01,
+      "s_per_game": 1.0119,
+      "duration_s": 202.4,
+      "vs_baza": {
+        "mean_diff": -11618.43,
+        "pct": -12.82,
+        "sd_diff": 123418.86,
+        "se_diff": 8727.03,
+        "se_pct": 9.63,
+        "mean_diff_over_se": -1.33,
+        "label": "regresja"
+      }
+    }
+  ]
+}

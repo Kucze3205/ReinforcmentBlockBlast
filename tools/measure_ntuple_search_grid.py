@@ -10,6 +10,18 @@ próbie). Nic tu nie pisze do `bench/*` — oficjalny pomiar liczy osobne zadani
 
     python3 tools/measure_ntuple_search_grid.py --n-seeds 300 --jobs 4 --out /tmp/grid.json
     python3 tools/measure_ntuple_search_grid.py --n-seeds 50 --jobs 4 --labels "domyslna"
+
+Tryb `--weights` (#216): zamiast siatki konfiguracji wiązki na jednym pliku wag,
+mierzy **jeden** ustalony układ wiązki (`--search`, domyślnie `beam=128`) na
+**kilku plikach wag** — do porównania przebiegów treningu przy tej samej
+polityce testowej. Wiersz 0 jest bazą dla `paired_delta` niezależnie od trybu.
+Własna sól (`--seed-salt`) odróżnia pulę seedów od domyślnej `siatka-195`, więc
+dwa pomiary tego narzędzia (siatka configów i porównanie wag) nie dzielą puli:
+
+    python3 tools/measure_ntuple_search_grid.py --n-seeds 200 --jobs 4 \\
+        --seed-salt pilot-216 --search beam=128 \\
+        --weights ntuple/survival-adcgx-8k.json ntuple/survival-adcgx-16k.json \\
+                  ntuple/survival-adcgctrl-895k.json ntuple/survival-adcga16-800k.json
 """
 import argparse
 import json
@@ -43,23 +55,35 @@ CONFIGS = [
 ]
 
 
-def grid_seeds(n, config):
+def grid_seeds(n, config, salt=SEED_SALT):
     """`n` seedów deterministycznych, jawnie rozłącznych z `config['fixed_seed_file']`."""
     with open(config["fixed_seed_file"], encoding="utf-8") as fh:
         fixed = set(json.load(fh))
-    rng = random.Random(SEED_SALT)
+    rng = random.Random(salt)
     pool = rng.sample(range(1, 2**31 - 1), n + len(fixed))
     seeds = [s for s in pool if s not in fixed][:n]
     assert len(seeds) == n, "pula wylosowanych seedów za mała po odjęciu kolizji z fixed"
     return seeds
 
 
-def spec_for(params):
+def spec_for(params, weights=WEIGHTS):
     if not params:
-        return "lookahead-ntuple:" + WEIGHTS
-    return "lookahead-ntuple:" + WEIGHTS + "@" + ",".join(
+        return "lookahead-ntuple:" + weights
+    return "lookahead-ntuple:" + weights + "@" + ",".join(
         "{0}={1}".format(k, v) for k, v in params.items()
     )
+
+
+def parse_search_params(text):
+    """`"beam=128,samples=4"` -> `{"beam": 128, "samples": 4}` (wzór `CONFIGS`)."""
+    params = {}
+    for part in text.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        key, _, value = part.partition("=")
+        params[key] = int(value)
+    return params
 
 
 def main(argv=None):
@@ -69,18 +93,31 @@ def main(argv=None):
     parser.add_argument("--config", default="bench/config.json")
     parser.add_argument("--out", help="ścieżka JSON z wynikami (poza bench/*)")
     parser.add_argument("--labels", nargs="*", help="podzbiór etykiet z CONFIGS")
+    parser.add_argument(
+        "--weights", nargs="*",
+        help="#216: zamiast siatki CONFIGS na jednym pliku wag, mierz --search "
+             "(domyślnie beam=128) na każdym z podanych plików wag; wiersz 0 jest bazą delty",
+    )
+    parser.add_argument("--search", default="beam=128", help="parametry wiązki w trybie --weights")
+    parser.add_argument("--seed-salt", default=SEED_SALT, help="własna sól puli seedów")
     args = parser.parse_args(argv)
 
     config = load_config(args.config)
-    seeds = grid_seeds(args.n_seeds, config)
-    configs = [c for c in CONFIGS if not args.labels or c[0] in args.labels]
-    if args.labels and not configs:
-        raise SystemExit("żadna etykieta nie pasuje; dostępne: " + ", ".join(c[0] for c in CONFIGS))
+    seeds = grid_seeds(args.n_seeds, config, salt=args.seed_salt)
+
+    if args.weights:
+        search_params = parse_search_params(args.search)
+        rows = [(w, w, search_params) for w in args.weights]
+    else:
+        configs = [c for c in CONFIGS if not args.labels or c[0] in args.labels]
+        if args.labels and not configs:
+            raise SystemExit("żadna etykieta nie pasuje; dostępne: " + ", ".join(c[0] for c in CONFIGS))
+        rows = [(label, WEIGHTS, params) for label, params in configs]
 
     baseline_scores = None
     results = []
-    for label, params in configs:
-        spec = spec_for(params)
+    for label, weights, params in rows:
+        spec = spec_for(params, weights)
         policy = build_policy(spec, config)
         t0 = time.time()
         summary = run_set(policy, seeds, config["move_cap"], jobs=args.jobs, spec=spec, config=config)
@@ -99,18 +136,20 @@ def main(argv=None):
             "s_per_game": round(dt / len(seeds), 4),
             "duration_s": round(dt, 1),
         }
-        if not params:
+        if baseline_scores is None:
             baseline_scores = scores
-        elif baseline_scores is not None:
+        else:
             # Sparowane na tych samych seedach (#102-styl) -- czulsze niz roznica
-            # dwoch niezaleznych `se`, bo odejmuje wspolny szum seeda.
-            result["vs_domyslna"] = paired_delta(scores, baseline_scores, config["threshold_pct"])
+            # dwoch niezaleznych `se`, bo odejmuje wspolny szum seeda. Wiersz 0
+            # (domyslna konfiguracja albo pierwszy plik wag w --weights) jest baza.
+            result["vs_baza"] = paired_delta(scores, baseline_scores, config["threshold_pct"])
         print(result)
         results.append(result)
 
     out = {
-        "n_seeds": args.n_seeds, "seed_salt": SEED_SALT, "jobs": args.jobs,
-        "weights": WEIGHTS, "results": results,
+        "n_seeds": args.n_seeds, "seed_salt": args.seed_salt, "jobs": args.jobs,
+        "weights": args.weights or WEIGHTS, "search": args.search if args.weights else None,
+        "results": results,
     }
     if args.out:
         os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
