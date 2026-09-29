@@ -47,6 +47,16 @@ kwadraty 3x3 do wierszy/kolumn wariantu `A`, `ADC` (#162) dodaje do `AD` prostok
 2x3/3x2, patrz `docs/ntuple.md`. Wznowienie z innym układem niż zapisany w stanie
 rzuca `ValueError`, jak zmiana `--reward`.
 
+`--stages`/`--thresholds` (#203, domyślnie 1 etap/brak progów — bez zmiany
+zachowania) dzielą sieć na kilka kompletów wag tego samego układu łat, po jednym
+na etap gry; etap **każdego afterstate'u z osobna** wybiera `ntuple.stage_of_bits`
+z liczby jego własnych zajętych komórek i progów `--thresholds` (rosnąco,
+`--stages - 1` liczb oddzielonych przecinkami). `_choose_action` oddaje etap
+razem z indeksami łat afterstate'u, więc `V(afterstate_t)` i aktualizacja
+`V(afterstate_{t-1})` liczą się zawsze z wag właściwego, osobnego dla każdego
+z nich etapu. Wznowienie z inną liczbą etapów albo innymi progami niż zapisane
+w stanie rzuca `ValueError`, jak zmiana `--layout`/`--reward`.
+
 Seedy treningowe są rozłączne z `bench/seeds_fixed.json`, wymuszone asercją w
 `episode_seed()` — tak jak `tools/tune_weights.training_seeds()` (#59, #123).
 Seedy ewaluacji (`--eval-every`) leżą w przedziale `[2**31, 2**32)`, poza

@@ -163,3 +163,27 @@ Profil po zmianie (ścieżka natywna, te same obciążenia):
 Koszt odcinka dalej rośnie liniowo z przeżyciem, ale z ≈0,11 ms zamiast ≈1,54 ms na
 postawienie w treningu `ADC` (19 345 postawień na 200 odcinków, ≈97 na odcinek:
 0,01107 s wobec 0,14871 s na odcinek).
+
+## Etapy N-tuple (#203)
+
+Rozszerzenie o kilka kompletów wag na sieć (jeden na etap gry, wybierany z liczby
+zajętych komórek afterstate'u — `docs/ntuple.md`/`ntuple.py`) dotknęło rdzenia
+minimalnie, bo **cała ścieżka bitów** (`value_bits` w C: `nt_value_bits`,
+kandydaci w `nt_afterstates`, `expand`/`nt_search` przeszukania wiązką) liczy
+etap z bitów planszy, którą akurat ocenia — nie trzeba było zmieniać
+`search_t`/`expand`/`nt_search` w ogóle, bo etap każdego stanu następczego jest
+funkcją wyłącznie jego własnych bitów, tych samych, które te funkcje już dostają.
+Zmiany: `nt_ctx` niesie `n_stages`/`thresholds`/`stage_base` (bufor wag ma teraz
+`n_stages` kopii tabel łat zamiast jednej), a trzy funkcje bez dostępu do bitów
+— `nt_value_idx`, `nt_update` (aktualizacja TD po indeksach, nie po planszy) i
+wyjścia wyboru najlepszej akcji `nt_afterstates`/`nt_afterstate_indices` (uczące
+"na której planszy stanęliśmy") — dostały jawny parametr/wyjście etapu.
+
+Jeden etap (`n_stages == 1`, dzisiejsze pliki wag bez pól `stages`/`thresholds`)
+liczy bitowo to samo co przed #203: `stage_of()` zwraca zawsze 0, `stage_base[0]
+== 0`, żadna inna ścieżka się nie zmienia. Test tego kryterium:
+`tests/test_ntuple_native.TestSingleStageUnchanged` (`value()` na 1000 planszach
+wobec formuły sprzed #203, decyzja `lookahead-ntuple` na 50 partiach, natywnie i
+w Pythonie). Dla kilku etapów: `TestTwoStageEquivalence` i rozszerzony
+`TestTrainingEquivalence` (200 odcinków, sha256 wag i log identyczne między
+rdzeniem a Pythonem).
