@@ -8,6 +8,11 @@
     {"kawalek": 2, "plik_ruchow": "chunk2_moves.jsonl", "ruchy": "0-59", "polityka": "greedy",
      "wynik": "60/60 zapisanych, wszystkie ok, brak 'okno' w logu, brak reklamy, brak konca partii, brak restartow. Partia 1 kontynuowana: wynik do 21161 (pole score, rosnie spojnie)."},
     {"kawalek": 3, "plik_ruchow": "chunk3_moves.jsonl", "ruchy": "0-59", "polityka": "greedy",
-     "wynik": "60/60 zapisanych, wszystkie ok, brak 'okno' w logu, brak reklamy, brak konca partii, brak restartow. Partia 1 kontynuowana, plansza pelna: wynik do 32253 (pole score)."}
+     "wynik": "60/60 zapisanych, wszystkie ok, brak 'okno' w logu, brak reklamy, brak konca partii, brak restartow. Partia 1 kontynuowana, plansza pelna: wynik do 32253 (pole score)."},
+    {"kawalek": 4, "plik_ruchow": "chunk4_moves.jsonl", "ruchy": "0-56 (partia 1) + 57-59 (partia 2 od nowa)", "polityka": "greedy",
+     "wynik": "POMIAR OKNA REKLAMY (#36). Ruchy 0-55 partii 1 ok, wynik do 36697. Ruch 56 ROZBIEZNOSC. Ruch 57 (n=57 zalogowany TRZY razy): most SAM rozpoznal reklama_statyczna DWA razy z rzedu, za kazdym razem AUTOMATYCZNY 'wstecz' wewnatrz petli glownej (bez reki, bez mojej interwencji) - proces bridge.py NIE zatrzymal sie, wiec procedura reczna z pkt.2 (zrzut/wstecz/AD_CLOSE) nie mala tu zastosowania (most sam doszedl do ekranu konca, zanim ktokolwiek zdazyl reagowac). Po dwoch auto-wstecz most SAM wykryl is_game_over_screen (wariant fioletowy 'Can you Top that?', korona), zapisal zrzut 057_end.png (chunk4_057_end.png) PRZED Play, DWA ZGODNE odczyty wyniku [36712,36712]. Zrzut ODCZYTANY: 'Can you Top that?', Score 36712. Most SAM tapnal Play (bez reki). Partia 2 wystartowala (n=57). Ruchy 57-59 partii 2 ok, wynik do 6. WNIOSEK (odrozniony od odczytu): oba wystapienia reklama_statyczna zamkniete samym auto-wstecz mostu, bez potrzeby AD_CLOSE ani recznej interwencji verifiera - most nie zatrzymal sie w rozumieniu 'koniec kawalka' na tym oknie."}
+  ],
+  "partie": [
+    {"nr": 1, "polityka": "greedy", "pierwszy_kawalek": 1, "ostatni_kawalek": 4, "ruchy": "0-56 kawalka 4 wliczajac kawalki 1-3 = 60+60+60+57 = 237 ruchow", "wynik_z_ekranu_konca": 36712, "zrzut": "bridge/runs/7e25817/chunk4_057_end.png", "trajektoria_bez_dziur": "tak - jeden auto-restart procesu w kawalku 1 (n=15) bez utraty stanu planszy, poza tym ciagla; sporadyczne ROZBIEZNOSC to szum OCR/odczytu, nie utrata ruchow", "wariant_ekranu_konca": "fioletowy 'Can you Top that?' z korona (ten sam co GAME_OVER_SCORE_BOX standardowy)"}
   ]
 }
