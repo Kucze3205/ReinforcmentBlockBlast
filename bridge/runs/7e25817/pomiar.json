@@ -73,6 +73,13 @@
       "ruchy": "0-59",
       "polityka": "greedy",
       "wynik": "60/60 zapisanych, wszystkie ok, brak okno w logu, brak reklamy, brak konca partii, brak restartow. Partia 3 kontynuowana, plansza pelna: wynik do 37090 (pole score)."
+    },
+    {
+      "kawalek": 10,
+      "plik_ruchow": "chunk10_moves.jsonl",
+      "ruchy": "0-13 (partia 3, zakonczona ruchem 13), potem same okna bez ruchu az do konca kawalka (petla_bez_postepu)",
+      "polityka": "greedy",
+      "wynik": "POMIAR OKNA REKLAMY (#36) + KONIEC PARTII 3. Ruchy 0-13 partii 3 ok, wynik do 41092. Ruch 14 zalogowany szesc razy: most SAM rozpoznal reklama_statyczna DWA razy z rzedu (auto-wstecz, bez reki), potem ustawienia_wstecz (auto-wstecz), potem SAM wykryl is_game_over_screen (wariant fioletowy Beat Your Best Again, korona), zapisal zrzut 014_end.png (chunk10_014_end.png) PRZED Play, DWA ZGODNE odczyty [41100,41100] - najwyzszy wynik sesji. Most SAM tapnal Play, ale wyladowal na ustawienia_wstecz (auto-wstecz) i menu_glowne (auto-tap Classic) zamiast wprost na plansze - szesc wpisow okienkowych z rzedu (reklama_statyczna,reklama_statyczna,ustawienia_wstecz,koniec_partii,ustawienia_wstecz,menu_glowne) uruchomilo bezpiecznik PROGRESS_SAFEGUARD_TRIES=6, kawalek zakonczony okno: petla_bez_postepu. RECZNY zrzut po zakonczeniu kawalka (after_chunk10_live.png) pokazuje jednak PUSTA, GRYWALNA plansze (wynik 0, best 41100, trzy klocki na tacce) - most NIE utknal w rozumieniu #218 (plansza_zawieszona), tylko potrzebowal wiecej niz 6 wpisow okienkowych zeby przejsc przez sekwencje reklama+ustawienia+menu i dotrzec do nowej partii. WNIOSEK: oba wystapienia reklama_statyczna i oba ustawienia_wstecz zamkniete samym auto-wstecz mostu, bez potrzeby AD_CLOSE ani recznej interwencji verifiera."
     }
   ],
   "partie": [
@@ -97,6 +104,17 @@
       "zrzut": "bridge/runs/7e25817/chunk6_manual_ad_after_back.png",
       "trajektoria_bez_dziur": "tak do momentu zatrzymania na niewykrytej reklamie jasnej (n=29 kawalka 6); koniec partii NIE zostal wykryty automatycznie przez most (most zakonczyl kawalek 'petla_bez_postepu'), odslonity recznym 'wstecz' - odczyt wyniku spoza standardowej sciezki mostu (stable_score), pojedynczy zrzut, nie dwa zgodne odczyty jak przy automatycznym wykryciu",
       "wariant_ekranu_konca": "niebieski 'Your Best is Next'"
+    },
+    {
+      "nr": 3,
+      "polityka": "greedy",
+      "pierwszy_kawalek": 7,
+      "ostatni_kawalek": 10,
+      "ruchy": "n0-59 kawalka 7 (60) + kawalek 8 (60) + kawalek 9 (60) + n0-13 kawalka 10 (14) = 194 ruchy",
+      "wynik_z_ekranu_konca": 41100,
+      "zrzut": "bridge/runs/7e25817/chunk10_014_end.png",
+      "trajektoria_bez_dziur": "tak - ciagla, sporadyczny szum OCR (np. 173514/177358 w kawalku 8) bez utraty ruchow ani restartow",
+      "wariant_ekranu_konca": "fioletowy Beat Your Best Again z korona, najwyzszy wynik sesji"
     }
   ]
 }
