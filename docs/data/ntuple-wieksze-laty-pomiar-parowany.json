@@ -1,0 +1,81 @@
+{
+  "n_seeds": 200,
+  "seed_salt": "pilot-222",
+  "jobs": 4,
+  "weights": [
+    "ntuple/survival-adc-100k.json",
+    "ntuple/survival-adce-100k.json",
+    "ntuple/survival-adcg-200k.json",
+    "ntuple/survival-adce-200k.json"
+  ],
+  "search": "beam=128",
+  "results": [
+    {
+      "label": "ntuple/survival-adc-100k.json",
+      "spec": "lookahead-ntuple:ntuple/survival-adc-100k.json@beam=128",
+      "n_games": 200,
+      "mean": 62154.42,
+      "se": 4458.51,
+      "survival_mean": 461.45,
+      "s_per_game": 0.3704,
+      "duration_s": 74.1
+    },
+    {
+      "label": "ntuple/survival-adce-100k.json",
+      "spec": "lookahead-ntuple:ntuple/survival-adce-100k.json@beam=128",
+      "n_games": 200,
+      "mean": 76802.51,
+      "se": 6145.12,
+      "survival_mean": 635.31,
+      "s_per_game": 0.6775,
+      "duration_s": 135.5,
+      "vs_baza": {
+        "mean_diff": 14648.1,
+        "pct": 23.57,
+        "sd_diff": 105277.8,
+        "se_diff": 7444.26,
+        "se_pct": 11.98,
+        "mean_diff_over_se": 1.97,
+        "label": "poprawa"
+      }
+    },
+    {
+      "label": "ntuple/survival-adcg-200k.json",
+      "spec": "lookahead-ntuple:ntuple/survival-adcg-200k.json@beam=128",
+      "n_games": 200,
+      "mean": 66287.43,
+      "se": 5329.74,
+      "survival_mean": 563.12,
+      "s_per_game": 0.4625,
+      "duration_s": 92.5,
+      "vs_baza": {
+        "mean_diff": 4133.02,
+        "pct": 6.65,
+        "sd_diff": 87821.57,
+        "se_diff": 6209.92,
+        "se_pct": 9.99,
+        "mean_diff_over_se": 0.67,
+        "label": "bez zmian"
+      }
+    },
+    {
+      "label": "ntuple/survival-adce-200k.json",
+      "spec": "lookahead-ntuple:ntuple/survival-adce-200k.json@beam=128",
+      "n_games": 200,
+      "mean": 83651.08,
+      "se": 6692.11,
+      "survival_mean": 667.66,
+      "s_per_game": 0.7131,
+      "duration_s": 142.6,
+      "vs_baza": {
+        "mean_diff": 21496.67,
+        "pct": 34.59,
+        "sd_diff": 112841.8,
+        "se_diff": 7979.12,
+        "se_pct": 12.84,
+        "mean_diff_over_se": 2.69,
+        "label": "poprawa"
+      }
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "n_seeds": 200,
+  "seed_salt": "pilot-222",
+  "jobs": 4,
+  "weights": [
+    "ntuple/survival-adcga16-800k.json",
+    "ntuple/survival-adce-100k.json",
+    "ntuple/survival-adce-200k.json",
+    "ntuple/survival-adc-100k.json",
+    "ntuple/survival-adcg-200k.json"
+  ],
+  "search": "beam=128",
+  "results": [
+    {
+      "label": "ntuple/survival-adcga16-800k.json",
+      "spec": "lookahead-ntuple:ntuple/survival-adcga16-800k.json@beam=128",
+      "n_games": 200,
+      "mean": 79579.74,
+      "se": 6382.35,
+      "survival_mean": 600.98,
+      "s_per_game": 0.5052,
+      "duration_s": 101.0
+    },
+    {
+      "label": "ntuple/survival-adce-100k.json",
+      "spec": "lookahead-ntuple:ntuple/survival-adce-100k.json@beam=128",
+      "n_games": 200,
+      "mean": 76802.51,
+      "se": 6145.12,
+      "survival_mean": 635.31,
+      "s_per_game": 0.6516,
+      "duration_s": 130.3,
+      "vs_baza": {
+        "mean_diff": -2777.22,
+        "pct": -3.49,
+        "sd_diff": 127728.41,
+        "se_diff": 9031.76,
+        "se_pct": 11.35,
+        "mean_diff_over_se": -0.31,
+        "label": "bez zmian"
+      }
+    },
+    {
+      "label": "ntuple/survival-adce-200k.json",
+      "spec": "lookahead-ntuple:ntuple/survival-adce-200k.json@beam=128",
+      "n_games": 200,
+      "mean": 83651.08,
+      "se": 6692.11,
+      "survival_mean": 667.66,
+      "s_per_game": 0.6931,
+      "duration_s": 138.6,
+      "vs_baza": {
+        "mean_diff": 4071.34,
+        "pct": 5.12,
+        "sd_diff": 126692.84,
+        "se_diff": 8958.54,
+        "se_pct": 11.26,
+        "mean_diff_over_se": 0.45,
+        "label": "bez zmian"
+      }
+    },
+    {
+      "label": "ntuple/survival-adc-100k.json",
+      "spec": "lookahead-ntuple:ntuple/survival-adc-100k.json@beam=128",
+      "n_games": 200,
+      "mean": 62154.42,
+      "se": 4458.51,
+      "survival_mean": 461.45,
+      "s_per_game": 0.3691,
+      "duration_s": 73.8,
+      "vs_baza": {
+        "mean_diff": -17425.32,
+        "pct": -21.9,
+        "sd_diff": 103055.71,
+        "se_diff": 7287.14,
+        "se_pct": 9.16,
+        "mean_diff_over_se": -2.39,
+        "label": "regresja"
+      }
+    },
+    {
+      "label": "ntuple/survival-adcg-200k.json",
+      "spec": "lookahead-ntuple:ntuple/survival-adcg-200k.json@beam=128",
+      "n_games": 200,
+      "mean": 66287.43,
+      "se": 5329.74,
+      "survival_mean": 563.12,
+      "s_per_game": 0.4723,
+      "duration_s": 94.5,
+      "vs_baza": {
+        "mean_diff": -13292.31,
+        "pct": -16.7,
+        "sd_diff": 121059.95,
+        "se_diff": 8560.23,
+        "se_pct": 10.76,
+        "mean_diff_over_se": -1.55,
+        "label": "regresja"
+      }
+    }
+  ]
+}
