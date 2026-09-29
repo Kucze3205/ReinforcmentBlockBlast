@@ -1,7 +1,7 @@
 {
-  "sha": "83e8da27addd1242dedd7913ce813784fbc3cefd",
+  "sha": "4b68386f850ead0748c2ac06781f9ff3138ed29a",
   "dirty": false,
-  "issue": 234,
+  "issue": 240,
   "status": "ok",
   "blocked_reason": null,
   "config": {
@@ -19,8 +19,8 @@
     "generator.py": "5b11ec3b1759b05f",
     "pieces.py": "7241459a3cb11706",
     "features.py": "3e4c45d8cafa246c",
-    "policies.py": "fbc34f04185350c0",
-    "benchmark.py": "e562f1c1f87689ab",
+    "policies.py": "1a8328dee03b3378",
+    "benchmark.py": "c2fa564c2385781d",
     "ntuple.py": "281f545b1d75340b",
     "ntuple_native.c": "12ca06d5f205d1eb",
     "ntuple_native.py": "d66d10665c472dc3"
@@ -28,6 +28,28 @@
   "arms": {
     "candidate": {
       "policy": "lookahead-ntuple",
+      "spec": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1",
+      "weights_hash": "741a1e664463f3d7",
+      "fixed": {
+        "mean": 560858.53,
+        "median": 555620.0,
+        "p10": 463120.7,
+        "survival_mean": 4000,
+        "capped_pct": 100.0
+      },
+      "rotated": {
+        "mean": 567032.86,
+        "median": 551225.0,
+        "p10": 471412.9,
+        "survival_mean": 4000,
+        "capped_pct": 100.0
+      },
+      "overfit_gap_pct": -1.1
+    },
+    "record": {
+      "policy": "lookahead-ntuple",
+      "spec": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0",
+      "weights_hash": "741a1e664463f3d7",
       "fixed": {
         "mean": 123077.03,
         "median": 82274.5,
@@ -36,47 +58,25 @@
         "capped_pct": 0.67
       },
       "rotated": {
-        "mean": 111521.06,
-        "median": 84127.5,
-        "p10": 5878.8,
-        "survival_mean": 811.69,
-        "capped_pct": 0.33
+        "mean": 123215.32,
+        "median": 72691.0,
+        "p10": 8147.0,
+        "survival_mean": 915.8,
+        "capped_pct": 1.0
       },
-      "overfit_gap_pct": 9.39,
-      "spec": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0",
-      "weights_hash": "741a1e664463f3d7"
-    },
-    "record": {
-      "policy": "lookahead-ntuple",
-      "fixed": {
-        "mean": 92772.85,
-        "median": 55989.0,
-        "p10": 5547.8,
-        "survival_mean": 659.17,
-        "capped_pct": 0.0
-      },
-      "rotated": {
-        "mean": 104111.46,
-        "median": 67612.5,
-        "p10": 4950.4,
-        "survival_mean": 717.68,
-        "capped_pct": 0.0
-      },
-      "overfit_gap_pct": -12.22,
-      "spec": "lookahead-ntuple:ntuple/survival-adcga16-800k.json@beam=128,samples=0",
-      "weights_hash": "0ca43a9190d1f1e3"
+      "overfit_gap_pct": -0.11
     }
   },
   "deltas": {
     "kandydat vs record": {
-      "mean_diff": 30304.18,
-      "pct": 32.66,
-      "sd_diff": 159175.33,
-      "se_diff": 9189.99,
-      "se_pct": 9.91,
-      "mean_diff_over_se": 3.3,
+      "mean_diff": 437781.5,
+      "pct": 355.7,
+      "sd_diff": 145576.54,
+      "se_diff": 8404.87,
+      "se_pct": 6.83,
+      "mean_diff_over_se": 52.09,
       "label": "poprawa"
     }
   },
-  "duration_s": 1236.7
+  "duration_s": 5266.9
 }
