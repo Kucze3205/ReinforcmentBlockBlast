@@ -183,6 +183,60 @@ class TestGenerator(unittest.TestCase):
         self.assertEqual(play(2024), play(2024))
 
 
+class TestBoardAwareGameDefault(unittest.TestCase):
+    """#221: `Game` domyślnie przekazuje `generator.Generator` swoją planszę
+    (`docs/generator-swiadomy-planszy.md`). `legacy_generator=True` odtwarza
+    zachowanie sprzed #217/#221 bit w bit."""
+
+    def test_legacy_switch_reproduces_blind_generator_sequence_bit_for_bit(self):
+        for seed in (1, 7, 42, 2024, 99999):
+            game = Game(seed=seed, legacy_generator=True)
+            raw = Generator(seed)
+            self.assertEqual(
+                [p.name for p in game.pieces], [p.name for p in raw.next_pieces()],
+                f"seed={seed}: pierwsza tacka",
+            )
+            steps = 0
+            while not game.done and steps < 300:
+                actions = game.available_actions()
+                if not actions:
+                    break
+                redraw_next = game.round_placement == 2
+                game.step(actions[0])
+                steps += 1
+                if redraw_next and not game.done:
+                    self.assertEqual(
+                        [p.name for p in game.pieces],
+                        [p.name for p in raw.next_pieces()],
+                        f"seed={seed}: tacka po {steps} postawieniach",
+                    )
+
+    def test_default_game_never_deals_unplayable_tray_when_playable_exists(self):
+        from board import tray_playable
+        from policies import GreedyPolicy
+
+        policy = GreedyPolicy()
+        for seed in range(30):
+            game = Game(seed=seed)
+            policy.reset(seed)
+            while not game.done:
+                actions = game.available_actions()
+                if not actions:
+                    break
+                game.step(policy.act(game, actions))
+                if game.round_placement == 0 and not game.done:
+                    shapes = [p.shape for p in game.pieces if p is not None]
+                    if len(shapes) == 3:
+                        # Grywalność jest gwarantowana przez odrzucanie "do skutku"
+                        # (REJECT_MAX_ATTEMPTS), chyba że plansza naprawdę nie ma
+                        # żadnej grywalnej tacki (wtedy i tak przegrywa) — na trudnej,
+                        # ręcznie zbudowanej planszy sprawdza to
+                        # tests/test_generator_weights.py::test_aware_generator_avoids_unplayable_tray_when_playable_exists.
+                        self.assertTrue(
+                            tray_playable(game.board.grid, shapes), f"seed={seed}"
+                        )
+
+
 class TestPiecePool(unittest.TestCase):
     """R-6, R-7, R-8: pula i rozkład losowania."""
 

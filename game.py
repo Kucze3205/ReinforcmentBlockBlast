@@ -4,6 +4,13 @@ Block Blast Game Engine
 Skalibrowany pod wzór referencyjny z badania #2. Punktacja jest naliczana
 po KAŻDYM postawieniu (R-3), combo mnoży bonus za czyszczenie (R-2) i wygasa
 przez licznik, a nie natychmiast (R-4). `score` kumuluje się przez całą partię.
+
+Generator jest domyślnie świadomy planszy (#221, dopasowanie:
+docs/z6-model-generatora.md, koszt i wdrożenie: docs/generator-swiadomy-planszy.md)
+— dostaje referencję do `self.board`, mutowaną w miejscu przez `Board.reset`/
+`place_piece`/`clear_lines`, więc widzi bieżący stan bez dodatkowego wpinania.
+`Game(seed, legacy_generator=True)` odtwarza starą, ślepą na planszę sekwencję
+tacek bit w bit.
 """
 from board import Board
 from generator import Generator
@@ -16,9 +23,9 @@ from scoring import (
 
 
 class Game:
-    def __init__(self, seed=None):
+    def __init__(self, seed=None, legacy_generator=False):
         self.board = Board()
-        self.generator = Generator(seed)
+        self.generator = Generator(seed, board=self.board, legacy=legacy_generator)
         self.reset(seed)
 
     def reset(self, seed=None):
