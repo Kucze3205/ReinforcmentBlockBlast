@@ -162,3 +162,59 @@ krzywa `ADCE` rośnie między 100k a 200k na pomiarze `beam=128` (76 802 → 83 
 przeciwieństwie do `ADC` przy analogicznym przyroście budżetu (`adc-100k` → `adcg-200k`: tylko
 +6,7%, nieistotne) — i trening jest tani (0,01062 s/odcinek średnio, żaden blok blisko limitu
 3400 s), więc kolejne 200k-400k odcinków to rozsądny następny krok przed decyzją o benchmarku.
+
+## Ciąg dalszy 200k → 600k na generatorze świadomym planszy
+
+Bloki 0→200k (sekcja wyżej) trenowano na **starym generatorze** (bez wiedzy o planszy); od 200k
+wzwyż trening idzie na generatorze świadomym planszy (`g.generator.board is g.board`). Zmienia się
+więc rozkład tacek, na których agent się uczy, i krzywa od 200k nie jest kontynuacją tej samej
+gry — patrz skok ewaluacji 5 139 → 10 590 między 200k a 210k.
+
+Polecenie (zmienia się tylko `--episodes`; bloki 500k→600k po 50 000 odcinków na wywołanie
+`--episodes-per-run 50000`, bloki 200k→500k w #228 po 100 000):
+
+```
+python3 tools/train_ntuple.py --reward survival --alpha 8.163265306122449e-05 --seed 3 --move-cap 2000 \
+    --layout ADCE \
+    --state ntuple/survival-adce-state.json --out ntuple/survival-adce-weights.json \
+    --best-out ntuple/survival-adce-best.json --curve-out docs/data/ntuple-survival-adce-krzywa.json \
+    --eval-every 10000 --eval-episodes 50 --episodes <300000|400000|500000|550000|600000> --episodes-per-run <100000|50000>
+```
+
+| blok | zakres odcinków | czas treningu (suma `duration_s` z logu) | s/odcinek | migawka |
+|---|---|---|---|---|
+| 3 | 200 000 → 300 000 | 3 477,3 s | 0,03477 | `ntuple/survival-adce-300k.json` |
+| 4 | 300 000 → 400 000 | 3 563,4 s | 0,03563 | `ntuple/survival-adce-400k.json` |
+| 5 | 400 000 → 500 000 | 3 590,2 s | 0,03590 | `ntuple/survival-adce-500k.json` |
+| 6 | 500 000 → 600 000 | 3 548,6 s | 0,03549 | `ntuple/survival-adce-600k.json` |
+| **razem** | 200 000 → 600 000 | **14 179,5 s** | 0,03545 śr. | — |
+
+Czasy to suma czasów odcinków treningowych z logów (bez ewaluacji co 10k i bez zapisów). Blok 6
+był dwoma wywołaniami po 50 000: rzeczywisty czas ścienny 34m3,6s (2 043,6 s, 500k→550k) i
+34m7,8s (2 047,8 s, 550k→600k).
+
+Koszt na generatorze świadomym planszy to ok. **0,0355 s/odcinek wobec 0,01062 na starym**
+(0→200k), czyli ok. 3,3× więcej — partie są dłuższe/dojrzalsze i generator liczy tacki z uwzględnieniem planszy.
+
+Ewaluacja zachłanna z krzywej (50 partii co 10 000 odcinków, `docs/data/ntuple-survival-adce-krzywa.json`),
+średnia z 10 punktów bloku oraz punkt końcowy:
+
+| blok | średni wynik (10 punktów) | średnie przeżycie | punkt końcowy: wynik / przeżycie |
+|---|---|---|---|
+| 200k → 300k | 11 995 | 203,9 | 11 265 / 201,0 (300k) |
+| 300k → 400k | 11 996 | 200,9 | 10 743 / 173,9 (400k) |
+| 400k → 500k | 12 881 | 217,0 | 11 835 / 203,0 (500k) |
+| 500k → 600k | 12 211 | 205,1 | 13 098 / 200,4 (600k) |
+
+Najlepszy punkt krzywej: 460k, wynik 17 510,5 / przeżycie 262,6 (50 partii — szum duży, punkty
+skaczą o ±3 000). Krzywa zachłanna jest płaska w granicach szumu od ~210k; ocena wag na
+`beam=128` należy do roli bench.
+
+sha256 migawek (pierwsze 16 znaków):
+
+| migawka | sha256 |
+|---|---|
+| `ntuple/survival-adce-300k.json` | `6c557f1fbee316b9` |
+| `ntuple/survival-adce-400k.json` | `741a1e664463f3d7` |
+| `ntuple/survival-adce-500k.json` | `f8a582e72b0d1200` |
+| `ntuple/survival-adce-600k.json` | `847a0ed91da14972` |
