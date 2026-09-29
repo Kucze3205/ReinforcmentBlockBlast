@@ -29,7 +29,6 @@ import math
 import os
 import sys
 from collections import Counter
-from itertools import permutations
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if REPO_ROOT not in sys.path:
@@ -38,7 +37,7 @@ TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
 if TOOLS_DIR not in sys.path:
     sys.path.insert(0, TOOLS_DIR)
 
-from board import Board  # noqa: E402
+from board import Board, tray_playable  # noqa: E402,F401 (tray_playable re-eksportowane -- tools/z6_model.py)
 from generator import PIECE_TYPE_WEIGHTS, Generator  # noqa: E402
 from pieces import CANONICAL_TYPES, PIECE_POOL, PIECE_TYPES  # noqa: E402
 
@@ -49,7 +48,6 @@ N_TYPES = len(CANONICAL_TYPES)
 N_POSES = len(PIECE_POOL)
 MC_SEED = 182
 MC_REPS = 500
-NODE_BUDGET = 20000
 ALPHA = 0.05
 
 # Przebiegi mostu, których pary weszły do kalibracji wag typów w `generator.py`
@@ -154,70 +152,9 @@ def playable_types(grid):
 
 
 # ---------- grywalność całej tacki, z czyszczeniem linii (testy c, d) ----------
-
-
-def _can_place(grid, shape, x, y):
-    for dy, row in enumerate(shape):
-        for dx, cell in enumerate(row):
-            if cell:
-                bx, by = x + dx, y + dy
-                if not (0 <= bx < Board.WIDTH and 0 <= by < Board.HEIGHT):
-                    return False
-                if grid[by][bx]:
-                    return False
-    return True
-
-
-def _place_and_clear(grid, shape, x, y):
-    new_grid = [row[:] for row in grid]
-    for dy, row in enumerate(shape):
-        for dx, cell in enumerate(row):
-            if cell:
-                new_grid[y + dy][x + dx] = 1
-    full_rows = [i for i, row in enumerate(new_grid) if all(row)]
-    full_cols = [c for c in range(Board.WIDTH) if all(new_grid[r][c] for r in range(Board.HEIGHT))]
-    for r in full_rows:
-        new_grid[r] = [0] * Board.WIDTH
-    for c in full_cols:
-        for r in range(Board.HEIGHT):
-            new_grid[r][c] = 0
-    return new_grid
-
-
-def _dfs_playable(grid, shapes, idx, budget):
-    if idx == len(shapes):
-        return True, budget
-    shape = shapes[idx]
-    for y in range(Board.HEIGHT):
-        for x in range(Board.WIDTH):
-            if budget <= 0:
-                return None, budget
-            budget -= 1
-            if _can_place(grid, shape, x, y):
-                new_grid = _place_and_clear(grid, shape, x, y)
-                result, budget = _dfs_playable(new_grid, shapes, idx + 1, budget)
-                if result:
-                    return True, budget
-                if result is None:
-                    return None, budget
-    return False, budget
-
-
-def tray_playable(grid, shapes, node_budget=NODE_BUDGET):
-    """Czy da się postawić wszystkie 3 kształty w JAKIEJŚ kolejności, z
-    czyszczeniem pełnych linii między postawieniami (stąd kolejność ma
-    znaczenie — inaczej niż statyczne `playable_types`). Zwraca True/False,
-    albo None gdy `node_budget` (łączny, przez wszystkie 6 permutacji) się
-    wyczerpał zanim padło rozstrzygnięcie."""
-    budget = node_budget
-    for perm in permutations(range(3)):
-        ordered = [shapes[i] for i in perm]
-        result, budget = _dfs_playable(grid, ordered, 0, budget)
-        if result:
-            return True
-        if result is None:
-            return None
-    return False
+# Definicja `tray_playable` (DFS + czyszczenie linii) przeniesiona do `board.py`
+# (#217) -- generator.py potrzebuje jej bez cyklu importu (z6_testy importuje
+# `Generator`). Importowana wyżej z `board`, jedyne miejsce prawdy.
 
 
 # ---------- wczytanie par i cechy ----------
