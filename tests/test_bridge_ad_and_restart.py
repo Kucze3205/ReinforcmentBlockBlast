@@ -382,27 +382,157 @@ class TestProgressSafeguard(unittest.TestCase):
         self.assertNotIn("end", entries[k - 1])  # wpis ruchu, w środku sekwencji
 
 
-class TestMainStopsOnBrightAdWindow(unittest.TestCase):
-    """#154: jasna reklama miesza most odczyt planszy jako pełną (#145); most ma się
-    zatrzymać z oknem `reklama_jasna` zamiast fałszywego „brak legalnego ruchu"."""
+class _StaticScreenHarness:
+    """#235: atrapa `main` na ekranie, który się nie zmienia; zlicza `press_back`."""
 
-    def test_bright_ad_window_stops_without_false_end(self):
-        bright_ad_img = _load("44a8ea2", "p2b_ad_before.png")
-        full_grid = [[1] * 8 for _ in range(8)]  # most odczytuje reklamę jako pełną planszę
-
-        def fake_settled_state():
-            return bright_ad_img, full_grid, [None, None, None]
-
-        with mock.patch("bridge.settled_state", side_effect=fake_settled_state), \
+    def run(self, img, grid, max_moves=1000, patches=()):
+        with mock.patch("bridge.settled_state", return_value=(img, grid, [None, None, None])), \
+             mock.patch("bridge.stable_state", return_value=(img, grid, [None, None, None])), \
              mock.patch("bridge.in_game", return_value=True), \
+             mock.patch("bridge.press_back") as press_back, \
              mock.patch("bridge.read_score", return_value=None), \
              mock.patch("bridge.annotate"), \
              mock.patch("PIL.Image.Image.save"), \
              mock.patch("bridge.os.makedirs"), \
-             mock.patch("builtins.open", mock.mock_open()):
-            best_streak = bridge.main(1, policy_spec="greedy")
+             mock.patch("bridge.time.sleep"), \
+             mock.patch("builtins.open", mock.mock_open()) as m_open:
+            bridge.main(max_moves, policy_spec="greedy")
+        entries = [json.loads(c.args[0]) for c in m_open().write.call_args_list]
+        return entries, press_back
 
-        self.assertEqual(best_streak, 0)
+
+class TestMainStopsOnBrightAdWindow(unittest.TestCase):
+    """#154/#235: jasna reklama → „wstecz" i dalsza gra; stała reklama kończy kawałek
+    bezpiecznikiem postępu w skończonej liczbie kroków."""
+
+    def test_static_bright_ad_presses_back_then_stops_by_safeguard(self):
+        bright_ad_img = _load("44a8ea2", "p2b_ad_before.png")
+        full_grid = [[1] * 8 for _ in range(8)]
+        entries, press_back = _StaticScreenHarness().run(bright_ad_img, full_grid)
+        self.assertEqual(len(entries), bridge.PROGRESS_SAFEGUARD_TRIES)
+        self.assertTrue(all(e["okno"] == "reklama_jasna" for e in entries))
+        self.assertEqual(entries[-1]["end"], "okno: petla_bez_postepu")
+        self.assertEqual(press_back.call_count, bridge.PROGRESS_SAFEGUARD_TRIES)
+
+    def test_bright_ad_closed_by_one_back_lets_game_continue(self):
+        bright_ad_img = _load("7e25817", "chunk6_029_bright_ad.png")
+        after_back = _load("7e25817", "chunk6_manual_ad_after_back.png")
+        empty_grid = [[0] * 8 for _ in range(8)]
+        states = iter([(bright_ad_img, empty_grid, [None] * 3)])
+
+        def fake_stable_state(tries=6):
+            return after_back, empty_grid, [None] * 3
+
+        with mock.patch("bridge.settled_state", side_effect=lambda: next(states)), \
+             mock.patch("bridge.stable_state", side_effect=fake_stable_state), \
+             mock.patch("bridge.in_game", return_value=True), \
+             mock.patch("bridge.press_back") as press_back, \
+             mock.patch("bridge.read_score", return_value=None), \
+             mock.patch("bridge.stable_score", return_value=(100, [100, 100])), \
+             mock.patch("bridge.tap_play"), \
+             mock.patch("bridge.annotate"), \
+             mock.patch("PIL.Image.Image.save"), \
+             mock.patch("bridge.os.makedirs"), \
+             mock.patch("bridge.time.sleep"), \
+             mock.patch("builtins.open", mock.mock_open()) as m_open:
+            bridge.main(1, policy_spec="greedy")
+        entries = [json.loads(c.args[0]) for c in m_open().write.call_args_list]
+        self.assertEqual(press_back.call_count >= 1, True)
+        self.assertEqual(entries[0]["okno"], "reklama_jasna")
+        self.assertNotIn("end", entries[0])
+        self.assertTrue(entries[1].get("koniec_partii"))  # po „wstecz" widać koniec partii
+
+
+class TestEmptyBoardSeriesPressesBack(unittest.TestCase):
+    """#235: seria `plansza_pusta_przejsciowo` z rzędu (chunk6: 6 razy) → jeden „wstecz"."""
+
+    def _run_static(self):
+        # Klatka nie jest reklamą ani oknem, odczyt: pusta plansza i pusta taca, brak ruchów.
+        img = _load("495cd91", "loop_after_back.png")
+        empty_grid = [[0] * 8 for _ in range(8)]
+        return _StaticScreenHarness().run(img, empty_grid)
+
+    def test_series_triggers_back_and_static_screen_ends_by_safeguard(self):
+        entries, press_back = self._run_static()
+        self.assertEqual(len(entries), bridge.PROGRESS_SAFEGUARD_TRIES)
+        self.assertEqual(entries[-1]["end"], "okno: petla_bez_postepu")
+        k = bridge.EMPTY_BOARD_BACK_TRIES
+        okna = [e["okno"] for e in entries]
+        self.assertEqual(okna[:k], ["plansza_pusta_przejsciowo"] * (k - 1) + ["plansza_pusta_wstecz"])
+        self.assertEqual(press_back.call_count, bridge.PROGRESS_SAFEGUARD_TRIES // k)
+
+
+class TestChunk10WindowSequenceIsNotALoop(unittest.TestCase):
+    """#235: sekwencja okien z chunk10 (7e25817) — 6 wpisów, po niej grywalna plansza —
+    nie kończy się `petla_bez_postepu`; 30 naprzemiennych okien bez ruchu nadal tak."""
+
+    WINDOWS = ("reklama_statyczna", "reklama_statyczna", "ustawienia_wstecz", "koniec_partii",
+               "ustawienia_wstecz", "menu_glowne")
+
+    def _run(self, windows, max_moves):
+        game_img = _load("0d96333", "120_state.png")
+        neutral = _load("495cd91", "loop_after_back.png")
+        empty_grid = [[0] * 8 for _ in range(8)]
+        board = Board()
+        board.grid = [row[:] for row in empty_grid]
+        board.place_piece(BEAM2, 0, 0)
+        playable = (game_img, board.grid, [([[1, 1]], (20, 460)), None, None])
+        queue = list(windows)
+        current = [queue.pop(0) if queue else None]
+
+        def state():
+            if current[0] is None:
+                return playable
+            return neutral, empty_grid, [None] * 3
+
+        def next_state(tries=6):
+            current[0] = queue.pop(0) if queue else None
+            return state()
+
+        def is_(name):
+            return lambda img: img is neutral and current[0] == name
+
+        with mock.patch("bridge.settled_state", side_effect=state), \
+             mock.patch("bridge.stable_state", side_effect=next_state), \
+             mock.patch("bridge.in_game", return_value=True), \
+             mock.patch("bridge.is_exit_dialog_screen", side_effect=is_("dialog_wyjscia")), \
+             mock.patch("bridge.is_settings_screen", side_effect=is_("ustawienia_wstecz")), \
+             mock.patch("bridge.is_main_menu_screen", side_effect=is_("menu_glowne")), \
+             mock.patch("bridge.is_static_ad_screen", side_effect=is_("reklama_statyczna")), \
+             mock.patch("bridge.is_bright_ad_screen", return_value=False), \
+             mock.patch("bridge.is_game_over_screen", side_effect=is_("koniec_partii")), \
+             mock.patch("bridge.stable_score", return_value=(100, [100, 100])), \
+             mock.patch("bridge.press_back"), mock.patch("bridge.tap_classic"), \
+             mock.patch("bridge.tap_play"), \
+             mock.patch("bridge.read_score", return_value=None), \
+             mock.patch("bridge.drag", return_value=({"finger": [0, 0]}, game_img)), \
+             mock.patch("bridge.annotate"), \
+             mock.patch("PIL.Image.Image.save"), \
+             mock.patch("bridge.os.makedirs"), \
+             mock.patch("bridge.time.sleep"), \
+             mock.patch("builtins.open", mock.mock_open()) as m_open:
+            bridge.main(max_moves, policy_spec="greedy")
+        return [json.loads(c.args[0]) for c in m_open().write.call_args_list]
+
+    def test_chunk10_sequence_matches_log_and_passes(self):
+        logged = []
+        with open(os.path.join(RUNS, "7e25817", "chunk10_moves.jsonl")) as f:
+            for line in f:
+                e = json.loads(line)
+                if "move" not in e:
+                    logged.append("koniec_partii" if e.get("koniec_partii") else e["okno"])
+        self.assertEqual(tuple(logged), self.WINDOWS)
+        entries = self._run(self.WINDOWS, max_moves=1)
+        self.assertEqual(len(entries), len(self.WINDOWS) + 1)  # sześć okien i ruch
+        self.assertFalse(any("end" in e for e in entries))
+        self.assertIn("move", entries[-1])
+
+    def test_thirty_alternating_windows_still_end_as_loop(self):
+        windows = ["ustawienia_wstecz", "reklama_statyczna"] * 15
+        entries = self._run(windows, max_moves=1)
+        self.assertEqual(entries[-1]["end"], "okno: petla_bez_postepu")
+        self.assertTrue(all("move" not in e for e in entries))
+        self.assertLess(len(entries), 30)
 
 
 if __name__ == "__main__":

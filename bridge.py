@@ -77,7 +77,12 @@ EXIT_DIALOG_BG = ((160, 300), (90, 130, 230))
 EXIT_DIALOG_NO = ((97, 360), (8, 154, 214))
 EXIT_DIALOG_YES = ((225, 360), (41, 170, 25))
 EXIT_DIALOG_TOL = 20
-PROGRESS_SAFEGUARD_TRIES = 6  # K wpisów okienkowych z rzędu bez wykonanego ruchu, #163
+# K wpisów okienkowych z rzędu bez wykonanego ruchu, #163. 12 (#235): sekwencja 6 okien z
+# chunk10 (7e25817) kończyła się grywalną planszą, a pętla z #159 miała setki wpisów.
+PROGRESS_SAFEGUARD_TRIES = 12
+# #235: tyle `plansza_pusta_przejsciowo` z rzędu → jeden „wstecz" (chunk6: 6 z rzędu na jasnej
+# reklamie, którą zamknął jeden „wstecz"; 3 daje szansę zwykłej przejściowej klatce).
+EMPTY_BOARD_BACK_TRIES = 3
 BOARD_STUCK_TRIES = 3  # K ruchów z rzędu, po których plansza wcale się nie zmienia (#218):
 # na materiale #212 (`bridge/runs/1b1763a/chunk{25,26,27}_moves.jsonl`) plansza zamarła na
 # 67 ruchów z rzędu (obserwacja == plansza sprzed ruchu, za każdym razem ten sam ruch
@@ -599,6 +604,7 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
     n = 0
     window_streak = 0
     board_stuck_streak = 0
+    empty_streak = 0
     game_number = 1
 
     def windowed_entry(okno):
@@ -650,12 +656,14 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
             img, grid, slots = stable_state()
             continue
         if is_bright_ad_screen(img):
-            entry = {"n": n, "policy": policy.name, "board": grid,
-                     "tray": [s[0] if s else None for s in slots], "score": score,
-                     "end": "okno: reklama_jasna"}
-            log.write(json.dumps(entry) + "\n")
-            print(entry["end"], flush=True)
-            break
+            # #235: „wstecz" zamknął jasną reklamę w pomiarze #223; wpis liczy się do
+            # bezpiecznika, więc stała reklama kończy kawałek w skończonej liczbie kroków.
+            press_back()
+            entry = windowed_entry("reklama_jasna")
+            if "end" in entry:
+                break
+            img, grid, slots = stable_state()
+            continue
         if is_game_over_screen(img):
             end_path = os.path.join(OUT, f"{n:03d}_end.png")
             Image.fromarray(img.astype(np.uint8)).save(end_path)
@@ -701,7 +709,14 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
                 # `board_and_tray_empty` na przejściowej klatce prawdziwej planszy: nie jest
                 # reklamą, więc stuknięcie w AD_CLOSE trafiłoby w ikonę Ustawień (#163) —
                 # tylko odczyt ponownie, bez dotykania ekranu.
-                entry = windowed_entry("plansza_pusta_przejsciowo")
+                empty_streak += 1
+                if empty_streak >= EMPTY_BOARD_BACK_TRIES:
+                    # #235: seria pustych odczytów to zwykle nierozpoznana reklama — jeden „wstecz".
+                    empty_streak = 0
+                    press_back()
+                    entry = windowed_entry("plansza_pusta_wstecz")
+                else:
+                    entry = windowed_entry("plansza_pusta_przejsciowo")
                 if "end" in entry:
                     break
                 img, grid, slots = stable_state()
@@ -721,6 +736,7 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
             log.write(json.dumps(entry) + "\n")
             break
         window_streak = 0
+        empty_streak = 0
         game = make_game_stub(board, pieces)
         t0 = time.perf_counter()
         i, x, y = policy.act(game, moves)
