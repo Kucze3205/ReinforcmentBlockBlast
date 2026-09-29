@@ -12,6 +12,14 @@
     {"kawalek": 4, "plik_ruchow": "chunk4_moves.jsonl", "ruchy": "0-29", "polityka": "greedy",
      "wynik": "30/30 ok, brak okien, brak reklam, brak konca partii. Partia 1 kontynuowana: wynik do 11728 (pole score, kilka odczytow OCR wyraznie zaszumionych: ruch 10=9231, ruch 18=71773, ruch 28=1302 - niespojne z sasiednimi, pominiete jako szum)."},
     {"kawalek": 5, "plik_ruchow": "chunk5_moves.jsonl", "ruchy": "0-29", "polityka": "greedy",
-     "wynik": "30/30 ok, brak okien, brak reklam, brak konca partii. Partia 1 kontynuowana, plansza bardzo pelna: wynik do ok. 29778 (pole score, rosnie spojnie z drobnym szumem)."}
+     "wynik": "30/30 ok, brak okien, brak reklam, brak konca partii. Partia 1 kontynuowana, plansza bardzo pelna: wynik do ok. 29778 (pole score, rosnie spojnie z drobnym szumem)."},
+    {"kawalek": 6, "plik_ruchow": "chunk6_moves.jsonl", "ruchy": "0-24 (partia 1) + 25-29 (partia 2 od nowa)", "polityka": "greedy",
+     "wynik": "Ruchy 0-23 partii 1 ok, wynik do 30171. Ruch 24 ROZBIEZNOSC (OCR pusty na 'aim'), most SAM wykryl is_game_over_screen (WARIANT: tlo fioletowo-zlote z korona i confetti, BEZ widocznego tekstu wyniku w zrzucie koncowym - inny wariant niz poprzednie 3 warianty z #205), zapisal zrzut 025_end.png PRZED Play. Odczyty wyniku NIE ustabilizowaly sie parami rownych wartosci - seria rosnaca [null, 8004, 14226, 20284, 25644, 30179], najwyzszy/ostatni odczyt przyjety jako wynik_koncowy=30179 (animacja liczydla wciaz w trakcie zliczania przy kazdym kolejnym odczycie, most nie doczekal 2 zgodnych). SAM tapnal Play (BEZ REKI), brak reklamy przy tym zakonczeniu. Partia 2 wystartowala (n=25). Ruchy 25-29 partii 2 ok. Zrzut zapisany jako chunk6_025_end.png."},
+    {"kawalek": 7, "plik_ruchow": "chunk7_moves.jsonl", "ruchy": "0-29", "polityka": "greedy",
+     "wynik": "30/30 ok, brak okien, brak reklam, brak konca partii. Partia 2 kontynuowana: wynik mid-game niestabilny (szum OCR, np. ruch 17=515 po ruchu 16=901), plansza rosnie."},
+    {"kawalek": 8, "plik_ruchow": "chunk8_moves.jsonl", "ruchy": "0-29", "polityka": "greedy",
+     "wynik": "30/30 ok, brak okien, brak reklam, brak konca partii. Partia 2 kontynuowana: wynik do 1653 (pole score, stabilniejszy niz w kawalku 7)."},
+    {"kawalek": 9, "plik_ruchow": "chunk9_moves.jsonl", "ruchy": "0-29", "polityka": "greedy",
+     "wynik": "30/30 ok, brak okien, brak reklam, brak konca partii. Partia 2 kontynuowana: wynik do 1936."}
   ]
 }
