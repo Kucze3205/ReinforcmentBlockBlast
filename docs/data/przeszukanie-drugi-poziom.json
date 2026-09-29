@@ -1,0 +1,139 @@
+{
+  "n_seeds": 200,
+  "seed_salt": "drugi-poziom-210",
+  "jobs": 4,
+  "weights": "ntuple/survival-adcga16-800k.json",
+  "results": [
+    {
+      "label": "beam=128 s=2 b=2 in=1x1",
+      "spec": "lookahead-ntuple:ntuple/survival-adcga16-800k.json@beam=128,samples=2,branch=2,inner_beam=1,inner_depth=1",
+      "n_games": 200,
+      "mean": 86332.56,
+      "se": 6437.69,
+      "survival_mean": 642.11,
+      "capped_pct": 5.0,
+      "s_per_game": 1.0466,
+      "duration_s": 209.3
+    },
+    {
+      "label": "beam=128 s=0 (bez 2. poziomu)",
+      "spec": "lookahead-ntuple:ntuple/survival-adcga16-800k.json@beam=128,samples=0",
+      "n_games": 200,
+      "mean": 82966.73,
+      "se": 6032.4,
+      "survival_mean": 593.64,
+      "capped_pct": 5.0,
+      "s_per_game": 0.8589,
+      "duration_s": 171.8,
+      "vs_domyslna": {
+        "mean_diff": -3365.84,
+        "pct": -3.9,
+        "sd_diff": 124692.21,
+        "se_diff": 8817.07,
+        "se_pct": 10.21,
+        "mean_diff_over_se": -0.38,
+        "label": "bez zmian"
+      }
+    },
+    {
+      "label": "beam=128 s=4 b=2",
+      "spec": "lookahead-ntuple:ntuple/survival-adcga16-800k.json@beam=128,samples=4,branch=2",
+      "n_games": 200,
+      "mean": 91211.46,
+      "se": 6087.14,
+      "survival_mean": 699.47,
+      "capped_pct": 6.5,
+      "s_per_game": 1.2227,
+      "duration_s": 244.5,
+      "vs_domyslna": {
+        "mean_diff": 4878.9,
+        "pct": 5.65,
+        "sd_diff": 114068.07,
+        "se_diff": 8065.83,
+        "se_pct": 9.34,
+        "mean_diff_over_se": 0.6,
+        "label": "bez zmian"
+      }
+    },
+    {
+      "label": "beam=128 s=8 b=2",
+      "spec": "lookahead-ntuple:ntuple/survival-adcga16-800k.json@beam=128,samples=8,branch=2",
+      "n_games": 200,
+      "mean": 83221.74,
+      "se": 5633.15,
+      "survival_mean": 616.85,
+      "capped_pct": 5.0,
+      "s_per_game": 1.2837,
+      "duration_s": 256.7,
+      "vs_domyslna": {
+        "mean_diff": -3110.82,
+        "pct": -3.6,
+        "sd_diff": 117121.05,
+        "se_diff": 8281.71,
+        "se_pct": 9.59,
+        "mean_diff_over_se": -0.38,
+        "label": "bez zmian"
+      }
+    },
+    {
+      "label": "beam=128 s=16 b=2",
+      "spec": "lookahead-ntuple:ntuple/survival-adcga16-800k.json@beam=128,samples=16,branch=2",
+      "n_games": 200,
+      "mean": 94221.04,
+      "se": 6330.96,
+      "survival_mean": 689.23,
+      "capped_pct": 4.0,
+      "s_per_game": 1.8852,
+      "duration_s": 377.0,
+      "vs_domyslna": {
+        "mean_diff": 7888.48,
+        "pct": 9.14,
+        "sd_diff": 119632.48,
+        "se_diff": 8459.29,
+        "se_pct": 9.8,
+        "mean_diff_over_se": 0.93,
+        "label": "bez zmian"
+      }
+    },
+    {
+      "label": "beam=128 margin=0",
+      "spec": "lookahead-ntuple:ntuple/survival-adcga16-800k.json@beam=128,margin=0",
+      "n_games": 200,
+      "mean": 82966.73,
+      "se": 6032.4,
+      "survival_mean": 593.64,
+      "capped_pct": 5.0,
+      "s_per_game": 0.9259,
+      "duration_s": 185.2,
+      "vs_domyslna": {
+        "mean_diff": -3365.84,
+        "pct": -3.9,
+        "sd_diff": 124692.21,
+        "se_diff": 8817.07,
+        "se_pct": 10.21,
+        "mean_diff_over_se": -0.38,
+        "label": "bez zmian"
+      }
+    },
+    {
+      "label": "beam=128 margin=1",
+      "spec": "lookahead-ntuple:ntuple/survival-adcga16-800k.json@beam=128,margin=1",
+      "n_games": 200,
+      "mean": 88359.1,
+      "se": 6255.85,
+      "survival_mean": 641.0,
+      "capped_pct": 6.5,
+      "s_per_game": 0.9792,
+      "duration_s": 195.8,
+      "vs_domyslna": {
+        "mean_diff": 2026.55,
+        "pct": 2.35,
+        "sd_diff": 120699.09,
+        "se_diff": 8534.71,
+        "se_pct": 9.89,
+        "mean_diff_over_se": 0.24,
+        "label": "bez zmian"
+      }
+    }
+  ]
+}
