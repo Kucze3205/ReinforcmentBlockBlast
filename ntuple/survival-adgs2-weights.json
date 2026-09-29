@@ -1,7 +1,567 @@
 {
-  "format": 2,
-  "episode": 300000,
-  "episodes_target": 400000,
+  "reward": "survival",
+  "patch_layout": [
+    [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    [
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    [
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+    ],
+    [
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31
+    ],
+    [
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39
+    ],
+    [
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47
+    ],
+    [
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55
+    ],
+    [
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63
+    ],
+    [
+      0,
+      8,
+      16,
+      24,
+      32,
+      40,
+      48,
+      56
+    ],
+    [
+      1,
+      9,
+      17,
+      25,
+      33,
+      41,
+      49,
+      57
+    ],
+    [
+      2,
+      10,
+      18,
+      26,
+      34,
+      42,
+      50,
+      58
+    ],
+    [
+      3,
+      11,
+      19,
+      27,
+      35,
+      43,
+      51,
+      59
+    ],
+    [
+      4,
+      12,
+      20,
+      28,
+      36,
+      44,
+      52,
+      60
+    ],
+    [
+      5,
+      13,
+      21,
+      29,
+      37,
+      45,
+      53,
+      61
+    ],
+    [
+      6,
+      14,
+      22,
+      30,
+      38,
+      46,
+      54,
+      62
+    ],
+    [
+      7,
+      15,
+      23,
+      31,
+      39,
+      47,
+      55,
+      63
+    ],
+    [
+      0,
+      1,
+      2,
+      8,
+      9,
+      10,
+      16,
+      17,
+      18
+    ],
+    [
+      1,
+      2,
+      3,
+      9,
+      10,
+      11,
+      17,
+      18,
+      19
+    ],
+    [
+      2,
+      3,
+      4,
+      10,
+      11,
+      12,
+      18,
+      19,
+      20
+    ],
+    [
+      3,
+      4,
+      5,
+      11,
+      12,
+      13,
+      19,
+      20,
+      21
+    ],
+    [
+      4,
+      5,
+      6,
+      12,
+      13,
+      14,
+      20,
+      21,
+      22
+    ],
+    [
+      5,
+      6,
+      7,
+      13,
+      14,
+      15,
+      21,
+      22,
+      23
+    ],
+    [
+      8,
+      9,
+      10,
+      16,
+      17,
+      18,
+      24,
+      25,
+      26
+    ],
+    [
+      9,
+      10,
+      11,
+      17,
+      18,
+      19,
+      25,
+      26,
+      27
+    ],
+    [
+      10,
+      11,
+      12,
+      18,
+      19,
+      20,
+      26,
+      27,
+      28
+    ],
+    [
+      11,
+      12,
+      13,
+      19,
+      20,
+      21,
+      27,
+      28,
+      29
+    ],
+    [
+      12,
+      13,
+      14,
+      20,
+      21,
+      22,
+      28,
+      29,
+      30
+    ],
+    [
+      13,
+      14,
+      15,
+      21,
+      22,
+      23,
+      29,
+      30,
+      31
+    ],
+    [
+      16,
+      17,
+      18,
+      24,
+      25,
+      26,
+      32,
+      33,
+      34
+    ],
+    [
+      17,
+      18,
+      19,
+      25,
+      26,
+      27,
+      33,
+      34,
+      35
+    ],
+    [
+      18,
+      19,
+      20,
+      26,
+      27,
+      28,
+      34,
+      35,
+      36
+    ],
+    [
+      19,
+      20,
+      21,
+      27,
+      28,
+      29,
+      35,
+      36,
+      37
+    ],
+    [
+      20,
+      21,
+      22,
+      28,
+      29,
+      30,
+      36,
+      37,
+      38
+    ],
+    [
+      21,
+      22,
+      23,
+      29,
+      30,
+      31,
+      37,
+      38,
+      39
+    ],
+    [
+      24,
+      25,
+      26,
+      32,
+      33,
+      34,
+      40,
+      41,
+      42
+    ],
+    [
+      25,
+      26,
+      27,
+      33,
+      34,
+      35,
+      41,
+      42,
+      43
+    ],
+    [
+      26,
+      27,
+      28,
+      34,
+      35,
+      36,
+      42,
+      43,
+      44
+    ],
+    [
+      27,
+      28,
+      29,
+      35,
+      36,
+      37,
+      43,
+      44,
+      45
+    ],
+    [
+      28,
+      29,
+      30,
+      36,
+      37,
+      38,
+      44,
+      45,
+      46
+    ],
+    [
+      29,
+      30,
+      31,
+      37,
+      38,
+      39,
+      45,
+      46,
+      47
+    ],
+    [
+      32,
+      33,
+      34,
+      40,
+      41,
+      42,
+      48,
+      49,
+      50
+    ],
+    [
+      33,
+      34,
+      35,
+      41,
+      42,
+      43,
+      49,
+      50,
+      51
+    ],
+    [
+      34,
+      35,
+      36,
+      42,
+      43,
+      44,
+      50,
+      51,
+      52
+    ],
+    [
+      35,
+      36,
+      37,
+      43,
+      44,
+      45,
+      51,
+      52,
+      53
+    ],
+    [
+      36,
+      37,
+      38,
+      44,
+      45,
+      46,
+      52,
+      53,
+      54
+    ],
+    [
+      37,
+      38,
+      39,
+      45,
+      46,
+      47,
+      53,
+      54,
+      55
+    ],
+    [
+      40,
+      41,
+      42,
+      48,
+      49,
+      50,
+      56,
+      57,
+      58
+    ],
+    [
+      41,
+      42,
+      43,
+      49,
+      50,
+      51,
+      57,
+      58,
+      59
+    ],
+    [
+      42,
+      43,
+      44,
+      50,
+      51,
+      52,
+      58,
+      59,
+      60
+    ],
+    [
+      43,
+      44,
+      45,
+      51,
+      52,
+      53,
+      59,
+      60,
+      61
+    ],
+    [
+      44,
+      45,
+      46,
+      52,
+      53,
+      54,
+      60,
+      61,
+      62
+    ],
+    [
+      45,
+      46,
+      47,
+      53,
+      54,
+      55,
+      61,
+      62,
+      63
+    ]
+  ],
+  "stages": 2,
+  "thresholds": [
+    21
+  ],
   "weights": [
     [
       [
@@ -45271,555 +45831,5 @@
         1.597540684264997
       ]
     ]
-  ],
-  "games_played": 100000,
-  "duration_s": 814.7167937755585,
-  "params": {
-    "seed": 3,
-    "alpha": 0.0003076923076923077,
-    "move_cap": 2000,
-    "reward": "survival",
-    "layout": "AD",
-    "td_target": "r_t",
-    "stages": 2,
-    "thresholds": [
-      21
-    ]
-  },
-  "bench_seeds_n": 300,
-  "log_bytes": 19250890,
-  "windows": [
-    {
-      "od_odcinka": 200001,
-      "do_odcinka": 202000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12483543,
-      "suma_przezycia": 237548,
-      "suma_bledu_td": 9904.444200000005
-    },
-    {
-      "od_odcinka": 202001,
-      "do_odcinka": 204000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12835803,
-      "suma_przezycia": 237446,
-      "suma_bledu_td": 10198.171699999975
-    },
-    {
-      "od_odcinka": 204001,
-      "do_odcinka": 206000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12225637,
-      "suma_przezycia": 233382,
-      "suma_bledu_td": 10246.865799999985
-    },
-    {
-      "od_odcinka": 206001,
-      "do_odcinka": 208000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12957592,
-      "suma_przezycia": 242066,
-      "suma_bledu_td": 10207.26599999999
-    },
-    {
-      "od_odcinka": 208001,
-      "do_odcinka": 210000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12862702,
-      "suma_przezycia": 239933,
-      "suma_bledu_td": 10311.697900000012
-    },
-    {
-      "od_odcinka": 210001,
-      "do_odcinka": 212000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12045879,
-      "suma_przezycia": 227400,
-      "suma_bledu_td": 10473.894799999982
-    },
-    {
-      "od_odcinka": 212001,
-      "do_odcinka": 214000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12771200,
-      "suma_przezycia": 236281,
-      "suma_bledu_td": 10325.343500000008
-    },
-    {
-      "od_odcinka": 214001,
-      "do_odcinka": 216000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12590108,
-      "suma_przezycia": 234804,
-      "suma_bledu_td": 10451.211100000015
-    },
-    {
-      "od_odcinka": 216001,
-      "do_odcinka": 218000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 13356706,
-      "suma_przezycia": 240872,
-      "suma_bledu_td": 10344.988800000006
-    },
-    {
-      "od_odcinka": 218001,
-      "do_odcinka": 220000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 11971275,
-      "suma_przezycia": 228102,
-      "suma_bledu_td": 10490.50120000001
-    },
-    {
-      "od_odcinka": 220001,
-      "do_odcinka": 222000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 13096357,
-      "suma_przezycia": 238542,
-      "suma_bledu_td": 10352.048800000017
-    },
-    {
-      "od_odcinka": 222001,
-      "do_odcinka": 224000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12482464,
-      "suma_przezycia": 234985,
-      "suma_bledu_td": 10460.661900000016
-    },
-    {
-      "od_odcinka": 224001,
-      "do_odcinka": 226000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12521714,
-      "suma_przezycia": 232257,
-      "suma_bledu_td": 10339.283499999992
-    },
-    {
-      "od_odcinka": 226001,
-      "do_odcinka": 228000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 13011912,
-      "suma_przezycia": 243122,
-      "suma_bledu_td": 10444.405000000006
-    },
-    {
-      "od_odcinka": 228001,
-      "do_odcinka": 230000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 13046454,
-      "suma_przezycia": 240918,
-      "suma_bledu_td": 10488.098199999984
-    },
-    {
-      "od_odcinka": 230001,
-      "do_odcinka": 232000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12478972,
-      "suma_przezycia": 234097,
-      "suma_bledu_td": 10525.611400000014
-    },
-    {
-      "od_odcinka": 232001,
-      "do_odcinka": 234000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12867413,
-      "suma_przezycia": 236302,
-      "suma_bledu_td": 10456.026899999973
-    },
-    {
-      "od_odcinka": 234001,
-      "do_odcinka": 236000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 13528020,
-      "suma_przezycia": 251432,
-      "suma_bledu_td": 10608.985200000034
-    },
-    {
-      "od_odcinka": 236001,
-      "do_odcinka": 238000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12810338,
-      "suma_przezycia": 238896,
-      "suma_bledu_td": 10537.555000000022
-    },
-    {
-      "od_odcinka": 238001,
-      "do_odcinka": 240000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 13093440,
-      "suma_przezycia": 248362,
-      "suma_bledu_td": 10521.694200000014
-    },
-    {
-      "od_odcinka": 240001,
-      "do_odcinka": 242000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 13381342,
-      "suma_przezycia": 247745,
-      "suma_bledu_td": 10613.251600000005
-    },
-    {
-      "od_odcinka": 242001,
-      "do_odcinka": 244000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 13385702,
-      "suma_przezycia": 244989,
-      "suma_bledu_td": 10707.888500000006
-    },
-    {
-      "od_odcinka": 244001,
-      "do_odcinka": 246000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12540545,
-      "suma_przezycia": 234909,
-      "suma_bledu_td": 10665.4993
-    },
-    {
-      "od_odcinka": 246001,
-      "do_odcinka": 248000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12388914,
-      "suma_przezycia": 231966,
-      "suma_bledu_td": 10524.6559
-    },
-    {
-      "od_odcinka": 248001,
-      "do_odcinka": 250000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12927201,
-      "suma_przezycia": 240791,
-      "suma_bledu_td": 10567.293999999996
-    },
-    {
-      "od_odcinka": 250001,
-      "do_odcinka": 252000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 13204699,
-      "suma_przezycia": 243530,
-      "suma_bledu_td": 10542.5543
-    },
-    {
-      "od_odcinka": 252001,
-      "do_odcinka": 254000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 13003083,
-      "suma_przezycia": 244469,
-      "suma_bledu_td": 10657.43119999998
-    },
-    {
-      "od_odcinka": 254001,
-      "do_odcinka": 256000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12809880,
-      "suma_przezycia": 243040,
-      "suma_bledu_td": 10658.761899999998
-    },
-    {
-      "od_odcinka": 256001,
-      "do_odcinka": 258000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12577123,
-      "suma_przezycia": 236411,
-      "suma_bledu_td": 10557.978799999986
-    },
-    {
-      "od_odcinka": 258001,
-      "do_odcinka": 260000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 13108149,
-      "suma_przezycia": 240664,
-      "suma_bledu_td": 10633.53700000001
-    },
-    {
-      "od_odcinka": 260001,
-      "do_odcinka": 262000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 13177220,
-      "suma_przezycia": 242689,
-      "suma_bledu_td": 10594.919100000001
-    },
-    {
-      "od_odcinka": 262001,
-      "do_odcinka": 264000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 13268228,
-      "suma_przezycia": 241790,
-      "suma_bledu_td": 10695.480599999999
-    },
-    {
-      "od_odcinka": 264001,
-      "do_odcinka": 266000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 13236514,
-      "suma_przezycia": 241237,
-      "suma_bledu_td": 10693.039199999972
-    },
-    {
-      "od_odcinka": 266001,
-      "do_odcinka": 268000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12901515,
-      "suma_przezycia": 238901,
-      "suma_bledu_td": 10651.441000000024
-    },
-    {
-      "od_odcinka": 268001,
-      "do_odcinka": 270000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 13278962,
-      "suma_przezycia": 240167,
-      "suma_bledu_td": 10632.033600000006
-    },
-    {
-      "od_odcinka": 270001,
-      "do_odcinka": 272000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12846833,
-      "suma_przezycia": 239743,
-      "suma_bledu_td": 10734.508300000001
-    },
-    {
-      "od_odcinka": 272001,
-      "do_odcinka": 274000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 14056695,
-      "suma_przezycia": 253376,
-      "suma_bledu_td": 10661.287299999982
-    },
-    {
-      "od_odcinka": 274001,
-      "do_odcinka": 276000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12973198,
-      "suma_przezycia": 241871,
-      "suma_bledu_td": 10676.649500000016
-    },
-    {
-      "od_odcinka": 276001,
-      "do_odcinka": 278000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 13306400,
-      "suma_przezycia": 242705,
-      "suma_bledu_td": 10744.404900000014
-    },
-    {
-      "od_odcinka": 278001,
-      "do_odcinka": 280000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12518719,
-      "suma_przezycia": 227860,
-      "suma_bledu_td": 10692.98810000001
-    },
-    {
-      "od_odcinka": 280001,
-      "do_odcinka": 282000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 13586384,
-      "suma_przezycia": 247143,
-      "suma_bledu_td": 10605.452899999987
-    },
-    {
-      "od_odcinka": 282001,
-      "do_odcinka": 284000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 13194077,
-      "suma_przezycia": 243648,
-      "suma_bledu_td": 10581.40359999998
-    },
-    {
-      "od_odcinka": 284001,
-      "do_odcinka": 286000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 13740587,
-      "suma_przezycia": 249118,
-      "suma_bledu_td": 10703.049200000003
-    },
-    {
-      "od_odcinka": 286001,
-      "do_odcinka": 288000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12340918,
-      "suma_przezycia": 229435,
-      "suma_bledu_td": 10608.972899999986
-    },
-    {
-      "od_odcinka": 288001,
-      "do_odcinka": 290000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 13142585,
-      "suma_przezycia": 240718,
-      "suma_bledu_td": 10654.588500000022
-    },
-    {
-      "od_odcinka": 290001,
-      "do_odcinka": 292000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12967231,
-      "suma_przezycia": 238812,
-      "suma_bledu_td": 10771.429200000017
-    },
-    {
-      "od_odcinka": 292001,
-      "do_odcinka": 294000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 12985324,
-      "suma_przezycia": 242292,
-      "suma_bledu_td": 10608.084099999995
-    },
-    {
-      "od_odcinka": 294001,
-      "do_odcinka": 296000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 13642672,
-      "suma_przezycia": 248471,
-      "suma_bledu_td": 10699.20370000002
-    },
-    {
-      "od_odcinka": 296001,
-      "do_odcinka": 298000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 13473832,
-      "suma_przezycia": 249465,
-      "suma_bledu_td": 10657.260700000008
-    },
-    {
-      "od_odcinka": 298001,
-      "do_odcinka": 300000,
-      "n_odcinkow": 2000,
-      "suma_wyniku": 13528565,
-      "suma_przezycia": 247008,
-      "suma_bledu_td": 10730.09360000002
-    }
-  ],
-  "eval": {
-    "every": 5000,
-    "episodes": 200,
-    "points": [
-      {
-        "odcinki": 205000,
-        "sredni_wynik": 5820.24,
-        "srednie_przezycie": 111.97,
-        "n_partii": 200
-      },
-      {
-        "odcinki": 210000,
-        "sredni_wynik": 5608.97,
-        "srednie_przezycie": 109.81,
-        "n_partii": 200
-      },
-      {
-        "odcinki": 215000,
-        "sredni_wynik": 7091.71,
-        "srednie_przezycie": 130.51,
-        "n_partii": 200
-      },
-      {
-        "odcinki": 220000,
-        "sredni_wynik": 5857.15,
-        "srednie_przezycie": 103.85,
-        "n_partii": 200
-      },
-      {
-        "odcinki": 225000,
-        "sredni_wynik": 6557.81,
-        "srednie_przezycie": 123.57,
-        "n_partii": 200
-      },
-      {
-        "odcinki": 230000,
-        "sredni_wynik": 5910.6,
-        "srednie_przezycie": 113.08,
-        "n_partii": 200
-      },
-      {
-        "odcinki": 235000,
-        "sredni_wynik": 7068.51,
-        "srednie_przezycie": 130.96,
-        "n_partii": 200
-      },
-      {
-        "odcinki": 240000,
-        "sredni_wynik": 6960.13,
-        "srednie_przezycie": 123.92,
-        "n_partii": 200
-      },
-      {
-        "odcinki": 245000,
-        "sredni_wynik": 7507.1,
-        "srednie_przezycie": 124.58,
-        "n_partii": 200
-      },
-      {
-        "odcinki": 250000,
-        "sredni_wynik": 6612.55,
-        "srednie_przezycie": 123.17,
-        "n_partii": 200
-      },
-      {
-        "odcinki": 255000,
-        "sredni_wynik": 6703.47,
-        "srednie_przezycie": 124.75,
-        "n_partii": 200
-      },
-      {
-        "odcinki": 260000,
-        "sredni_wynik": 6513.92,
-        "srednie_przezycie": 117.45,
-        "n_partii": 200
-      },
-      {
-        "odcinki": 265000,
-        "sredni_wynik": 7606.56,
-        "srednie_przezycie": 135.72,
-        "n_partii": 200
-      },
-      {
-        "odcinki": 270000,
-        "sredni_wynik": 6753.3,
-        "srednie_przezycie": 127.53,
-        "n_partii": 200
-      },
-      {
-        "odcinki": 275000,
-        "sredni_wynik": 6538.89,
-        "srednie_przezycie": 123.39,
-        "n_partii": 200
-      },
-      {
-        "odcinki": 280000,
-        "sredni_wynik": 6416.89,
-        "srednie_przezycie": 117.44,
-        "n_partii": 200
-      },
-      {
-        "odcinki": 285000,
-        "sredni_wynik": 6010.15,
-        "srednie_przezycie": 115.94,
-        "n_partii": 200
-      },
-      {
-        "odcinki": 290000,
-        "sredni_wynik": 7387.09,
-        "srednie_przezycie": 128.08,
-        "n_partii": 200
-      },
-      {
-        "odcinki": 295000,
-        "sredni_wynik": 7098.31,
-        "srednie_przezycie": 132.97,
-        "n_partii": 200
-      },
-      {
-        "odcinki": 300000,
-        "sredni_wynik": 6425.15,
-        "srednie_przezycie": 117.71,
-        "n_partii": 200
-      }
-    ],
-    "best": {
-      "odcinki": 265000,
-      "sredni_wynik": 7606.56,
-      "srednie_przezycie": 135.72,
-      "n_partii": 200
-    }
-  }
+  ]
 }
