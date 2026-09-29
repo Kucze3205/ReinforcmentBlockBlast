@@ -1,0 +1,82 @@
+{
+  "sha": "a1a190f6a4d67e5a66e9d26c45ac300966eb3060",
+  "dirty": false,
+  "issue": 213,
+  "status": "ok",
+  "blocked_reason": null,
+  "config": {
+    "n_seeds": 300,
+    "move_cap": 4000,
+    "epsilon": 0.0,
+    "torch_seed": 0,
+    "threshold_pct": 10.0,
+    "fixed_seed_file": "bench/seeds_fixed.json",
+    "rotated_seed_salt": 2654435761
+  },
+  "source_hashes": {
+    "game.py": "37da8bd9298fc6c2",
+    "scoring.py": "1e4a1b8730243ce6",
+    "generator.py": "bc8c4a19ba7f16d2",
+    "pieces.py": "7241459a3cb11706",
+    "features.py": "3e4c45d8cafa246c",
+    "policies.py": "fbc34f04185350c0",
+    "benchmark.py": "0dd1ab58cb56f4f7",
+    "ntuple.py": "9a041f56d16a0ea4",
+    "ntuple_native.c": "12ca06d5f205d1eb",
+    "ntuple_native.py": "d66d10665c472dc3"
+  },
+  "arms": {
+    "candidate": {
+      "policy": "lookahead-ntuple",
+      "fixed": {
+        "mean": 70670.11,
+        "median": 46268.0,
+        "p10": 6164.6,
+        "survival_mean": 678.25,
+        "capped_pct": 0.33
+      },
+      "rotated": {
+        "mean": 64505.59,
+        "median": 39407.5,
+        "p10": 4834.4,
+        "survival_mean": 641.56,
+        "capped_pct": 0.0
+      },
+      "overfit_gap_pct": 8.72,
+      "spec": "lookahead-ntuple:ntuple/survival-adgs2-300k.json@beam=128",
+      "weights_hash": "fdad4621b8a595b5"
+    },
+    "record": {
+      "policy": "lookahead-ntuple",
+      "fixed": {
+        "mean": 88133.5,
+        "median": 54879.0,
+        "p10": 6150.9,
+        "survival_mean": 647.3,
+        "capped_pct": 0.33
+      },
+      "rotated": {
+        "mean": 80329.56,
+        "median": 52975.5,
+        "p10": 5346.5,
+        "survival_mean": 627.21,
+        "capped_pct": 0.0
+      },
+      "overfit_gap_pct": 8.85,
+      "spec": "lookahead-ntuple:ntuple/survival-adcga16-800k.json@beam=128",
+      "weights_hash": "0ca43a9190d1f1e3"
+    }
+  },
+  "deltas": {
+    "kandydat vs record": {
+      "mean_diff": -17463.39,
+      "pct": -19.81,
+      "sd_diff": 123209.17,
+      "se_diff": 7113.48,
+      "se_pct": 8.07,
+      "mean_diff_over_se": -2.45,
+      "label": "regresja"
+    }
+  },
+  "duration_s": 990.6
+}
