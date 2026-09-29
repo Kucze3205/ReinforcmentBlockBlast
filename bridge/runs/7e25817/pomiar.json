@@ -66,6 +66,13 @@
       "ruchy": "0-59",
       "polityka": "greedy",
       "wynik": "60/60 zapisanych, wszystkie ok, brak okno w logu, brak reklamy, brak konca partii, brak restartow. Partia 3 kontynuowana: wynik do 17857 (szum OCR x10 na ruchach 53: 173514, 58: 177358)."
+    },
+    {
+      "kawalek": 9,
+      "plik_ruchow": "chunk9_moves.jsonl",
+      "ruchy": "0-59",
+      "polityka": "greedy",
+      "wynik": "60/60 zapisanych, wszystkie ok, brak okno w logu, brak reklamy, brak konca partii, brak restartow. Partia 3 kontynuowana, plansza pelna: wynik do 37090 (pole score)."
     }
   ],
   "partie": [
