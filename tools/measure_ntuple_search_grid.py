@@ -40,24 +40,36 @@ CONFIGS = [
     ("beam=64 s=2 b=2 in=1x1", dict(beam=64, samples=2, branch=2, inner_beam=1, inner_depth=1)),
     ("beam=96 s=2 b=2 in=1x1", dict(beam=96, samples=2, branch=2, inner_beam=1, inner_depth=1)),
     ("beam=128 s=2 b=2 in=1x1", dict(beam=128, samples=2, branch=2, inner_beam=1, inner_depth=1)),
+    # #210: drugi poziom na wagach rekordu (`ntuple/survival-adcga16-800k.json`, #201),
+    # `beam=128` stałe -- uruchamiane z `--weights ntuple/survival-adcga16-800k.json`,
+    # nie z domyślnym `WEIGHTS` tego modułu (ten zostaje wagami #195, żeby stare
+    # wywołania bez `--weights` dawały bitowo te same specyfikacje co dotąd).
+    # "beam=128 s=2 b=2 in=1x1" wyżej to ten sam wiersz co "domyślna dla beam=128"
+    # (pytanie 1 #210) -- nie duplikuję go.
+    ("beam=128 s=0 (bez 2. poziomu)", dict(beam=128, samples=0)),
+    ("beam=128 s=4 b=2", dict(beam=128, samples=4, branch=2)),
+    ("beam=128 s=8 b=2", dict(beam=128, samples=8, branch=2)),
+    ("beam=128 s=16 b=2", dict(beam=128, samples=16, branch=2)),
+    ("beam=128 margin=0", dict(beam=128, margin=0)),
+    ("beam=128 margin=1", dict(beam=128, margin=1)),
 ]
 
 
-def grid_seeds(n, config):
+def grid_seeds(n, config, salt=SEED_SALT):
     """`n` seedów deterministycznych, jawnie rozłącznych z `config['fixed_seed_file']`."""
     with open(config["fixed_seed_file"], encoding="utf-8") as fh:
         fixed = set(json.load(fh))
-    rng = random.Random(SEED_SALT)
+    rng = random.Random(salt)
     pool = rng.sample(range(1, 2**31 - 1), n + len(fixed))
     seeds = [s for s in pool if s not in fixed][:n]
     assert len(seeds) == n, "pula wylosowanych seedów za mała po odjęciu kolizji z fixed"
     return seeds
 
 
-def spec_for(params):
+def spec_for(params, weights=WEIGHTS):
     if not params:
-        return "lookahead-ntuple:" + WEIGHTS
-    return "lookahead-ntuple:" + WEIGHTS + "@" + ",".join(
+        return "lookahead-ntuple:" + weights
+    return "lookahead-ntuple:" + weights + "@" + ",".join(
         "{0}={1}".format(k, v) for k, v in params.items()
     )
 
@@ -69,10 +81,19 @@ def main(argv=None):
     parser.add_argument("--config", default="bench/config.json")
     parser.add_argument("--out", help="ścieżka JSON z wynikami (poza bench/*)")
     parser.add_argument("--labels", nargs="*", help="podzbiór etykiet z CONFIGS")
+    parser.add_argument("--weights", default=WEIGHTS, help="plik wag ntuple (domyślnie #195: " + WEIGHTS + ")")
+    parser.add_argument(
+        "--seed-salt", default=SEED_SALT,
+        help="sól puli seedów, rozłącznej z fixed_seed_file (domyślnie #195: " + SEED_SALT + ")",
+    )
+    parser.add_argument(
+        "--baseline-label", default="domyslna",
+        help="etykieta wiersza odniesienia dla vs_domyslna/paired_delta (domyślnie: domyslna)",
+    )
     args = parser.parse_args(argv)
 
     config = load_config(args.config)
-    seeds = grid_seeds(args.n_seeds, config)
+    seeds = grid_seeds(args.n_seeds, config, salt=args.seed_salt)
     configs = [c for c in CONFIGS if not args.labels or c[0] in args.labels]
     if args.labels and not configs:
         raise SystemExit("żadna etykieta nie pasuje; dostępne: " + ", ".join(c[0] for c in CONFIGS))
@@ -80,7 +101,7 @@ def main(argv=None):
     baseline_scores = None
     results = []
     for label, params in configs:
-        spec = spec_for(params)
+        spec = spec_for(params, weights=args.weights)
         policy = build_policy(spec, config)
         t0 = time.time()
         summary = run_set(policy, seeds, config["move_cap"], jobs=args.jobs, spec=spec, config=config)
@@ -96,10 +117,11 @@ def main(argv=None):
             "mean": summary["mean"],
             "se": round(se, 2),
             "survival_mean": summary["survival_mean"],
+            "capped_pct": summary["capped_pct"],
             "s_per_game": round(dt / len(seeds), 4),
             "duration_s": round(dt, 1),
         }
-        if not params:
+        if label == args.baseline_label:
             baseline_scores = scores
         elif baseline_scores is not None:
             # Sparowane na tych samych seedach (#102-styl) -- czulsze niz roznica
@@ -109,8 +131,8 @@ def main(argv=None):
         results.append(result)
 
     out = {
-        "n_seeds": args.n_seeds, "seed_salt": SEED_SALT, "jobs": args.jobs,
-        "weights": WEIGHTS, "results": results,
+        "n_seeds": args.n_seeds, "seed_salt": args.seed_salt, "jobs": args.jobs,
+        "weights": args.weights, "results": results,
     }
     if args.out:
         os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
