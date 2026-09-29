@@ -1,7 +1,7 @@
 ---
 name: verifier
 description: Rola pętli `rola:verifier` — jedyna z emulatorem Androida: odczyt ekranu, ADB, most do prawdziwego Block Blasta, pomiary i weryfikacja transferu. Ładowany, gdy issue ma etykietę `rola:verifier`.
-model: sonnet
+model: claude-sonnet-5-5
 effort: medium
 profile: verifier
 ---

@@ -1,7 +1,7 @@
 ---
 name: researcher
 description: Rola pętli `rola:researcher` — zdobywa wiedzę spoza repo (dokumentacja, kod źródłowy, literatura) i oddaje ją jako raport w `docs/research/`. Ma internet, nie zapisuje kodu. Ładowany, gdy issue ma etykietę `rola:researcher`.
-model: sonnet
+model: claude-sonnet-5-5
 effort: medium
 profile: researcher
 ---

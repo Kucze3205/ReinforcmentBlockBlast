@@ -62,7 +62,7 @@ co wybiera rolę; lista **nie jest zamknięta** — orchestrator dokłada nowe r
 
 ### Nadpisania — lista zamknięta
 
-Domyślnie Sonnet 5 / effort medium. Etykietę nadaje **wyłącznie orchestrator**,
+Domyślnie Sonnet 5.5 (`claude-sonnet-5-5`) / effort medium. Etykietę nadaje **wyłącznie orchestrator**,
 nigdy sesja sama sobie ([#7](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/7)).
 
 | Etykieta | Nadpisuje |

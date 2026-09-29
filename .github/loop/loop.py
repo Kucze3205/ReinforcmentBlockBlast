@@ -316,7 +316,7 @@ def resolve(n):
         kind, model, effort = "bench", "", ""
     else:
         fm = frontmatter(role)
-        model = next((v for k, v in MODEL_LABELS.items() if k in labels), fm.get("model", "sonnet").strip())
+        model = next((v for k, v in MODEL_LABELS.items() if k in labels), fm.get("model", "claude-sonnet-5-5").strip())
         effort = next((v for k, v in EFFORT_LABELS.items() if k in labels), fm.get("effort", "medium").strip())
         kind = "emulator" if p.get("emulator") else "plain"
     timeout = int(p.get("timeout_minutes", 120))
