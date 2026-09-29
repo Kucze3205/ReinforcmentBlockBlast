@@ -178,6 +178,10 @@ kompletnych partii z apki) podejmie orchestrator.
   planszy (ruch 10, kawałek 9, partia A: +72 przy zero liniach) — to nowy, konkretny
   przykład zjawiska, które `pomiar.json` już nazywało "OCR niestabilny", przydatny jako
   test case, gdyby ktoś chciał policzyć most z dokładniejszym odczytem wyniku.
+- Pole `liczba_ruchow` w `bridge/runs/4a1796f/pomiar.json` (partie 1/3/4, #199) opisuje tylko fragment
+  ostatniego kawałka partii (np. "22" dla partii 3), nie całą partię rozciągniętą przez kilka kawałków (partia
+  3 ma faktycznie 50 ruchów: 28 w ogonie kawałka 6 + 22 w kawałku 7) — kosmetyczny skrót narracji, bez wpływu
+  na `wynik_koncowy_ekran`/`wynik_koncowy_odczyty`, na których opiera się to porównanie (Pomiar 3, #206).
 
 ## Pomiar 2 (#191): partia D z sesji danych tego cyklu
 
@@ -244,3 +248,138 @@ trzech pierwszych (1,06×–2,22×, wciąż poza ±10%), ale na partii D **przes
 przekracza apkę (0,81×, też poza ±10%, w przeciwnym kierunku) — więc `alt` nie jest nawet spójnie
 jednostronny, dodatkowy dowód, że trójstopniowa drabinka 10/15/20 nie jest właściwym wzorem apki, tylko
 przybliżeniem lepszym niż `main` w wąskim zakresie combo, w jakim była kalibrowana.
+
+## Pomiar 3 (#206): partie E–J z `4a1796f` (#199) i z sesji danych tego cyklu (`4fb5ed9`)
+
+Bilet: [#206](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/206) · dane: `bridge/runs/4a1796f/pomiar.json`
+(#199, cztery całe partie greedy) i `bridge/runs/4fb5ed9/pomiar.json` (sesja danych tego cyklu, greedy, pięć
+całych partii). **Zaraportowano, nie naprawiono** — `scoring.py`, `game.py`, `generator.py` nietknięte,
+`reward_shape_changed: no`.
+
+### Dobór partii: tylko cała partia bez dziur
+
+Tak jak w Pomiarze 2 (#191): liczy się **cała partia bez dziur** w surowej trajektorii, nie tylko wynik
+odczytany z ekranu końca. Oba przebiegi tego cyklu mają, po `#198`, jawny znacznik granicy partii w samych
+`chunkN_moves.jsonl` (pola `koniec_partii`/`wynik_koncowy`/`nowa_partia` na wpisie zamykającym) — użyty tu do
+precyzyjnego wycięcia granic co do pojedynczego ruchu, zamiast tylko po całych plikach kawałków jak
+`--first-chunk`/`--last-chunk` CLI skryptu (żadna z sześciu poniższych partii nie zaczyna/kończy się na
+granicy pliku — wszystkie sześć zaczynają lub kończą się w środku kawałka).
+
+- **`4a1796f` partia 1** (chunk 1 cały + chunk 2 do ruchu 11 włącznie, znacznik `koniec_partii` na `n=12`):
+  42 ruchy, **bez dziur**. **Włączona jako partia E.**
+- **`4a1796f` partia 2** (wynik 6307): `pomiar.json` (`kawalek 4`) opisuje wprost, że most błędnie rozpoznał
+  nieznane okno `menu_glowne` jako ustawienia, wywołał `press_back` + `restart_app()`, a wynik przeskoczył
+  3562→3566 bez zalogowanego ruchu między nimi. **Wykluczona** (dziura), zgodnie z `## Cel` tego biletu.
+- **`4a1796f` partia 3** (chunk 6 od ruchu 2 + chunk 7 do ruchu 21 włącznie, znaczniki `koniec_partii` na
+  `n=2` i `n=22`): 50 ruchów, **bez dziur** (jedno zdarzenie `okno=ustawienia_wstecz` tuż po starcie kawałka 7
+  w `pomiar.json`, ale to fałszywy positive w trakcie animacji Play, bez utraty ruchów — most sam się
+  odzyskał). **Włączona jako partia F.**
+- **`4a1796f` partia 4** (chunk 7 od ruchu 22 + chunk 8 cały + chunk 9 do ruchu 26 włącznie, znacznik
+  `koniec_partii` na `n=27`): 65 ruchów, **bez dziur**. **Włączona jako partia G.**
+- **`4fb5ed9` partia 1** (wynik 5098) i **partia 5** (wynik 9087): obie mają udokumentowaną dziurę w
+  `pomiar.json` — most utknął na reklamie (Nike w kawałku 5, Pantene w kawałku 22), zamknięcie i odczyt wyniku
+  były ręczne, dokładny moment/ruch końca partii między ostatnim zalogowanym ruchem a ekranem końca nie został
+  zarejestrowany. **Wykluczone.**
+- **`4fb5ed9` partia 2** (chunk 6 cały + chunk 7 cały + chunk 8 cały + chunk 9 do ruchu 13 włącznie, znacznik
+  `koniec_partii` na `n=14`): 104 ruchy, **bez dziur** (`pomiar.json` potwierdza: kawałki 6–9 kompletne na
+  dysku, brak restartu apki, koniec partii wykryty i obsłużony przez most bez ręki). **Włączona jako partia H.**
+- **`4fb5ed9` partia 3** (chunk 9 od ruchu 14 + chunki 10–13 całe + chunk 14 do ruchu 24 włącznie, znacznik
+  `koniec_partii` na `n=25`): 161 ruchów, **bez dziur**. **Włączona jako partia I.**
+- **`4fb5ed9` partia 4** (chunk 14 od ruchu 25 + chunki 15–16 całe + chunk 17 do ruchu 26 włącznie, znacznik
+  `koniec_partii` na `n=27`): 92 ruchy, **bez dziur** (pierwsza w całym zestawie zakończona wariantem
+  niebieskim ekranu końca — `is_game_over_screen` łapie oba progi koloru). **Włączona jako partia J.**
+
+Liczba postawień w każdej z sześciu włączonych partii zgadza się co do jednego ruchu z `liczba_ruchow` w
+`pomiar.json` dla H, I, J (104, 161, 92); dla E, F, G `pomiar.json` podaje krótsze liczby (opisujące tylko
+fragment ostatniego kawałka partii, nie całą partię rozciągniętą przez kilka kawałków) — nie jest to
+niespójność w danych, tylko skrót w narracji `pomiar.json` #199, nieużywany tutaj (patrz `## Odkrycia`).
+
+### Partie E–J
+
+| partia | kawałki | postawień | wynik apki | źródło wyniku apki | wynik **main** | wynik **alt** |
+|---|---|---:|---:|---|---:|---:|
+| E — `4a1796f` p.1 | 1–2 | 42 | **1 290** | `chunk2_012_end.png` ("Can you Top that?") | 900 | 1 390 |
+| F — `4a1796f` p.3 | 6–7 | 50 | **6 311** | `chunk7_022_end.png` ("Fun doesn't Stop Here!") | 3 717 | 6 807 |
+| G — `4a1796f` p.4 | 7–9 | 65 | **7 377** | `chunk9_027_end.png` ("Hot Streak? Keep Going!") | 2 682 | 5 837 |
+| H — `4fb5ed9` p.2 | 6–9 | 104 | **8 709** | `chunk9_014_end.png` ("Beat Your Best Again!") | 5 441 | 10 376 |
+| I — `4fb5ed9` p.3 | 9–14 | 161 | **10 174** | `chunk14_025_end.png` ("Fun doesn't Stop Here!") | 6 654 | 11 959 |
+| J — `4fb5ed9` p.4 | 14–17 | 92 | **6 737** | `chunk17_027_end.png` ("Your Best is Next", niebieski) | 3 642 | 7 217 |
+
+### Stosunek apka / nasz wzór
+
+| partia | apka / main | apka / alt |
+|---|---:|---:|
+| E | 1,43× | 0,93× |
+| F | 1,70× | 0,93× |
+| G | **2,75×** | 1,26× |
+| H | 1,60× | **0,84×** |
+| I | 1,53× | 0,85× |
+| J | 1,85× | 0,93× |
+
+Wszystkie sześć nowych partii są zauważalnie bliżej apki niż A/B (3,4×–4,7× na `main`, 1,5×–2,2× na `alt`) —
+`main` mieści się teraz w 1,4×–2,8×, `alt` w 0,84×–1,26×. Trzy z sześciu (E, F, J) trafiają `alt` w apkę z
+dokładnością do 7% (0,93×), najbliżej ze wszystkich dziesięciu zmierzonych dotąd partii razem z A–D.
+
+### pkt/postawienie i udział czyszczeń
+
+| partia | pkt/postawienie **main** | pkt/postawienie **alt** | pkt/postawienie **apka** | udział czyszczeń main | udział czyszczeń alt | udział czyszczeń apka (szac.) |
+|---|---:|---:|---:|---:|---:|---:|
+| E | 21,43 | 33,10 | **30,71** | 78,9% | 86,3% | 85,3% |
+| F | 74,34 | 136,14 | **126,22** | 93,4% | 96,4% | 96,1% |
+| G | 41,26 | 89,80 | **113,49** | 88,4% | 94,7% | 95,8% |
+| H | 52,32 | 99,77 | **83,74** | 92,4% | 96,0% | 95,3% |
+| I | 41,33 | 74,28 | **63,19** | 89,6% | 94,2% | 93,2% |
+| J | 39,59 | 78,45 | **73,23** | 89,5% | 94,7% | 94,3% |
+
+Udział czyszczeń pozostaje w tym samym rzędzie wielkości (79–96%) co w A–D i w symulatorze (93,03%) —
+niezależnie od tego, który wzór (main/alt) się użyje, i niezależnie od tego, która z dwóch sesji dostarczyła
+partię.
+
+### Łańcuchy combo (main)
+
+| partia | combo max (main) | combo max (alt) | mediana długości łańcucha (main) |
+|---|---:|---:|---:|
+| E | 9 | 10 | 1 (11 łańcuchów: 1×4, 3×2, 7×1) |
+| F | 23 | 25 | 1 (16 łańcuchów: 3×3, 3×2, 10×1) |
+| G | 17 | 22 | 2 (16 łańcuchów: 5×3, 4×2, 7×1) |
+| H | 25 | 28 | 1 (26 łańcuchów: 1×4, 4×3, 7×2, 14×1) |
+| I | 18 | 21 | 1 (41 łańcuchów: 1×5, 3×4, 3×3, 11×2, 23×1) |
+| J | 15 | 20 | 2 (22 łańcuchy: 2×3, 10×2, 10×1) |
+
+Mediana 1–2 (dominują izolowane pojedyncze/podwójne czyszczenia) jest spójna z A–D i wciąż niższa niż mediana
+9 z symulatora (`docs/ile-do-10-mln.md`, 300 partii `lookahead`) — ten sam efekt małej próby i realnego ryzyka
+błędu odczytu na żywej apce, opisany już w Pomiarze 1/2 tego dokumentu.
+
+### Tabela zbiorcza (A–J)
+
+| partia | kawałki | postawień | apka | main | alt | apka/main | apka/alt |
+|---|---|---:|---:|---:|---:|---:|---:|
+| A — `c1819ed` p.1 | 2–9 | 155 z ~175 | 29 907 (29 502 w widocznym oknie) | 6 302 | 13 317 | 4,68× | 2,22× |
+| B — `c1819ed` p.2 | 10–15 | 104 | 20 345 | 6 040 | 13 355 | 3,37× | 1,52× |
+| C — `1402cff` | 1–7 | 111 | 8 532 | 4 282 | 8 032 | 1,99× | 1,06× |
+| D — `cb91077` p.3 | 7–12 | 140 | 12 990 | 7 604 | 16 089 | 1,71× | 0,81× |
+| E — `4a1796f` p.1 | 1–2 | 42 | 1 290 | 900 | 1 390 | 1,43× | 0,93× |
+| F — `4a1796f` p.3 | 6–7 | 50 | 6 311 | 3 717 | 6 807 | 1,70× | 0,93× |
+| G — `4a1796f` p.4 | 7–9 | 65 | 7 377 | 2 682 | 5 837 | **2,75×** | 1,26× |
+| H — `4fb5ed9` p.2 | 6–9 | 104 | 8 709 | 5 441 | 10 376 | 1,60× | 0,84× |
+| I — `4fb5ed9` p.3 | 9–14 | 161 | 10 174 | 6 654 | 11 959 | 1,53× | 0,85× |
+| J — `4fb5ed9` p.4 | 14–17 | 92 | 6 737 | 3 642 | 7 217 | 1,85× | 0,93× |
+
+Korelacja Pearsona (n=10, ten zestaw) między liczbą postawień a stosunkiem apka/wzór: **0,33** (main), **0,29**
+(alt) — słaba, w stronę „dłuższa partia → nieco wyższy stosunek", ale przy 10 punktach to niepewny sygnał, nie
+rozstrzygnięcie. Korelacja z `combo_max`: **−0,24** (main), **−0,23** (alt) — również słaba, w przeciwnym
+kierunku niż można by się spodziewać (więcej combo → nieco niższy, nie wyższy stosunek). Żadna z tych dwóch
+korelacji nie jest silna ani jednoznaczna przy tej liczności — potrzeba więcej całych partii, żeby rozstrzygnąć,
+czy stosunek naprawdę zależy od długości partii albo liczby combo, czy to szum próby wielkości 10.
+
+### Jawne zdanie
+
+**Żaden z dwóch wzorów nie trzyma się wyniku apki w granicach ±10% na wszystkich dziesięciu partiach.** `main`
+pozostaje systematycznie ZA NISKI na wszystkich dziesięciu (1,43×–4,68×). `alt` jest bliżej na większości
+(0,81×–1,52× na ośmiu z dziesięciu), ale wciąż poza ±10% na wszystkich poza trzema (E, F, J na dokładnie
+0,93×, wciąż 7% poza progiem) — i nie jest jednostronny: cztery partie (A, B, C, G — apka/alt > 1) mają
+`alt` PONIŻEJ apki, sześć (D, E, F, H, I, J — apka/alt < 1) mają `alt` POWYŻEJ. Stosunek nie zależy w sposób jednoznaczny ani od długości
+partii, ani od liczby combo (obie korelacje słabe, patrz wyżej) — na obecnych dziesięciu partiach nie da się
+odróżnić "`alt` jest bliższym, ale wciąż niedoskonałym przybliżeniem" od "błąd zależy od czegoś jeszcze
+nieznalezionego w tym zestawie cech". Decyzję o dalszym kierunku (więcej partii, inna cecha do sprawdzenia,
+albo zamknięcie tematu jako "żaden prosty wzór nie trzyma się w ±10%") podejmie orchestrator.
