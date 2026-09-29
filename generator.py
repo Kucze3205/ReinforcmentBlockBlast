@@ -86,3 +86,50 @@ class Generator:
                 return pieces
             pieces = self._draw_tray()
         return pieces
+
+
+# ---------------------------------------------------------------------------
+# #217: wpięcie świadomości planszy w `Game` BEZ dotykania `game.py` (poza
+# budżetem tego biletu — patrz `## Kryteria akceptacji` #217). `Game.__init__`
+# tworzy `Generator(seed)` bez planszy; poniższe funkcje ustawiają
+# `generator.board` PO fakcie, z zewnątrz — `next_pieces()` czyta `self.board`
+# przy KAŻDYM wywołaniu, nie tylko przy konstrukcji, więc wystarczy zrobić to
+# raz zaraz po `Game(...)`, żeby WSZYSTKIE kolejne odświeżenia tacki
+# (`game.apply_placement`, niedotknięte) już były świadome planszy. Do użytku
+# w narzędziach pomiarowych/treningowych (`tools/measure_ntuple_search_grid.py`,
+# `tools/train_ntuple.py --board-aware-generator`) — nigdy w kodzie produkcyjnym
+# `game.py`/`policies.py`, które ten bilet zostawia nietknięte.
+# ---------------------------------------------------------------------------
+
+
+def attach_to_game(game):
+    """Wpina świadomość planszy w JUŻ skonstruowaną `game.Game` (ten sam obiekt
+    `game.board`, mutowany w miejscu przez resztę partii — nieinwazyjne tak
+    samo jak `Game.set_board`, #168). Pierwsza tacka partii jest już wylosowana
+    ślepo wewnątrz `Game.__init__`/`reset` (plansza wtedy pusta, i tak prawie
+    zawsze grywalna) — to nie problem, bo świadomość dotyczy KOLEJNYCH odświeżeń."""
+    game.generator.board = game.board
+    return game
+
+
+def patch_game_for_board_awareness():
+    """Monkeypatch `Game.__init__`, żeby KAŻDA odtąd skonstruowana `Game` miała
+    generator wpięty przez `attach_to_game` automatycznie — dla wywołujących,
+    którzy (jak `tools/train_ntuple.py:run_episode`) sami konstruują `Game`
+    wewnątrz pętli, bez okazji wywołać `attach_to_game` po fakcie. Nie dotyka
+    `game.py`. Import `Game` leniwy (wewnątrz funkcji): `game.py` importuje
+    `generator.Generator` na poziomie modułu, więc import odwrotny na poziomie
+    modułu byłby cyklem."""
+    from game import Game
+
+    if getattr(Game.__init__, "_z6_217_board_aware_patch", False):
+        return
+
+    original_init = Game.__init__
+
+    def patched_init(self, seed=None):
+        original_init(self, seed)
+        attach_to_game(self)
+
+    patched_init._z6_217_board_aware_patch = True
+    Game.__init__ = patched_init
