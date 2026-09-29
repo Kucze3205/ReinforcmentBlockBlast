@@ -390,13 +390,68 @@ def measure_arm(policy, seeds_fixed, seeds_rotated, move_cap, jobs=1, spec=None,
 RAW_SET_KEYS = ("scores", "survivals", "capped_flags")
 
 
-def strip_scores(record):
-    """Surowe serie zostają poza rekordem — rekord ma być czytelny, nie pełny."""
-    for arm in record["arms"].values():
+def strip_scores(record, keep_record_fixed_scores=False):
+    """Surowe serie zostają poza rekordem — rekord ma być czytelny, nie pełny.
+
+    `keep_record_fixed_scores` (#219, `--keep-record-scores`): zostawia `scores` w
+    zestawie stałym ramienia `record`, żeby ten plik mógł posłużyć jako źródło dla
+    `--record-from` kolejnego przebiegu. Domyślnie `False` — bez tej flagi wynik jest
+    bitowo taki sam jak przed #219.
+    """
+    for arm_name, arm in record["arms"].items():
         for key in ("fixed", "rotated"):
             for raw_key in RAW_SET_KEYS:
+                if (
+                    keep_record_fixed_scores
+                    and arm_name == "record"
+                    and key == "fixed"
+                    and raw_key == "scores"
+                ):
+                    continue
                 arm[key].pop(raw_key, None)
     return record
+
+
+def load_record_cache(path):
+    """Wczytuje plik `bench/*.json` jako potencjalne źródło `--record-from` (#219)."""
+    if not os.path.exists(path):
+        raise ArmUnavailable("--record-from: brak pliku " + path)
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, ValueError) as exc:
+        raise ArmUnavailable("--record-from: nieładowalny plik " + path + ": " + str(exc)) from exc
+
+
+def cached_record_fixed(cache, spec, weights_path, config, source_hashes_now):
+    """Zestaw stały ramienia `record` z pliku cache, jeśli wszystko się zgadza (#219).
+
+    Zestaw rotowany nigdy stąd nie pochodzi: seedy rotowane zależą od soli `issue`
+    (`rotated_seeds`), więc ramię policzone dla innego issue mierzyłoby inną pulę —
+    rotowany zestaw liczy się zawsze na nowo, cache obejmuje tylko stały.
+
+    Każda niezgodność kończy się `ArmUnavailable` z nazwą pola — status `record` staje
+    się `blocked`, nigdy ciche przeliczenie (kryterium akceptacji #219).
+    """
+    if cache.get("source_hashes") != source_hashes_now:
+        raise ArmUnavailable("--record-from: niezgodne pole `source_hashes`")
+    cached_arm = cache.get("arms", {}).get("record")
+    if cached_arm is None:
+        raise ArmUnavailable("--record-from: plik nie zawiera ramienia `record`")
+    if cached_arm.get("spec") != spec:
+        raise ArmUnavailable("--record-from: niezgodne pole `spec` ramienia `record`")
+    current_weights_hash = file_hash(weights_path) if weights_path else None
+    if cached_arm.get("weights_hash") != current_weights_hash:
+        raise ArmUnavailable("--record-from: niezgodne pole `weights_hash` ramienia `record`")
+    if cache.get("config") != config:
+        raise ArmUnavailable("--record-from: niezgodne pole `config` (m.in. sufit ruchów, seedy, ε)")
+    fixed = cached_arm.get("fixed", {})
+    if "scores" not in fixed:
+        raise ArmUnavailable(
+            "--record-from: plik nie przechowuje wyników per seed ramienia `record` "
+            "(uruchom źródłowy przebieg z --keep-record-scores)"
+        )
+    return fixed
 
 
 def parse_shard(spec):
@@ -493,6 +548,20 @@ def main(argv=None):
         help="K/N: gra tylko seedy o indeksie i%%N == K-1 (stałe i rotowane); "
              "złożenie tools/merge_bench.py wszystkich N kawałków = przebieg bez --shard",
     )
+    parser.add_argument(
+        "--record-from",
+        help="(#219) zestaw stały ramienia `record` bierz z wcześniejszego pliku bench/*.json "
+             "zamiast liczyć od nowa, gdy zgadzają się source_hashes/config/spec/weights_hash i plik "
+             "ma zapisane wyniki per seed (--keep-record-scores); zestaw rotowany liczy się zawsze. "
+             "Niezgodność -> status `blocked` z nazwą pola, nigdy ciche przeliczenie. Bez tej flagi "
+             "wynik jest bitowo taki sam jak dziś.",
+    )
+    parser.add_argument(
+        "--keep-record-scores", action="store_true",
+        help="(#219) nie ucinaj wyników per seed zestawu stałego ramienia `record` z pliku "
+             "wyjściowego, żeby ten plik mógł posłużyć jako źródło dla --record-from kolejnego "
+             "przebiegu. Bez tej flagi wynik jest bitowo taki sam jak dziś.",
+    )
     args = parser.parse_args(argv)
 
     if args.shard:
@@ -500,6 +569,11 @@ def main(argv=None):
             shard_k, shard_n = parse_shard(args.shard)
         except ValueError as exc:
             parser.error(str(exc))
+        if args.record_from:
+            parser.error(
+                "--record-from nie jest wspierane razem z --shard: "
+                "kawałek gra inny podzbiór seedów niż plik źródłowy"
+            )
 
     config = load_config(args.config)
     if args.n_seeds:
@@ -546,10 +620,33 @@ def main(argv=None):
             record["status"] = STATUS_BLOCKED
             record["blocked_reason"] = "ramię `" + name + "`: " + str(exc)
             continue
-        arm = measure_arm(
-            policy, seeds_f, seeds_r, config["move_cap"],
-            jobs=args.jobs, spec=spec, config=config,
-        )
+
+        if name == "record" and args.record_from:
+            try:
+                cache = load_record_cache(args.record_from)
+                cached_fixed = cached_record_fixed(
+                    cache, spec, weights_file_for_spec(spec), config, record["source_hashes"]
+                )
+            except ArmUnavailable as exc:
+                record["status"] = STATUS_BLOCKED
+                record["blocked_reason"] = "ramię `" + name + "`: " + str(exc)
+                continue
+            rotated = run_set(
+                policy, seeds_r, config["move_cap"], jobs=args.jobs, spec=spec, config=config,
+            )
+            base = cached_fixed["mean"]
+            gap = round(100.0 * (base - rotated["mean"]) / base, 2) if base else 0.0
+            arm = {
+                "policy": policy.name,
+                "fixed": dict(cached_fixed),
+                "rotated": rotated,
+                "overfit_gap_pct": gap,
+            }
+        else:
+            arm = measure_arm(
+                policy, seeds_f, seeds_r, config["move_cap"],
+                jobs=args.jobs, spec=spec, config=config,
+            )
         # Pełna specyfikacja ramienia (#195): `policy.name` jest stałą klasy (np.
         # `lookahead-ntuple`) i nie niesie ani pliku wag, ani parametrów przeszukania —
         # bez `spec` rekord nie dałby się odtworzyć.
@@ -569,7 +666,7 @@ def main(argv=None):
 
     record["duration_s"] = round(time.time() - started, 1)
     if not args.shard:
-        strip_scores(record)
+        strip_scores(record, keep_record_fixed_scores=args.keep_record_scores)
 
     out_path = args.out or ("bench/" + sha + ("-dirty" if dirty else "") + ".json")
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
