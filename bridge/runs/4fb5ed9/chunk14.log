@@ -1,0 +1,53 @@
+polityka: greedy (źródło: argv)
+reset(seed='36499205925')
+log ruchów: bridge-out/moves.13.jsonl
+ruch 0: slot 2 -> (0,7) wynik 8024 OK
+ruch 1: slot 1 -> (2,0) wynik 8155 OK
+ruch 2: slot 0 -> (4,3) wynik 8187 OK
+ruch 3: slot 1 -> (4,0) wynik 8502 OK
+ruch 4: slot 2 -> (5,2) wynik 8553 OK
+ruch 5: slot 1 -> (0,1) wynik 8722 OK
+ruch 6: slot 0 -> (0,0) wynik 9189 OK
+ruch 7: slot 2 -> (4,0) wynik 9193 OK
+ruch 8: slot 1 -> (0,2) wynik 9197 OK
+ruch 9: slot 0 -> (6,0) wynik 9384 OK
+ruch 10: slot 2 -> (3,1) wynik 9435 OK
+ruch 11: slot 1 -> (0,0) wynik 9439 OK
+ruch 12: slot 0 -> (0,0) wynik 9893 OK
+ruch 13: slot 2 -> (3,0) wynik 9959 OK
+ruch 14: slot 2 -> (1,3) wynik 9963 OK
+ruch 15: slot 0 -> (5,0) wynik 10094 OK
+ruch 16: slot 1 -> (0,1) wynik 10123 OK
+ruch 17: slot 0 -> (0,4) wynik 10127 OK
+ruch 18: slot 1 -> (5,3) wynik 10131 OK
+ruch 19: slot 2 -> (3,5) wynik 10135 OK
+ruch 20: slot 1 -> (0,5) wynik 10139 OK
+ruch 21: slot 2 -> (2,4) wynik 10144 OK
+ruch 22: slot 0 -> (3,0) wynik 10160 OK
+ruch 23: slot 2 -> (3,5) wynik 10165 OK
+ruch 24: slot 1 -> (0,3) wynik 10170 ROZBIEŻNOŚĆ
+OCR: 
+okno: reklama_statyczna
+OCR: 
+okno: reklama_statyczna
+OCR: Bottom=0, top=180, base=0, x=0
+
+Total count=0
+Min=0.00 Really=0
+Lower quartile=0.00
+Median=0.00, ile(0.5)=0.00
+Upper quartile=0.00
+Max=0.00 Really=0
+Range=1
+Mean= 0.00
+SD= 0.00
+okno: ustawienia_wstecz
+OCR: 
+koniec_partii, wynik 10174, nowa_partia 2
+OCR: 
+ruch 25: slot 2 -> (0,0) wynik None OK
+ruch 26: slot 0 -> (0,0) wynik 3 OK
+ruch 27: slot 1 -> (3,0) wynik 3 OK
+ruch 28: slot 1 -> (4,0) wynik 7 OK
+ruch 29: slot 0 -> (2,0) wynik 21 OK
+najdłuższa seria zgodnych ruchów: 24
