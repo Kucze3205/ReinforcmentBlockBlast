@@ -1,0 +1,34 @@
+polityka: greedy (źródło: argv)
+reset(seed='36522638797')
+log ruchów: bridge-out/moves.10.jsonl
+ruch 0: slot 2 -> (0,2) wynik 3523 OK
+ruch 1: slot 2 -> (2,2) wynik 3527 OK
+ruch 2: slot 0 -> (6,2) wynik 3531 OK
+ruch 3: slot 1 -> (0,1) wynik 3543 OK
+ruch 4: slot 1 -> (1,1) wynik 3545 OK
+ruch 5: slot 0 -> (5,1) wynik 3549 OK
+ruch 6: slot 2 -> (0,0) wynik 3572 OK
+ruch 7: slot 1 -> (5,0) wynik 3573 OK
+ruch 8: slot 2 -> (7,0) wynik 3577 OK
+ruch 9: slot 0 -> (5,2) wynik 3608 OK
+ruch 10: slot 2 -> (4,2) wynik 361 OK
+ruch 11: slot 1 -> (0,0) wynik 3652 OK
+ruch 12: slot 0 -> (2,0) wynik 3656 OK
+ruch 13: slot 0 -> (3,0) wynik 3659 OK
+ruch 14: slot 2 -> (7,1) wynik 3662 OK
+ruch 15: slot 1 -> (0,0) wynik 3713 OK
+ruch 16: slot 0 -> (1,0) wynik 3716 OK
+ruch 17: slot 1 -> (4,0) wynik 3719 OK
+ruch 18: slot 2 -> (3,1) wynik 3722 OK
+ruch 19: slot 2 -> (5,2) wynik 3724 OK
+ruch 20: slot 0 -> (5,0) wynik 3737 OK
+ruch 21: slot 1 -> (5,6) wynik 3740 OK
+ruch 22: slot 1 -> (4,1) wynik 3763 OK
+ruch 23: slot 0 -> (2,3) wynik 3767 OK
+ruch 24: slot 2 -> (0,1) wynik 3770 OK
+ruch 25: slot 2 -> (7,1) wynik 3772 OK
+ruch 26: slot 1 -> (4,4) wynik 3787 OK
+ruch 27: slot 0 -> (0,3) wynik 3813 OK
+ruch 28: slot 0 -> (1,1) wynik 3881 OK
+ruch 29: slot 2 -> (3,3) wynik 3903 OK
+najdłuższa seria zgodnych ruchów: 30

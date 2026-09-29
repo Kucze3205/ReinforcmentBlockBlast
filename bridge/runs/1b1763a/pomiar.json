@@ -20,6 +20,12 @@
     {"kawalek": 8, "plik_ruchow": "chunk8_moves.jsonl", "ruchy": "0-29", "polityka": "greedy",
      "wynik": "30/30 ok, brak okien, brak reklam, brak konca partii. Partia 2 kontynuowana: wynik do 1653 (pole score, stabilniejszy niz w kawalku 7)."},
     {"kawalek": 9, "plik_ruchow": "chunk9_moves.jsonl", "ruchy": "0-29", "polityka": "greedy",
-     "wynik": "30/30 ok, brak okien, brak reklam, brak konca partii. Partia 2 kontynuowana: wynik do 1936."}
+     "wynik": "30/30 ok, brak okien, brak reklam, brak konca partii. Partia 2 kontynuowana: wynik do 1936."},
+    {"kawalek": 10, "plik_ruchow": "chunk10_moves.jsonl", "ruchy": "0-29", "polityka": "greedy",
+     "wynik": "30/30 ok, brak okien, brak reklam, brak konca partii. Partia 2 kontynuowana: wynik do 3519."},
+    {"kawalek": 11, "plik_ruchow": "chunk11_moves.jsonl", "ruchy": "0-29", "polityka": "greedy",
+     "wynik": "30/30 ok, brak okien, brak reklam, brak konca partii. Partia 2 kontynuowana: wynik do 3903."},
+    {"kawalek": 12, "plik_ruchow": "chunk12_moves.jsonl", "ruchy": "0-29", "polityka": "greedy",
+     "wynik": "30/30 ok, brak okien, brak reklam, brak konca partii. Partia 2 kontynuowana: wynik do 4769."}
   ]
 }
