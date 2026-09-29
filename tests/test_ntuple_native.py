@@ -85,7 +85,7 @@ def _sha(path):
 @unittest.skipUnless(NATIVE, "rdzen natywny niedostepny (brak kompilatora albo NTUPLE_NATIVE=0)")
 class TestValueEquivalence(unittest.TestCase):
     def test_value_on_1000_random_boards_equals_pure_python(self):
-        for name in ("A", "AD", "ADC"):
+        for name in ("A", "AD", "ADC", "ADCE"):
             rng = random.Random("184:" + name)
             native, pure = _pair(LAYOUTS[name], _random_weights(LAYOUTS[name], rng))
             self.assertIsNotNone(native.native)
@@ -312,6 +312,12 @@ class TestTrainingEquivalence(unittest.TestCase):
     def test_200_adc_survival_episodes_same_weights_and_log(self):
         self._check([
             "--episodes", "200", "--episodes-per-run", "200", "--reward", "survival", "--layout", "ADC",
+        ])
+
+    def test_200_adce_survival_episodes_same_weights_and_log(self):
+        """#222: uklad ADCE (k=12) trenuje bitowo tak samo w rdzeniu i w Pythonie."""
+        self._check([
+            "--episodes", "200", "--episodes-per-run", "200", "--reward", "survival", "--layout", "ADCE",
         ])
 
     def test_score_reward_same_weights_and_log(self):

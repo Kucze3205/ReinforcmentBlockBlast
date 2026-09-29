@@ -27,11 +27,13 @@ Układ łat jest **danymi**, w jednym miejscu (`LAYOUTS`, nazwane warianty), nie
 rozsianymi po kodzie: wariant A z `docs/research/budzet-wyuczonej-oceny.md`
 (#120) — 8 wierszy + 8 kolumn, każda łata 8 komórek, `16 × 2**8 = 4096` wag —
 wariant AD (#149): A plus wariant D (kwadraty 3×3 we wszystkich 36
-położeniach), `52` łaty, i wariant ADC (#162): AD plus wariant C (prostokąty
-2×3 i 3×2 we wszystkich 84 położeniach), `136` łat. Uzasadnienie wyboru
-wariantu A jako domyślnego, i AD/ADC jako kolejnych, jest w `docs/ntuple.md`,
-nie tutaj. `NTupleValue.load` przyjmuje plik z każdym układem z `LAYOUTS`;
-plik z nieznanym układem się nie wczyta.
+położeniach), `52` łaty, wariant ADC (#162): AD plus wariant C (prostokąty
+2×3 i 3×2 we wszystkich 84 położeniach), `136` łat, i wariant ADCE (#222,
+pilot pojemności): ADC plus wariant E (prostokąty 3×4 i 4×3 we wszystkich 60
+położeniach), `196` łat. Uzasadnienie wyboru wariantu A jako domyślnego, i
+AD/ADC jako kolejnych, jest w `docs/ntuple.md`, nie tutaj; ADCE jest pilotem,
+opisanym w `docs/ntuple-wieksze-laty.md`. `NTupleValue.load` przyjmuje plik
+z każdym układem z `LAYOUTS`; plik z nieznanym układem się nie wczyta.
 """
 import json
 
@@ -97,8 +99,23 @@ LAYOUT_C = tuple(
 # Wariant ADC (#162): AD plus C — 52 + 84 = 136 łat, `22528 + 5376 = 27904` wag.
 LAYOUT_ADC = LAYOUT_AD + LAYOUT_C
 
+# Wariant E (#222, pilot pojemności): prostokąty 3x4 i 4x3 we wszystkich
+# położeniach lewego-górnego rogu na planszy 8x8 — 3x4 (3 wiersze, 4 kolumny):
+# (HEIGHT-2) x (WIDTH-3) = 6x5 = 30 położeń; 4x3 (4 wiersze, 3 kolumny):
+# (HEIGHT-3) x (WIDTH-2) = 5x6 = 30 położeń; razem 60 łat, k=12 komórek/łatę —
+# plansza jest binarna, więc 2**12 = 4096 wpisów/łatę, wciąż tani plik.
+LAYOUT_E = tuple(
+    _rect_patch(x, y, 3, 4) for y in range(HEIGHT - 2) for x in range(WIDTH - 3)
+) + tuple(
+    _rect_patch(x, y, 4, 3) for y in range(HEIGHT - 3) for x in range(WIDTH - 2)
+)
+
+# Wariant ADCE (#222): ADC plus E — 136 + 60 = 196 łat,
+# `27904 + 60 * 4096 = 273664` wag.
+LAYOUT_ADCE = LAYOUT_ADC + LAYOUT_E
+
 # Nazwane układy łat — jedyne, które `NTupleValue.load` przyjmuje (#149).
-LAYOUTS = {"A": LAYOUT_A, "AD": LAYOUT_AD, "ADC": LAYOUT_ADC}
+LAYOUTS = {"A": LAYOUT_A, "AD": LAYOUT_AD, "ADC": LAYOUT_ADC, "ADCE": LAYOUT_ADCE}
 DEFAULT_LAYOUT = "A"
 
 # Liczba komórek zajętych na planszy 8x8 (0..64) — jednostka progów etapów (#203).

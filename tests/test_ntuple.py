@@ -17,8 +17,10 @@ from ntuple import (
     LAYOUT_A,
     LAYOUT_AD,
     LAYOUT_ADC,
+    LAYOUT_ADCE,
     LAYOUT_C,
     LAYOUT_D,
+    LAYOUT_E,
     LAYOUTS,
     N_PATCHES,
     N_WEIGHTS,
@@ -206,6 +208,88 @@ class TestLayoutADC(unittest.TestCase):
             bits = board_bits(board)
             expected = [_patch_index(bits, positions) for positions in LAYOUT_ADC]
             self.assertEqual(patch_indices(bits, LAYOUT_ADC), expected)
+
+
+class TestLayoutADCE(unittest.TestCase):
+    """Uklad ADCE (#222, pilot pojemnosci): ADC plus E (prostokaty 3x4/4x3 we
+    wszystkich 60 polozeniach), k=12 komorek/lata."""
+
+    def test_e_has_60_patches_of_twelve_cells(self):
+        self.assertEqual(len(LAYOUT_E), 60)
+        for positions in LAYOUT_E:
+            self.assertEqual(len(positions), 12)
+
+    def test_e_patches_are_3x4_or_4x3_rectangles_without_duplicates(self):
+        seen = set()
+        shapes = set()
+        for positions in LAYOUT_E:
+            key = tuple(sorted(positions))
+            self.assertNotIn(key, seen, "lata E powtorzona")
+            seen.add(key)
+            xs = [p % Board.WIDTH for p in positions]
+            ys = [p // Board.WIDTH for p in positions]
+            width = max(xs) - min(xs) + 1
+            height = max(ys) - min(ys) + 1
+            self.assertEqual(width * height, 12)
+            self.assertLess(max(xs), Board.WIDTH)
+            self.assertLess(max(ys), Board.HEIGHT)
+            shapes.add((height, width))
+        self.assertEqual(shapes, {(3, 4), (4, 3)})
+
+    def test_adce_is_adc_concatenated_with_e(self):
+        self.assertEqual(LAYOUT_ADCE, LAYOUT_ADC + LAYOUT_E)
+        self.assertEqual(len(LAYOUT_ADCE), 136 + 60)
+        self.assertEqual(list(LAYOUT_ADCE[:136]), list(LAYOUT_ADC))
+        self.assertEqual(LAYOUTS["ADCE"], LAYOUT_ADCE)
+
+    def test_adce_covers_every_cell_at_least_once(self):
+        covered = set()
+        for positions in LAYOUT_ADCE:
+            covered.update(positions)
+        self.assertEqual(covered, set(range(Board.WIDTH * Board.HEIGHT)))
+
+    def test_ntuple_value_with_adce_layout_has_196_weight_tables(self):
+        ntuple = NTupleValue(layout=LAYOUT_ADCE)
+        self.assertEqual(len(ntuple.weights), 196)
+        self.assertEqual(sum(len(table) for table in ntuple.weights), 273664)
+        self.assertEqual(ntuple.value(Board()), 0.0)
+
+    def test_adce_round_trips_through_save_load(self):
+        ntuple = NTupleValue(layout=LAYOUT_ADCE)
+        board = Board()
+        board.grid[3] = [1, 0, 1, 1, 0, 0, 1, 0]
+        ntuple.update(ntuple.indices(board), 4.0)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "adce.json")
+            ntuple.save(path)
+            loaded = NTupleValue.load(path)
+        self.assertEqual(loaded.layout, LAYOUT_ADCE)
+        self.assertEqual(loaded.weights, ntuple.weights)
+        self.assertEqual(loaded.value(board), ntuple.value(board))
+
+    def test_files_without_adce_change_still_load_as_before(self):
+        # Kryterium #222: pliki starszych ukladow laduja sie bez zmian mimo
+        # dopisania ADCE do LAYOUTS.
+        ntuple = NTupleValue(layout=LAYOUT_ADC)
+        board = Board()
+        board.grid[2] = [1, 1, 0, 0, 0, 1, 0, 0]
+        ntuple.update(ntuple.indices(board), 1.5)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "adc.json")
+            ntuple.save(path)
+            loaded = NTupleValue.load(path)
+        self.assertEqual(loaded.layout, LAYOUT_ADC)
+        self.assertEqual(loaded.value(board), ntuple.value(board))
+
+    def test_layout_adce_matches_reference_on_1000_random_boards(self):
+        rng = random.Random(222)
+        for _ in range(1000):
+            board = Board()
+            for y in range(Board.HEIGHT):
+                board.grid[y] = [1 if rng.random() < 0.5 else 0 for _ in range(Board.WIDTH)]
+            bits = board_bits(board)
+            expected = [_patch_index(bits, positions) for positions in LAYOUT_ADCE]
+            self.assertEqual(patch_indices(bits, LAYOUT_ADCE), expected)
 
 
 class TestBoardBits(unittest.TestCase):
