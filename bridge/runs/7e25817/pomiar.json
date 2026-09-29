@@ -1,0 +1,9 @@
+{
+  "run": "7e25817",
+  "cel": "Sesja #223 (sesja danych 5 na moscie): sprawdzenie naprawy wykrycia zawieszenia planszy (#218) i pomiar odzyskania, pomiar klawisza 'wstecz' na reklamie (#36, strata_okna 2 z #212), material do punktacji (co najmniej 3 pelne partie, polityka greedy, kawalki po 60 ruchow).",
+  "wersja_gry": "10.7.5 (adb shell dumpsys package com.block.juggle)",
+  "kawalki": [
+    {"kawalek": 1, "plik_ruchow": "chunk1_moves.jsonl", "ruchy": "0-59", "polityka": "greedy",
+     "wynik": "60/60 zapisanych, wszystkie ok, brak 'okno' w logu, brak reklamy, brak konca partii. Ruch 15: most SAM wykryl awarie procesu (in_game()==False) i SAM zrobil restart 1/3 (monkey, bez ToS/instalacji) - kontynuacja partii bez utraty stanu (score przed 214, po restarcie 237, plansza zgodna). Partia 1 w toku: wynik do 1891 (pole score)."}
+  ]
+}
