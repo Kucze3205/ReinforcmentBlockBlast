@@ -205,10 +205,11 @@ class TestSpojnoscLicznika(unittest.TestCase):
         self.assertEqual(p["licznik_apki"]["wartosc"], 1_520_000)
 
     def test_skok_o_rzad_wielkosci_nie_konczy_jako_cel(self):
-        h = Harness(self, [chunk(0, 3), chunk(3, 3)], counter_reads=[[150_000, 150_000], [1_500_000, 1_500_000]])
-        code, p = h.run("--kawalek", "3", "--limit-minut", "0.0001")
+        h = Harness(self, [chunk(0, 3), chunk(3, 3), chunk(6, 1, {"end": "gra nie jest na pierwszym planie"})],
+                    counter_reads=[[150_000, 150_000], [1_500_000, 1_500_000]])
+        code, p = h.run("--kawalek", "3")
         self.assertEqual(code, 2)
-        self.assertEqual(p["przyczyna"], "limit_minut")
+        self.assertEqual(p["przyczyna"], "apka_nie_wraca")
         self.assertEqual(p["licznik_apki"]["wartosc"], 150_000)
         self.assertEqual(len(p["licznik_odrzucone"]), 1)
 
