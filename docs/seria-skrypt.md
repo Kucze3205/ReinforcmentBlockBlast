@@ -113,3 +113,30 @@ nakładką (`ok=false` bez znaczenia). Stan końcowy narzędzie bierze więc z `
 klocka; most niesie go też w polu `przed_koncem` wiersza końca (`{board, tray}`). **Czego log nie niesie:** gdy ostatnia
 tacka została ułożona w całości, nowa tacka, przy której padła gra, nie jest zapisana — werdykt `nieoceniane`
 (`nowa_tacka_niezalogowana`); można ją odczytać ze zrzutu `zrzut_konca` ręcznie.
+
+## Skórki i nakładki (s1) — `bridge.py` (#294)
+
+Apka 10.7.5 zmienia w trakcie partii skórkę (tło, plansza, kolor klocków, kolor i waga cyfr licznika) i pokazuje nakładki;
+seria s1 zakończyła tak 7 partii przerwaniem. Test na zrzutach: `tests/test_bridge_skorki.py`.
+
+| skórka | rozpoznanie | uwagi |
+|---|---|---|
+| domyślna (granatowa, zielone i żółte klocki, białe cyfry) | `read_board`/`read_tray`/`read_hud_score` | `partia-9/kawalek_1/044_state.png` |
+| różowa (bordowa plansza, różowe klocki, białe cyfry) | jw. | partie 2, 7, 8 |
+| beżowa (brązowa plansza, zielone klocki, białe cyfry) | jw. | `partia-2/kawalek_2/054_state.png` |
+| teal (jasne tło, turkusowe klocki i cyfry) | jw.; **nie jest menu głównym** — `is_main_menu_screen` wymaga też kafelka „Classic" (`MAIN_MENU_TILE_BOX`) | partie 4, 6 |
+| fioletowa (opalizujące tło, fioletowa plansza, niebieskie cyfry) | jw.; `read_tray` odejmuje tło paska (mediana, `TRAY_BG_DIST`) | `partia-2/kawalek_2/056_state.png`; w s1 tylko klatki z pustą planszą |
+
+| nakładka | okno w logu | działanie |
+|---|---|---|
+| „Better than N%!" z pucharem (`is_trophy_overlay_screen`) | `nakladka_better_than` | czeka 1 s, nie dotyka ekranu, czyta ponownie |
+| pusta tacka przy niepustej planszy (`tray_awaiting_deal`) | `tacka_pusta_przejsciowo` | jw. — nowa trójka jeszcze nie dosypana, pusta tacka nie jest końcem gry |
+
+Oba okna liczą się do bezpiecznika `PROGRESS_SAFEGUARD_TRIES` (12 z rzędu → `petla_bez_postepu`). Pusta tacka przy pustej
+planszy to nadal `plansza_pusta_przejsciowo`.
+
+**Licznik HUD.** `read_hud_score` najpierw próbuje maski ciemnych cyfr skórki oryginalnej (`bridge_digits.npz`), a gdy ta nie
+daje odczytu — rozdzielenia tło/tusz (kolor cyfr = najczęstszy kolor odległy od tła) i wzorców `bridge_digits_ink.npz`
+(`tools/wzorce_hud.py`). Nie umie: licznika pod przyciemnioną nakładką pucharu i klatek z animacją rombu — zwraca `None`.
+Ścieżka ciemna dostaje `uint8`: wzorce powstały z tej reprezentacji, a `int` ze `screenshot()` dawał `None` także na skórce
+oryginalnej (przed #294 licznik w serii nie czytał niczego).
