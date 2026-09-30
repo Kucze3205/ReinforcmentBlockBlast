@@ -77,6 +77,8 @@ RESTART_TRIES = 3
 RESTART_WAIT = 20
 PLAY_BUTTON = (160, 456)  # przycisk "Play" na obu wariantach ekranu końca partii, zmierzony przez verifiera (#173)
 MAIN_MENU_TEAL_FRAC = 0.03  # próg dla is_main_menu_screen, patrz docstring
+MAIN_MENU_TILE_BOX = (66, 463, 254, 506)  # kafelek „Classic" (x0, y0, x1, y1), patrz CLASSIC_BUTTON
+MAIN_MENU_TILE_FRAC = 0.5  # ile kafelka ma być teal: menu 0.85; klocki skórki teal na planszy najwyżej 0.02 (#294)
 CLASSIC_BUTTON = (160, 484)  # środek kafelka "Classic" na menu głównym, zmierzony na
 # bridge/runs/4a1796f/chunk4_003_menu_end.png (#204): maska koloru kafelka (teal, patrz
 # is_main_menu_screen) daje x 66-253, y 463-505 bez plakietki "Continue!"; bliskie ręcznemu
@@ -216,12 +218,18 @@ def is_main_menu_screen(img):
     jasna `44a8ea2/p2b_ad_before.png`/`p2b_ad_after_back.png`, już złapana wcześniej w pętli
     przez `is_bright_ad_screen`) — próg 0,03 zostawia margines i tak wyklucza tę reklamę
     jawnie, na wypadek gdyby coś wywołało tę funkcję poza zwykłą kolejnością pętli.
+
+    Skórka teal planszy (#294, s1: jasne tło, turkusowe klocki; `docs/seria/s1/partia-4/kawalek_1/final.png`,
+    `partia-6/kawalek_1/final.png`) ma ten sam kolor klocków, a odsetek teal pikseli całego kadru to tam 0.031
+    przy 0.038 na menu — sam odsetek ich nie rozdziela i most stukał „Classic" w pętli. Rozdziela miejsce:
+    kafelek „Classic" wypełnia `MAIN_MENU_TILE_BOX` w 0.85, a klocki skórki teal w najwyżej 0.02.
     """
     if is_bright_ad_screen(img):
         return False
     r, g, b = img[..., 0], img[..., 1], img[..., 2]
     teal = (g > 150) & (b > 100) & (b < 220) & (r < 80) & (g > r + 80) & (b > r + 60)
-    return teal.mean() > MAIN_MENU_TEAL_FRAC
+    x0, y0, x1, y1 = MAIN_MENU_TILE_BOX
+    return bool(teal.mean() > MAIN_MENU_TEAL_FRAC and teal[y0:y1, x0:x1].mean() > MAIN_MENU_TILE_FRAC)
 
 
 def is_bright_ad_screen(img):
