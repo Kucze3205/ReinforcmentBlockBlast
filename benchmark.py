@@ -141,7 +141,9 @@ NTUPLE_POLICY_PREFIX = "lookahead-ntuple"
 
 # Parametry przeszukania, które `lookahead-ntuple:<plik>@...` (#195) wolno nadpisać —
 # dokładnie kwargs konstruktora `NTupleLookaheadPolicy` poza `ntuple` i `seed`.
-NTUPLE_SEARCH_PARAMS = ("beam", "samples", "branch", "inner_beam", "inner_depth", "complete")
+NTUPLE_SEARCH_PARAMS = (
+    "beam", "samples", "branch", "inner_beam", "inner_depth", "complete", "gain_weight",
+)
 
 
 def parse_ntuple_spec(spec):

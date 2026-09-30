@@ -201,6 +201,9 @@ class LookaheadPolicy:
         # niezmienione) albo `placed` (liczba postawień, wagi N-tuple uczone na
         # sygnale przeżycia, #140).
         self._path_key = "gain"
+        # Waga punktów w składniku ścieżki `placed` (#248), w tysięcznych postawienia
+        # na punkt; 0 = wyłączona. Ustawia ją wyłącznie `NTupleLookaheadPolicy`.
+        self._gain_weight = 0
         self.reset(None)
 
     def reset(self, game_seed):
@@ -212,7 +215,7 @@ class LookaheadPolicy:
         return _tray_beam_search(
             board, pieces, combo, combo_counter, self.weights, beam,
             root_actions=root_actions, depth=depth, leaf_value=self._leaf_value,
-            path_key=self._path_key,
+            path_key=self._path_key, gain_weight=self._gain_weight,
         )
 
     def act(self, game, actions):
@@ -244,7 +247,7 @@ class LookaheadPolicy:
                 )
                 self.last_expanded += inner_expanded
                 total += max(inner, key=lambda c: c["score"])["score"]
-            value = state[self._path_key] + total / len(trays)
+            value = _path_value(state, self._path_key, self._gain_weight) + total / len(trays)
             if best_value is None or value > best_value:
                 best_action, best_value = state["first_action"], value
         return best_action
@@ -307,12 +310,21 @@ class NTupleLookaheadPolicy(LookaheadPolicy):
     znajdzie (tacka faktycznie nieukładalna) — zostaje wynik wiązki bez zmian.
     `complete=0` (domyślnie) nie wykonuje żadnego z tych kroków: zachowanie
     bit w bit jak przed #239. Opis i koszt: `docs/gwarancja-tacki.md`.
+
+    **Punkty w składniku ścieżki** (`gain_weight`, #248). Przy `complete=1` partie
+    nie umierają, więc o średniej rozstrzyga liczba punktów na postawienie, a
+    składnik `placed` do niej nie zagląda. `gain_weight=w` (liczba całkowita,
+    tysięczne postawienia na punkt) zmienia składnik ścieżki na
+    `placed + w/1000 · gain`; wartość liścia i reszta przeszukania bez zmian.
+    Działa tylko z wagami `survival` (dla wag `score` ścieżką są już same punkty —
+    inna wartość niż 0 kończy się `ValueError`). `gain_weight=0` (domyślnie) nie
+    wykonuje żadnego dodatkowego kroku: decyzje bit w bit jak przed #248.
     """
 
     name = "lookahead-ntuple"
 
     def __init__(self, ntuple, beam=None, samples=None, branch=None,
-                 inner_beam=None, inner_depth=None, seed=0, complete=0):
+                 inner_beam=None, inner_depth=None, seed=0, complete=0, gain_weight=0):
         # `weights` klasy bazowej nie jest tu używane (leaf_value je zastępuje),
         # ale `LookaheadPolicy.__init__` go wymaga — wartość jest obojętna.
         super().__init__(
@@ -321,9 +333,14 @@ class NTupleLookaheadPolicy(LookaheadPolicy):
         )
         self.ntuple = ntuple
         self.complete = complete
+        self.gain_weight = gain_weight
         self._leaf_value = self._ntuple_leaf
         if getattr(ntuple, "reward", "score") == "survival":
             self._path_key = "placed"
+        if gain_weight and self._path_key != "placed":
+            raise ValueError("gain_weight wymaga wag survival (dla wag score ścieżką są punkty)")
+        self._gain_weight = gain_weight
+        self._scaled_ntuple = None
 
     def _ntuple_leaf(self, board, combo, combo_counter):
         """Wartość liścia z sieci N-tuple; `combo`/`combo_counter` świadomie bez wpływu."""
@@ -337,9 +354,30 @@ class NTupleLookaheadPolicy(LookaheadPolicy):
             return done
         found = _tray_complete_search(
             game.board, pieces, game.combo, game.combo_counter,
-            self._ntuple_leaf, self._path_key,
+            self._ntuple_leaf, self._path_key, self._gain_weight,
         )
         return found if found else frontier
+
+    def _scaled_core(self):
+        """Rdzeń z wagami razy `GAIN_WEIGHT_UNIT` (tylko dla `gain_weight != 0`, #248).
+
+        Rdzeń natywny sumuje ścieżkę jako liczbę całkowitą, więc składnik
+        `placed + w/1000·gain` liczy w skali ×1000 (`1000·placed + w·gain`, całkowite),
+        a wartość liścia musi wtedy być w tej samej skali — stąd kopia wag."""
+        if not self._gain_weight:
+            return None
+        if self._scaled_ntuple is None:
+            src = self.ntuple
+            scale = float(GAIN_WEIGHT_UNIT)
+            if src.stages == 1:
+                weights = [[x * scale for x in table] for table in src.weights]
+            else:
+                weights = [[[x * scale for x in table] for table in stage] for stage in src.weights]
+            self._scaled_ntuple = type(src)(
+                weights=weights, reward=src.reward, layout=src.layout, native=True,
+                stages=src.stages, thresholds=src.thresholds,
+            )
+        return self._scaled_ntuple.native
 
     def _search(self, board, pieces, combo, combo_counter, beam, root_actions=None, depth=None):
         """Z rdzeniem natywnym (#184) całą wiązkę liczy `_tray_beam_search_native`
@@ -352,6 +390,7 @@ class NTupleLookaheadPolicy(LookaheadPolicy):
                 found = _tray_beam_search_native(
                     core, board, pieces, combo, combo_counter, beam,
                     root_actions=root_actions, depth=depth, path_key=self._path_key,
+                    gain_weight=self._gain_weight, scaled_core=self._scaled_core(),
                 )
                 if found is not None:
                     return found
@@ -360,8 +399,21 @@ class NTupleLookaheadPolicy(LookaheadPolicy):
         )
 
 
+# Skala `gain_weight` (#248): waga w tysięcznych postawienia na punkt.
+GAIN_WEIGHT_UNIT = 1000
+
+
+def _path_value(state, path_key, gain_weight=0):
+    """Składnik ścieżki stanu wiązki: pole `path_key`, a przy `gain_weight != 0`
+    (tylko `placed`, #248) `placed + gain_weight/1000 · gain`."""
+    if gain_weight:
+        return state["placed"] + gain_weight * state["gain"] / GAIN_WEIGHT_UNIT
+    return state[path_key]
+
+
 def _tray_beam_search(board, pieces, combo, combo_counter, weights, beam,
-                      root_actions=None, depth=None, leaf_value=None, path_key="gain"):
+                      root_actions=None, depth=None, leaf_value=None, path_key="gain",
+                      gain_weight=0):
     """Wiązka po sekwencjach postawień z tacki `pieces` na kopii `board`.
 
     Serce `TrayPolicy` (#58) i obu poziomów `LookaheadPolicy` (#92) — wyniesione
@@ -386,6 +438,7 @@ def _tray_beam_search(board, pieces, combo, combo_counter, weights, beam,
       −6,6%).
     - `path_key` — pole stanu sumowane po ścieżce i dodawane do liścia: `gain`
       (domyślnie, punkty) albo `placed` (liczba postawień, sygnał przeżycia, #140).
+    - `gain_weight` — z `path_key="placed"`: dodaje do ścieżki `gain_weight/1000 · gain` (#248).
     """
     value_fn = leaf_value if leaf_value is not None else (
         lambda b, c, cc: _weighted_features(weights, b, c, cc)
@@ -417,7 +470,7 @@ def _tray_beam_search(board, pieces, combo, combo_counter, weights, beam,
                 candidates.append(_expand(state, action))
         expanded += len(candidates)
         for candidate in candidates:
-            candidate["score"] = candidate[path_key] + value_fn(
+            candidate["score"] = _path_value(candidate, path_key, gain_weight) + value_fn(
                 candidate["board"], candidate["combo"], candidate["combo_counter"],
             )
         candidates.sort(key=lambda c: c["score"], reverse=True)
@@ -425,13 +478,13 @@ def _tray_beam_search(board, pieces, combo, combo_counter, weights, beam,
 
     if levels == 0:
         for candidate in frontier:
-            candidate["score"] = candidate[path_key] + value_fn(
+            candidate["score"] = _path_value(candidate, path_key, gain_weight) + value_fn(
                 candidate["board"], candidate["combo"], candidate["combo_counter"],
             )
     return frontier, expanded
 
 
-def _tray_complete_search(board, pieces, combo, combo_counter, value_fn, path_key):
+def _tray_complete_search(board, pieces, combo, combo_counter, value_fn, path_key, gain_weight=0):
     """Przegląd wyczerpujący ułożeń **całej** tacki `pieces` (#239).
 
     Poziom po poziomie, jak `_tray_beam_search`, ale bez przycinania do `beam`:
@@ -441,7 +494,8 @@ def _tray_complete_search(board, pieces, combo, combo_counter, value_fn, path_ke
     (przy remisie — znaleziony pierwszy). Stan bez legalnego ruchu przed końcem
     tacki odpada. Zwraca stany końcowe (tacka wykorzystana w całości) z polem
     `score = ścieżka + value_fn(plansza)`, albo `[]`, gdy tacki nie da się ułożyć.
-    Nie mutuje `board`.
+    Nie mutuje `board`. `gain_weight` jak w `_tray_beam_search`; różnicuje wtedy stany o
+    tej samej planszy, więc klucz scalania zawiera combo i licznik jak dla `gain`.
     """
     levels = sum(1 for p in pieces if p is not None)
     frontier = [{
@@ -462,18 +516,22 @@ def _tray_complete_search(board, pieces, combo, combo_counter, value_fn, path_ke
                     board_bits(nxt["board"]),
                     tuple(p is None for p in nxt["pieces"]),
                     nxt["combo"], nxt["combo_counter"],
-                ) if path_key == "gain" else (
+                ) if path_key == "gain" or gain_weight else (
                     board_bits(nxt["board"]),
                     tuple(p is None for p in nxt["pieces"]),
                 )
                 old = merged.get(key)
-                if old is None or nxt[path_key] > old[path_key]:
+                if old is None or (
+                    _path_value(nxt, path_key, gain_weight) > _path_value(old, path_key, gain_weight)
+                ):
                     merged[key] = nxt
         frontier = list(merged.values())
         if not frontier:
             return []
     for state in frontier:
-        state["score"] = state[path_key] + value_fn(state["board"], state["combo"], state["combo_counter"])
+        state["score"] = _path_value(state, path_key, gain_weight) + value_fn(
+            state["board"], state["combo"], state["combo_counter"],
+        )
     frontier.sort(key=lambda c: c["score"], reverse=True)
     return frontier
 
@@ -499,7 +557,8 @@ def _native_int(value, limit=_NATIVE_INT_LIMIT):
 
 
 def _tray_beam_search_native(core, board, pieces, combo, combo_counter, beam,
-                             root_actions=None, depth=None, path_key="gain"):
+                             root_actions=None, depth=None, path_key="gain",
+                             gain_weight=0, scaled_core=None):
     """`_tray_beam_search` z liściem `ntuple.value(board)` policzone w rdzeniu
     natywnym (`ntuple_native.c`, #184). Zwraca to samo `(wiązka, expanded)` —
     te same stany w tej samej kolejności, z tymi samymi polami — albo `None`,
@@ -515,6 +574,11 @@ def _tray_beam_search_native(core, board, pieces, combo, combo_counter, beam,
     pełną linią) rdzeń zgłasza, a liczy go Python."""
     if path_key not in ("gain", "placed") or not _native_int(beam, _NATIVE_I32_LIMIT) or beam < 0:
         return None
+    if gain_weight:
+        # #248: ścieżka `1000·placed + w·gain` (całkowita) i liść z wag ×1000 (`scaled_core`).
+        if path_key != "placed" or scaled_core is None or not _native_int(gain_weight, _NATIVE_I32_LIMIT):
+            return None
+        core = scaled_core
     if not all(_native_int(v, _NATIVE_I32_LIMIT) for v in (combo, combo_counter, COMBO_COUNTER_BASE)):
         return None
     if not _native_int(FULL_CLEAR_BONUS):
@@ -532,6 +596,10 @@ def _tray_beam_search_native(core, board, pieces, combo, combo_counter, beam,
         points = placement_points(piece)
         if geom is None or not _native_int(points):
             return None
+        if gain_weight:
+            points = GAIN_WEIGHT_UNIT + gain_weight * points
+            if not _native_int(points):
+                return None
         geoms.append(geom)
         pp.append(points)
         present |= 1 << slot
@@ -548,11 +616,20 @@ def _tray_beam_search_native(core, board, pieces, combo, combo_counter, beam,
             hi = clear_points(combo + k + 1, lines)
             if not (_native_int(lo) and _native_int(hi)):
                 return None
+            if gain_weight:
+                lo, hi = gain_weight * lo, gain_weight * hi
+                if not (_native_int(lo) and _native_int(hi)):
+                    return None
             cp_lo[k * width + lines] = lo
             cp_hi[k * width + lines] = hi
+    full_clear = FULL_CLEAR_BONUS
+    if gain_weight:
+        full_clear = gain_weight * FULL_CLEAR_BONUS
+        if not _native_int(full_clear):
+            return None
     found = core.search(
         board_bits(board), geoms, present, combo, combo_counter, COMBO_COUNTER_BASE, levels, lmax,
-        pp, cp_lo, cp_hi, FULL_CLEAR_BONUS, path_key == "placed", beam, root_actions,
+        pp, cp_lo, cp_hi, full_clear, path_key == "placed" and not gain_weight, beam, root_actions,
     )
     if found is None:
         return None
@@ -561,15 +638,19 @@ def _tray_beam_search_native(core, board, pieces, combo, combo_counter, beam,
     for st in states:
         used = st.used
         first = st.first
+        gain, score = st.gain, st.score
+        if gain_weight:
+            gain = (gain - GAIN_WEIGHT_UNIT * st.placed) // gain_weight
+            score = score / GAIN_WEIGHT_UNIT
         frontier.append({
             "board": _board_from_bits(st.bits),
             "pieces": tuple(None if (used >> s) & 1 else p for s, p in enumerate(pieces)) if used else pieces,
             "combo": st.combo,
             "combo_counter": st.cc,
-            "gain": st.gain,
+            "gain": gain,
             "placed": st.placed,
             "first_action": None if first < 0 else (first >> 6, first & 7, (first >> 3) & 7),
-            "score": st.score,
+            "score": score,
         })
     return frontier, expanded
 
