@@ -200,9 +200,10 @@ limit długości partii, nie miara poziomu. Dwa warunki, oba potwierdzone raport
 
 - **Przeżycie przed punktami.** Zmiana, która dodaje punkty kosztem choćby jednej przegranej w
   benchmarku, jest odrzucana. Punkty rozstrzygają tylko remis w przeżyciu.
-- **Sufit ruchów** w `bench/config.json` podnosisz ×2, gdy > 5% partii benchmarku kończy
-  na suficie. Osobny commit, nigdy w dół. Po zmianie linia bazowa przebiega się na nowo
-  (zleć `rola:bench`), żeby porównania zostały uczciwe.
+- **Sufit ruchów** w `bench/config.json` podnosisz ×2 tylko wtedy, gdy jest < 10× szacunku
+  postawień do 1 mln licznika apki (szacunek z ostatniej realnej partii). `capped_pct` 100 to
+  sukces, nie powód do podwajania. Osobny commit, nigdy w dół. Po zmianie linia bazowa
+  przebiega się na nowo (zleć `rola:bench`), żeby porównania zostały uczciwe.
 - **Serię zlecasz dopiero po warunku 1** i gdy zmierzone tempo mostu mieści partię 1 mln licznika
   apki w jobie z zapasem 30%. Wyzwala postęp, nie czas. **Nigdy dwie serie naraz.** Na czas serii
   pętla prawie stoi (10 jobów z emulatorem) — tak ma być.
