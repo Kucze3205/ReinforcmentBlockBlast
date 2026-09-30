@@ -53,7 +53,7 @@ HUD_DIGIT_DARK = 150  # piksel cyfry HUD: max kanału poniżej (cyfry 74,77,90; 
 HUD_INK_MIN_DIST = 150  # `_hud_ink_unmixed`: suma |ΔRGB| od tła, od której kolor liczy się jako tusz cyfr
 HUD_INK_RESID = 0.35  # odrzuć piksel, którego odległość od prostej tło→tusz przekracza tyle długości odcinka
 HUD_INK_LOW = 0.55  # rzut na odcinek tło→tusz poniżej tego to tło (blady romb skórki teal ma ok. 0.3-0.5)
-HUD_INK_MASK = 0.1  # piksel jest cyfrą, gdy `soft` z `_hud_ink_unmixed` > tyle
+HUD_INK_MASK = 0.5  # piksel jest cyfrą, gdy `soft` z `_hud_ink_unmixed` > tyle
 DIGIT_MAX_DIST = 0.35  # odrzuć glif, gdy L1 do najlepszego wzorca > tyle masy glifu (zmierzone max 0.16)
 DIGIT_MAX_RATIO = 0.95  # odrzuć glif, gdy najlepszy wzorzec prawie remisuje z drugim (zmierzone max 0.91)
 GAME_OVER_PURPLE_FRAC = 0.5  # próg dla is_game_over_screen: tło ma 0.92-0.96, reszta ekranów <=0.065
