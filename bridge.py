@@ -706,6 +706,7 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
     board_stuck_streak = 0
     empty_streak = 0
     game_number = 1
+    po_ruchu = None  # plansza i reszta tacki po ostatnim ruchu — odczyt ekranu końca gry jest nakładką-śmieciem (#292)
 
     def write_row(entry):
         entry["t"] = round(time.time(), 3)
@@ -783,6 +784,8 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
                      "koniec_partii": True, "wynik_koncowy": final_score,
                      "wynik_koncowy_odczyty": score_reads,
                      "zrzut_konca": os.path.basename(end_path), "nowa_partia": game_number}
+            if po_ruchu is not None:
+                entry["przed_koncem"] = po_ruchu
             if seria:
                 entry["end"] = "koniec_partii"
             elif window_streak >= PROGRESS_SAFEGUARD_TRIES:
@@ -794,6 +797,7 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
             if "end" in entry:
                 break
             tap_play()
+            po_ruchu = None
             img, grid, slots = stable_state()
             continue
         board = Board()
@@ -872,6 +876,8 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
         ok_streak = ok_streak + 1 if ok else 0
         best_streak = max(best_streak, ok_streak)
         last_ok = ok
+        po_ruchu = {"board": expected, "tray": [p.shape if p is not None and j != i else None
+                                                for j, p in enumerate(pieces)]}
         entry["t_ms"] = {"odczyt": round((t0 - t_start) * 1000, 1), "decyzja": round(decision_ms, 1),
                          "przeciagniecie": round((t2 - t1) * 1000, 1), "stabilny_stan": round((t3 - t2) * 1000, 1)}
         entry.update(move={"slot": i, "x": x, "y": y}, drag=info, expected=expected, observed=observed, ok=ok,
