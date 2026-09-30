@@ -1,12 +1,12 @@
 {
-  "sha": "4b68386f850ead0748c2ac06781f9ff3138ed29a",
+  "sha": "fdc672101c38016c503fb6b72a14e219b171d701",
   "dirty": false,
-  "issue": 240,
+  "issue": 243,
   "status": "ok",
   "blocked_reason": null,
   "config": {
     "n_seeds": 300,
-    "move_cap": 4000,
+    "move_cap": 8000,
     "epsilon": 0.0,
     "torch_seed": 0,
     "threshold_pct": 10.0,
@@ -31,52 +31,22 @@
       "spec": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1",
       "weights_hash": "741a1e664463f3d7",
       "fixed": {
-        "mean": 560858.53,
-        "median": 555620.0,
-        "p10": 463120.7,
-        "survival_mean": 4000,
+        "mean": 1126300.71,
+        "median": 1122909.5,
+        "p10": 977772.8,
+        "survival_mean": 8000,
         "capped_pct": 100.0
       },
       "rotated": {
-        "mean": 567032.86,
-        "median": 551225.0,
-        "p10": 471412.9,
-        "survival_mean": 4000,
+        "mean": 1141669.19,
+        "median": 1129187.5,
+        "p10": 981888.7,
+        "survival_mean": 8000,
         "capped_pct": 100.0
       },
-      "overfit_gap_pct": -1.1
-    },
-    "record": {
-      "policy": "lookahead-ntuple",
-      "spec": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0",
-      "weights_hash": "741a1e664463f3d7",
-      "fixed": {
-        "mean": 123077.03,
-        "median": 82274.5,
-        "p10": 8278.9,
-        "survival_mean": 922.94,
-        "capped_pct": 0.67
-      },
-      "rotated": {
-        "mean": 123215.32,
-        "median": 72691.0,
-        "p10": 8147.0,
-        "survival_mean": 915.8,
-        "capped_pct": 1.0
-      },
-      "overfit_gap_pct": -0.11
+      "overfit_gap_pct": -1.36
     }
   },
-  "deltas": {
-    "kandydat vs record": {
-      "mean_diff": 437781.5,
-      "pct": 355.7,
-      "sd_diff": 145576.54,
-      "se_diff": 8404.87,
-      "se_pct": 6.83,
-      "mean_diff_over_se": 52.09,
-      "label": "poprawa"
-    }
-  },
-  "duration_s": 5266.9
+  "deltas": {},
+  "duration_s": 7966.9
 }
