@@ -47,8 +47,13 @@ GAME_OVER_SCORE_BOX_BLUE = (60, 268, 260, 318)  # wynik na ekranie niebieskim "Y
 # cyfry "20345" na chunk15_after_back.png leżą w wierszach 273-312, wyżej niż na wariancie fioletowym
 # (321-361) — GAME_OVER_SCORE_BOX go nie łapie wcale.
 DIGIT_TEMPLATES_FILE = "bridge_digits.npz"  # średnie wzorce cyfr HUD z 15 zrzutów 01eb4dd (#290)
+DIGIT_INK_TEMPLATES_FILE = "bridge_digits_ink.npz"  # wzorce dla odczytu tło/tusz, budowane przez tools/wzorce_hud.py (#294)
 DIGIT_GLYPH_H, DIGIT_GLYPH_W = 36, 30  # rozmiar znormalizowanego glifu we wzorcach
 HUD_DIGIT_DARK = 150  # piksel cyfry HUD: max kanału poniżej (cyfry 74,77,90; tło i żółty romb > 200)
+HUD_INK_MIN_DIST = 150  # `_hud_ink_unmixed`: suma |ΔRGB| od tła, od której kolor liczy się jako tusz cyfr
+HUD_INK_RESID = 0.35  # odrzuć piksel, którego odległość od prostej tło→tusz przekracza tyle długości odcinka
+HUD_INK_LOW = 0.55  # rzut na odcinek tło→tusz poniżej tego to tło (blady romb skórki teal ma ok. 0.3-0.5)
+HUD_INK_MASK = 0.1  # piksel jest cyfrą, gdy `soft` z `_hud_ink_unmixed` > tyle
 DIGIT_MAX_DIST = 0.35  # odrzuć glif, gdy L1 do najlepszego wzorca > tyle masy glifu (zmierzone max 0.16)
 DIGIT_MAX_RATIO = 0.95  # odrzuć glif, gdy najlepszy wzorzec prawie remisuje z drugim (zmierzone max 0.91)
 GAME_OVER_PURPLE_FRAC = 0.5  # próg dla is_game_over_screen: tło ma 0.92-0.96, reszta ekranów <=0.065
@@ -488,27 +493,51 @@ def read_tray(img):
     return slots
 
 
-_DIGIT_TEMPLATES = None
+_DIGIT_TEMPLATES = {}
 
 
-def _digit_templates():
-    global _DIGIT_TEMPLATES
-    if _DIGIT_TEMPLATES is None:
-        with np.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), DIGIT_TEMPLATES_FILE)) as z:
-            _DIGIT_TEMPLATES = {k: z[k].astype(float) / 255 for k in z.files}
-    return _DIGIT_TEMPLATES
+def _digit_templates(name=DIGIT_TEMPLATES_FILE):
+    if name not in _DIGIT_TEMPLATES:
+        with np.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), name)) as z:
+            _DIGIT_TEMPLATES[name] = {k: z[k].astype(float) / 255 for k in z.files}
+    return _DIGIT_TEMPLATES[name]
 
 
-def read_hud_score(img, box=SCORE_BOX):
-    """Licznik HUD (ciemne cyfry na jasnym tle) dopasowaniem wzorców cyfr; None, gdy glify nie pasują (#290).
+def _hud_ink_dark(crop):
+    """Cyfry ciemne na jasnym tle (skórka oryginalna, #290): miękka maska `soft` (1 = tusz)."""
+    return np.clip((200 - crop.max(axis=2)) / 126.0, 0, 1)
 
-    Tesseract mylił cyfry pod żółtym rombem (1512468 czytał jako 1519468), a dwa zgodne odczyty nie
-    chronią przed błędem powtarzalnym. Tu: podział na glify po kolumnach, skala do stałej wysokości,
-    odległość L1 do średniego wzorca każdej cyfry; odczyt niejednoznaczny albo z dziwnym kształtem
-    glifu to None, nie zgadywanie."""
-    x0, y0, x1, y1 = box
-    crop = img[y0:y1, x0:x1]
-    mask = crop.max(axis=2) < HUD_DIGIT_DARK
+
+def _hud_ink_unmixed(crop):
+    """Cyfry dowolnego koloru na tle o jednym kolorze (skórki teal, różowa, domyślna, fioletowa, s1 / #294):
+    tło = najczęstszy kolor kadru, tusz = najczęstszy kolor od niego odległy; `soft` to rzut piksela na
+    odcinek tło→tusz, z odrzuceniem pikseli leżących daleko od tej prostej (romb, konfetti, cienie).
+    None, gdy kadr nie ma drugiego koloru (brak cyfr)."""
+    flat = crop.reshape(-1, 3)
+    q = (flat // 16).astype(int)
+    keys = q[:, 0] * 256 + q[:, 1] * 16 + q[:, 2]
+    vals, counts = np.unique(keys, return_counts=True)
+    order = np.argsort(-counts)
+    bg = flat[keys == vals[order[0]]].mean(axis=0)
+    ink = None
+    for i in order[1:]:
+        c = flat[keys == vals[i]].mean(axis=0)
+        if np.abs(c - bg).sum() > HUD_INK_MIN_DIST:
+            ink = c
+            break
+    if ink is None:
+        return None
+    d = ink - bg
+    n2 = float((d * d).sum())
+    diff = crop - bg
+    t = (diff @ d) / n2
+    resid = np.linalg.norm(diff - t[..., None] * d, axis=-1)
+    return np.clip((t - HUD_INK_LOW) / (1 - HUD_INK_LOW), 0, 1) * (resid < HUD_INK_RESID * np.sqrt(n2))
+
+
+def _hud_canvases(soft, mask):
+    """Glify licznika jako płótna DIGIT_GLYPH_H x DIGIT_GLYPH_W (po kolumnach, skala do stałej wysokości);
+    None, gdy podział nie wygląda na cyfry (sklejone, różnej wysokości, za dużo/mało)."""
     cols = mask.any(axis=0)
     runs, start = [], None
     for i, v in enumerate(list(cols) + [False]):
@@ -519,13 +548,11 @@ def read_hud_score(img, box=SCORE_BOX):
             start = None
     if not 1 <= len(runs) <= 9:
         return None
-    soft = np.clip((200 - crop.max(axis=2)) / 126.0, 0, 1)
     spans = [np.nonzero(mask[:, a:b].any(axis=1))[0] for a, b in runs]
     heights = [ys.max() - ys.min() + 1 for ys in spans]
     if min(heights) < 0.6 * max(heights):
         return None
-    templates = _digit_templates()
-    text = ""
+    canvases = []
     for (a, b), ys in zip(runs, spans):
         if b - a > 1.15 * DIGIT_GLYPH_W or len(ys) < 10:  # sklejone cyfry albo śmieć
             return None
@@ -535,11 +562,47 @@ def read_hud_score(img, box=SCORE_BOX):
         canvas = np.zeros((DIGIT_GLYPH_H, DIGIT_GLYPH_W))
         off = (DIGIT_GLYPH_W - new_w) // 2
         canvas[:, off:off + new_w] = np.asarray(im) / 255.0
+        canvases.append(canvas)
+    return canvases
+
+
+def _hud_match(canvases, templates):
+    """Liczba z płócien glifów albo None, gdy którykolwiek glif nie pasuje jednoznacznie do wzorca."""
+    text = ""
+    for canvas in canvases:
         dist = sorted((float(np.abs(canvas - t).sum()), d) for d, t in templates.items())
         if dist[0][0] > DIGIT_MAX_DIST * canvas.sum() or dist[0][0] > DIGIT_MAX_RATIO * dist[1][0]:
             return None
         text += dist[0][1]
     return int(text)
+
+
+def read_hud_score(img, box=SCORE_BOX):
+    """Licznik HUD dopasowaniem wzorców cyfr; None, gdy glify nie pasują (#290).
+
+    Tesseract mylił cyfry pod żółtym rombem (1512468 czytał jako 1519468), a dwa zgodne odczyty nie
+    chronią przed błędem powtarzalnym. Tu: podział na glify po kolumnach, skala do stałej wysokości,
+    odległość L1 do średniego wzorca każdej cyfry; odczyt niejednoznaczny albo z dziwnym kształtem
+    glifu to None, nie zgadywanie.
+
+    Kolor cyfr zależy od skórki apki (#294: ciemne na jasnym, białe na różowym/granatowym/beżowym,
+    turkusowe, niebieskie) — najpierw maska ciemnych cyfr skórki oryginalnej, a gdy ta nie daje odczytu,
+    maska z rozdzielenia tło/tusz (`_hud_ink_unmixed`). Zły odczyt jest gorszy niż brak, więc wszystkie
+    progi odrzucenia są wspólne."""
+    x0, y0, x1, y1 = box
+    # uint8, nie int ze `screenshot()`: wzorce `bridge_digits.npz` powstały z tej reprezentacji (200 - uint8 zawija
+    # się dla jasnego tła, więc `soft` jest tam 1 w całym glifie); na `int` ten sam zrzut dawał None (#294)
+    crop = img[y0:y1, x0:x1].astype(np.uint8)
+    soft = _hud_ink_dark(crop)
+    canvases = _hud_canvases(soft, crop.max(axis=2) < HUD_DIGIT_DARK)
+    value = None if canvases is None else _hud_match(canvases, _digit_templates())
+    if value is not None:
+        return value
+    soft = _hud_ink_unmixed(crop.astype(float))
+    if soft is None:
+        return None
+    canvases = _hud_canvases(soft, soft > HUD_INK_MASK)
+    return None if canvases is None else _hud_match(canvases, _digit_templates(DIGIT_INK_TEMPLATES_FILE))
 
 
 def read_score(img, box=SCORE_BOX):
