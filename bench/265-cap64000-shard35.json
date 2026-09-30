@@ -1,5 +1,5 @@
 {
-  "sha": "86accbb1a16b28af1f8d1a0cd2ac0e1be7368b7f",
+  "sha": "8d4bdea02ec891a6d236ceac957c45fa698664d0",
   "dirty": false,
   "issue": 265,
   "status": "ok",
@@ -102,6 +102,6 @@
     }
   },
   "deltas": {},
-  "duration_s": 1713.9,
+  "duration_s": 1311.6,
   "shard": "35/40"
 }
