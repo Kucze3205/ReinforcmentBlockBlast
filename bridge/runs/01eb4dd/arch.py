@@ -34,7 +34,16 @@ def summary(ks):
 
 
 if __name__ == "__main__":
-    if sys.argv[1] == "arch":
+    if sys.argv[1] == "all":
+        import subprocess
+        k = int(sys.argv[2])
+        archive(k)
+        print("kawalek", summary([k]))
+        out = subprocess.run(["python3", "tools/score_from_trajectory.py", RUN, "--first-chunk", "1", "--last-chunk", str(k)], capture_output=True, text=True).stdout
+        d = json.loads(out)
+        print("wzor", d["postawien"], d["wynik_main"])
+        print(open(f"{RUN}/chunk{k}_chunk.log").read().strip().splitlines()[-1])
+    elif sys.argv[1] == "arch":
         archive(int(sys.argv[2]))
     else:
         print(summary([int(x) for x in sys.argv[2:]]))
