@@ -88,3 +88,28 @@ Wyniki: artefakt `seria-<id>-partia-K` na partię (cały `KATALOG`, także `logc
 gh run list --workflow seria.yml --json databaseId,displayTitle,status   # displayTitle: "seria <id>"
 gh run download <run-id> -n seria-<id>-partia-K
 ```
+
+## Po przegranej — `tools/przegrana_serii.py` (#292)
+
+```
+python3 tools/przegrana_serii.py KATALOG [--polityka SPEC] [--out PLIK.json]
+```
+
+Czyta `KATALOG/pomiar.json` i pliki z `kawalki`. Dla `zakonczenie` innego niż `przegrana` wypisuje komunikat i kończy
+kodem 0. Dla `przegrana` odtwarza ostatnią tackę z logu (plansza z jej pojawienia się i trzy klocki), sprawdza przeglądem
+wyczerpującym (`board.tray_playable`), czy dało się ją ułożyć w całości, i porównuje ruchy mostu z wyborem polityki
+`--polityka` (domyślnie `arms.candidate.spec` z `bench/record.json`; uwaga na stderr, gdy różni się od `polityka` serii)
+na tych samych zalogowanych stanach — dla ostatniej i poprzedniej tacki. Zawsze kod 0; werdykt w stdout i w `--out`.
+
+| werdykt | znaczenie |
+|---|---|
+| `tacka_nieukladalna` | tacka, przy której padła gra, nie dawała się ułożyć w całości — generator apki przeczy #249 |
+| `slepa_plamka` | ułożenie istniało, a polityka w symulatorze wybiera te same ruchy co most (albo jej przeszukanie go nie widzi) |
+| `rozjazd_mostu` | polityka w symulatorze gra inaczej niż most na tej samej planszy i tacce; albo `ok=false` przed ostatnim ruchem; albo koniec mimo legalnego ruchu wg odczytu (zły odczyt planszy/tacki) |
+| `nieoceniane` | brak stanu do werdyktu; `powod`: `nowa_tacka_niezalogowana`, `ksztalt_nierozpoznany`, `brak_ruchow_z_pelna_tacka`, `budzet_wezlow_wyczerpany`, `polityka_niedostepna`, `zla_wielkosc_planszy`, `brak_wiersza_koniec_partii` |
+
+Wiersz `koniec_partii` to odczyt nakładki ekranu końca (plansza i kształty-śmieci), a `observed` ostatniego ruchu bywa już
+nakładką (`ok=false` bez znaczenia). Stan końcowy narzędzie bierze więc z `expected` ostatniego ruchu i tacki bez postawionego
+klocka; most niesie go też w polu `przed_koncem` wiersza końca (`{board, tray}`). **Czego log nie niesie:** gdy ostatnia
+tacka została ułożona w całości, nowa tacka, przy której padła gra, nie jest zapisana — werdykt `nieoceniane`
+(`nowa_tacka_niezalogowana`); można ją odczytać ze zrzutu `zrzut_konca` ręcznie.
