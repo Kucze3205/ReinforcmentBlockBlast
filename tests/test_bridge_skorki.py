@@ -109,7 +109,7 @@ class TestTrayAwaitingDeal(unittest.TestCase):
         self.assertFalse(bridge.tray_awaiting_deal([[0] * 8 for _ in range(8)], [None, None, None]))
 
 
-def run_main(first, then, max_moves=1, overlay=False):
+def run_main(first, then, max_moves=1, overlay=False, seria=False):
     """`bridge.main` z atrapami: pierwszy odczyt `first` = (obraz, plansza, tacka), kolejne `then()`.
     Zwraca wpisy logu ruchów."""
     def settled():
@@ -131,7 +131,7 @@ def run_main(first, then, max_moves=1, overlay=False):
          mock.patch("PIL.Image.Image.save"), \
          mock.patch("bridge.os.makedirs"), \
          mock.patch("builtins.open", mock.mock_open()) as m_open:
-        bridge.main(max_moves, policy_spec="greedy")
+        bridge.main(max_moves, policy_spec="greedy", seria=seria)
     press_back.assert_not_called()
     tap_classic.assert_not_called()
     return [json.loads(c.args[0]) for c in m_open().write.call_args_list]
@@ -179,6 +179,35 @@ class TestMainSurvivesTrophyOverlay(unittest.TestCase):
         self.assertEqual(okna[0], "nakladka_better_than")
         self.assertFalse(any("end" in e for e in entries))
         self.assertIn("move", entries[-1])
+
+
+class TestSeriaRereadsWhenNoMove(unittest.TestCase):
+    """#295: napis combo na planszy (partia-5/kawalek_4/048_state.png) czytany jak klocki nie kończy partii serii."""
+    def setUp(self):
+        self.combo = s1("partia-5", "kawalek_4", "048_state.png")
+        self.grid = bridge.read_board(self.combo)
+        self.tray = [([[0, 1, 1], [1, 1, 0]], (20, 460)), None, None]
+        self.stuck = (self.combo, self.grid, self.tray)
+        self.good = (s1(*DEFAULT), bridge.read_board(s1(*DEFAULT)), [([[1, 1]], (20, 460)), None, None])
+
+    def test_combo_frame_reads_as_no_move(self):
+        board = bridge.Board()
+        board.grid = [r[:] for r in self.grid]
+        self.assertFalse(bridge.legal_moves(board, [bridge.Piece([[0, 1, 1], [1, 1, 0]], "s", -1), None, None]))
+
+    def test_reread_then_game_goes_on(self):
+        states = [self.stuck, self.good]
+        entries = run_main(self.stuck, lambda: states.pop(0) if len(states) > 1 else states[0], seria=True)
+        okna = [e.get("okno") for e in entries if "okno" in e]
+        self.assertEqual(okna, ["brak_ruchu_ponowny_odczyt"] * 2)
+        self.assertFalse(any("end" in e for e in entries))
+        self.assertIn("move", entries[-1])
+
+    def test_unchanging_state_ends_after_the_safeguard(self):
+        entries = run_main(self.stuck, lambda: self.stuck, max_moves=5, seria=True)
+        self.assertEqual(len(entries), bridge.NO_MOVE_REREAD_TRIES + 1)
+        self.assertEqual(entries[-1]["end"], "brak legalnego ruchu wg odczytu")
+        self.assertFalse(any("end" in e for e in entries[:-1]))
 
 
 class TestSkinsReadBoardAndTray(unittest.TestCase):

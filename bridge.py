@@ -107,6 +107,7 @@ BOARD_STUCK_TRIES = 3  # K ruchów z rzędu, po których plansza wcale się nie 
 # slot1->(3,5)); w całym pozostałym materiale `bridge/runs/*` taka zbieżność zdarzyła się
 # co najwyżej raz pod rząd (OCR, nie zawieszenie) i nigdy się nie powtórzyła — próg 3
 # odróżnia realne zawieszenie od pojedynczego szumu, tracąc najwyżej 2 ruchy nawigacji.
+NO_MOVE_REREAD_TRIES = 4  # ponowne odczyty przy „braku ruchu" bez ekranu końca w serii, nim to uznamy za koniec (#295)
 TRAY_DEAL_WAIT = 1.0  # s przerwy przed ponownym odczytem, gdy tacka jest pusta albo widać nakładkę pucharu (#294)
 GAME_OVER_SCORE_TRIES = 12  # limit prób `stable_score` na ekranie końca partii (#218): wariant
 # fioletowo-złoty z koroną i confetti (`chunk6_025_end.png`, #212) miał serię rosnącą
@@ -812,6 +813,8 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
     window_streak = 0
     board_stuck_streak = 0
     empty_streak = 0
+    no_move_streak = 0
+    no_move_stan = None
     game_number = 1
     po_ruchu = None  # plansza i reszta tacki po ostatnim ruchu — odczyt ekranu końca gry jest nakładką-śmieciem (#292)
 
@@ -975,10 +978,25 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
                 break
             img, grid, slots = stable_state()
             continue
+        if not moves and seria:
+            # #295: w serii „brak ruchu" bez ekranu końca to zwykle klatka przejściowa (napis combo, nakładka) —
+            # czekamy i czytamy ponownie; kończymy dopiero, gdy stan stoi przez cały bezpiecznik.
+            stan = (grid, [s[0] if s else None for s in slots])
+            no_move_streak = no_move_streak + 1 if stan == no_move_stan else 1
+            no_move_stan = stan
+            if no_move_streak <= NO_MOVE_REREAD_TRIES:
+                time.sleep(TRAY_DEAL_WAIT)
+                entry = windowed_entry("brak_ruchu_ponowny_odczyt")
+                if "end" in entry:
+                    break
+                img, grid, slots = stable_state()
+                continue
         if not moves:
             entry["end"] = "brak legalnego ruchu wg odczytu"
             write_row(entry)
             break
+        no_move_streak = 0
+        no_move_stan = None
         window_streak = 0
         empty_streak = 0
         game = make_game_stub(board, pieces)
