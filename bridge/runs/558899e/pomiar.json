@@ -1,0 +1,33 @@
+{
+ "run": "558899e",
+ "partia_do_celu": {
+  "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+  "kawalki": [
+   "chunk1_moves.jsonl"
+  ],
+  "czasy": [
+   [
+    1790742681.07,
+    1790743427.44
+   ]
+  ],
+  "decision_ms": {
+   "mediana": 1.63,
+   "p95": 25.9,
+   "max": 48.85,
+   "n": 150
+  },
+  "postawienia": 147,
+  "ruchy_zapisane": 150,
+  "dziury": [
+   "chunk1_moves.jsonl: ruch 0 ok=false",
+   "chunk1_moves.jsonl: ruch 46 ok=false",
+   "chunk1_moves.jsonl: ruch 47 ok=false"
+  ],
+  "okna": [],
+  "min_gry_kawalkow": 12.4,
+  "minuty": 12.4,
+  "postawien_na_minute": 11.85,
+  "ostatni_wynik_apka_pole_score": 17425
+ }
+}
