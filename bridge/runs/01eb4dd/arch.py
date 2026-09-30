@@ -42,6 +42,8 @@ if __name__ == "__main__":
         out = subprocess.run(["python3", "tools/score_from_trajectory.py", RUN, "--first-chunk", "1", "--last-chunk", str(k)], capture_output=True, text=True).stdout
         d = json.loads(out)
         print("wzor", d["postawien"], d["wynik_main"])
+        subprocess.run(["git", "add", "-A", RUN])
+        subprocess.run(["git", "commit", "-qm", f"#286: kawalek {k}"])
         print(open(f"{RUN}/chunk{k}_chunk.log").read().strip().splitlines()[-1])
     elif sys.argv[1] == "arch":
         archive(int(sys.argv[2]))
