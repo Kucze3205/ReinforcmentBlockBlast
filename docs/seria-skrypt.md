@@ -127,6 +127,14 @@ seria s1 zakończyła tak 7 partii przerwaniem. Test na zrzutach: `tests/test_br
 | teal (jasne tło, turkusowe klocki i cyfry) | jw.; **nie jest menu głównym** — `is_main_menu_screen` wymaga też kafelka „Classic" (`MAIN_MENU_TILE_BOX`) | partie 4, 6 |
 | fioletowa (opalizujące tło, fioletowa plansza, niebieskie cyfry) | jw.; `read_tray` odejmuje tło paska (mediana, `TRAY_BG_DIST`) | `partia-2/kawalek_2/056_state.png`; w s1 tylko klatki z pustą planszą |
 
+**Combo i ponowny odczyt (#295).** Napis „Combo N" (zielone litery, „+1560") leży na planszy i `read_board` czyta litery jako
+klocki (`partia-5/kawalek_4/048_state.png`: klocek z tacki ma miejsce, odczyt mówi, że nie). Detektora combo nie ma —
+zamiast łatki na jedną nakładkę działa reguła ogólna: w trybie serii (`seria=True`) „brak legalnego ruchu" bez ekranu końca
+(`is_game_over_screen`) to okno `brak_ruchu_ponowny_odczyt` (odczekanie `TRAY_DEAL_WAIT`, ponowny odczyt). Koniec
+„brak legalnego ruchu wg odczytu" (→ `przerwanie`) dopiero, gdy ten sam stan wraca `NO_MOVE_REREAD_TRIES` (4) razy z rzędu;
+zmiana odczytu zeruje licznik, ale wpisy liczą się do `PROGRESS_SAFEGUARD_TRIES`. Prawdziwa przegrana ma ekran końca i nadal
+kończy się `koniec_partii`.
+
 | nakładka | okno w logu | działanie |
 |---|---|---|
 | „Better than N%!" z pucharem (`is_trophy_overlay_screen`) | `nakladka_better_than` | czeka 1 s, nie dotyka ekranu, czyta ponownie |
