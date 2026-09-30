@@ -46,6 +46,11 @@ GAME_OVER_SCORE_BOX = (60, 312, 260, 368)  # wynik na ekranie fioletowym "Can yo
 GAME_OVER_SCORE_BOX_BLUE = (60, 268, 260, 318)  # wynik na ekranie niebieskim "Your Best is Next" (#173):
 # cyfry "20345" na chunk15_after_back.png leżą w wierszach 273-312, wyżej niż na wariancie fioletowym
 # (321-361) — GAME_OVER_SCORE_BOX go nie łapie wcale.
+DIGIT_TEMPLATES_FILE = "bridge_digits.npz"  # średnie wzorce cyfr HUD z 15 zrzutów 01eb4dd (#290)
+DIGIT_GLYPH_H, DIGIT_GLYPH_W = 36, 30  # rozmiar znormalizowanego glifu we wzorcach
+HUD_DIGIT_DARK = 150  # piksel cyfry HUD: max kanału poniżej (cyfry 74,77,90; tło i żółty romb > 200)
+DIGIT_MAX_DIST = 0.35  # odrzuć glif, gdy L1 do najlepszego wzorca > tyle masy glifu (zmierzone max 0.16)
+DIGIT_MAX_RATIO = 0.95  # odrzuć glif, gdy najlepszy wzorzec prawie remisuje z drugim (zmierzone max 0.91)
 GAME_OVER_PURPLE_FRAC = 0.5  # próg dla is_game_over_screen: tło ma 0.92-0.96, reszta ekranów <=0.065
 FRAMES = 3
 FAST_FRAME_PAUSE = 0.2  # nowa ścieżka (#266): przerwa między klatkami stable_state (stara: 0.25 s x 3 klatki)
@@ -483,11 +488,67 @@ def read_tray(img):
     return slots
 
 
-def read_score(img, box=SCORE_BOX):
-    """OCR wyniku przez tesseract; None, gdy się nie da.
+_DIGIT_TEMPLATES = None
 
-    `box` domyślnie to HUD w trakcie partii (`SCORE_BOX`); ekran końca partii ma wynik
-    w innym miejscu (`GAME_OVER_SCORE_BOX`, #169)."""
+
+def _digit_templates():
+    global _DIGIT_TEMPLATES
+    if _DIGIT_TEMPLATES is None:
+        with np.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), DIGIT_TEMPLATES_FILE)) as z:
+            _DIGIT_TEMPLATES = {k: z[k].astype(float) / 255 for k in z.files}
+    return _DIGIT_TEMPLATES
+
+
+def read_hud_score(img, box=SCORE_BOX):
+    """Licznik HUD (ciemne cyfry na jasnym tle) dopasowaniem wzorców cyfr; None, gdy glify nie pasują (#290).
+
+    Tesseract mylił cyfry pod żółtym rombem (1512468 czytał jako 1519468), a dwa zgodne odczyty nie
+    chronią przed błędem powtarzalnym. Tu: podział na glify po kolumnach, skala do stałej wysokości,
+    odległość L1 do średniego wzorca każdej cyfry; odczyt niejednoznaczny albo z dziwnym kształtem
+    glifu to None, nie zgadywanie."""
+    x0, y0, x1, y1 = box
+    crop = img[y0:y1, x0:x1]
+    mask = crop.max(axis=2) < HUD_DIGIT_DARK
+    cols = mask.any(axis=0)
+    runs, start = [], None
+    for i, v in enumerate(list(cols) + [False]):
+        if v and start is None:
+            start = i
+        elif not v and start is not None:
+            runs.append((start, i))
+            start = None
+    if not 1 <= len(runs) <= 9:
+        return None
+    soft = np.clip((200 - crop.max(axis=2)) / 126.0, 0, 1)
+    spans = [np.nonzero(mask[:, a:b].any(axis=1))[0] for a, b in runs]
+    heights = [ys.max() - ys.min() + 1 for ys in spans]
+    if min(heights) < 0.6 * max(heights):
+        return None
+    templates = _digit_templates()
+    text = ""
+    for (a, b), ys in zip(runs, spans):
+        if b - a > 1.15 * DIGIT_GLYPH_W or len(ys) < 10:  # sklejone cyfry albo śmieć
+            return None
+        g = soft[ys.min():ys.max() + 1, a:b]
+        new_w = min(DIGIT_GLYPH_W, max(1, round((b - a) * DIGIT_GLYPH_H / g.shape[0])))
+        im = Image.fromarray((g * 255).astype(np.uint8)).resize((new_w, DIGIT_GLYPH_H), Image.BILINEAR)
+        canvas = np.zeros((DIGIT_GLYPH_H, DIGIT_GLYPH_W))
+        off = (DIGIT_GLYPH_W - new_w) // 2
+        canvas[:, off:off + new_w] = np.asarray(im) / 255.0
+        dist = sorted((float(np.abs(canvas - t).sum()), d) for d, t in templates.items())
+        if dist[0][0] > DIGIT_MAX_DIST * canvas.sum() or dist[0][0] > DIGIT_MAX_RATIO * dist[1][0]:
+            return None
+        text += dist[0][1]
+    return int(text)
+
+
+def read_score(img, box=SCORE_BOX):
+    """OCR wyniku; None, gdy się nie da.
+
+    HUD w trakcie partii (`SCORE_BOX`) czyta `read_hud_score` (wzorce cyfr, #290); ekran końca
+    partii ma wynik w innym miejscu (`GAME_OVER_SCORE_BOX`, #169) i inne kolory — tam tesseract."""
+    if box == SCORE_BOX:
+        return read_hud_score(img, box)
     x0, y0, x1, y1 = box
     crop = img[y0:y1, x0:x1]
     bw = np.where(crop.min(axis=2) > 170, 0, 255).astype(np.uint8)
