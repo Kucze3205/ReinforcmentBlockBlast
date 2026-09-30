@@ -48,6 +48,8 @@ GAME_OVER_SCORE_BOX_BLUE = (60, 268, 260, 318)  # wynik na ekranie niebieskim "Y
 # (321-361) — GAME_OVER_SCORE_BOX go nie łapie wcale.
 GAME_OVER_PURPLE_FRAC = 0.5  # próg dla is_game_over_screen: tło ma 0.92-0.96, reszta ekranów <=0.065
 FRAMES = 3
+FAST_FRAME_PAUSE = 0.2  # nowa ścieżka (#266): przerwa między klatkami stable_state (stara: 0.25 s x 3 klatki)
+IN_GAME_EVERY = 10  # nowa ścieżka (#266): `dumpsys window` co tyle ruchów, gdy ostatni ruch był zgodny
 DRAG_GAIN = 1.5  # zmierzone: klocek przesuwa się 1,5 px na 1 px palca
 LIFT = 80.6  # środek podniesionego klocka jest tyle px nad środkiem klocka na tacce
 AD_CLOSE = (285, 34)  # X reklamy międzyplanszowej, zmierzony na bridge/runs/0d96333/121_end.png (#129)
@@ -98,6 +100,12 @@ GAME_OVER_SCORE_TRIES = 12  # limit prób `stable_score` na ekranie końca parti
 
 def adb(*args):
     return subprocess.run(["adb", *args], check=True, capture_output=True).stdout
+
+
+def tempo_stare():
+    """`BRIDGE_TEMPO=stare` włącza dzisiejszą (wolną) ścieżkę ruchu 1:1; bez niej działa nowa (#266,
+    `docs/most-tempo.md`). Czytane przy każdym wywołaniu, żeby test mógł przełączać."""
+    return os.environ.get("BRIDGE_TEMPO") == "stare"
 
 
 def touch(action, x, y):
@@ -377,8 +385,29 @@ def settled_state():
     return frames[-1], grid, tray
 
 
+def _frame_key(grid, tray):
+    return json.dumps([grid, [s[0] if s else None for s in tray]])
+
+
+def fast_stable_state(tries=6):
+    """Nowa ścieżka (#266): jedna klatka na odczyt zamiast trzech; stop, gdy dwie kolejne klatki
+    dają ten sam stan. Wynik: suma pól z obu klatek (jak w settled_state), tacka z ostatniej."""
+    prev = None
+    for _ in range(tries):
+        img = screenshot()
+        grid, tray = read_board(img), read_tray(img)
+        if prev is not None and _frame_key(grid, tray) == _frame_key(*prev):
+            merged = [[max(grid[r][c], prev[0][r][c]) for c in range(8)] for r in range(8)]
+            return img, merged, tray
+        prev = (grid, tray)
+        time.sleep(FAST_FRAME_PAUSE)
+    return img, prev[0], prev[1]
+
+
 def stable_state(tries=6):
     """Czeka, aż dwa kolejne odczyty będą identyczne: czyszczenie linii i licznik wyniku są animowane."""
+    if not tempo_stare():
+        return fast_stable_state(tries)
     prev = None
     for _ in range(tries):
         img, grid, tray = settled_state()
@@ -509,8 +538,16 @@ def drag(slot_center, piece, x, y):
     cx, cy = BOARD_X + (x + w / 2) * CELL, BOARD_Y + (y + h / 2) * CELL
     fx = sx + (cx - sx) / DRAG_GAIN
     fy = sy + (cy - (sy - LIFT)) / DRAG_GAIN
-    touch("DOWN", sx, sy)
-    glide((sx, sy), (fx, fy))
+    if tempo_stare():
+        touch("DOWN", sx, sy)
+        glide((sx, sy), (fx, fy))
+    else:
+        # #266: DOWN i wszystkie MOVE w jednym wywołaniu `adb shell` (jedno zamiast 11)
+        steps = 10
+        cmds = [f"input motionevent DOWN {int(sx)} {int(sy)}"]
+        for k in range(1, steps + 1):
+            cmds.append(f"input motionevent MOVE {int(sx + (fx - sx) * k / steps)} {int(sy + (fy - sy) * k / steps)}")
+        adb("shell", "; ".join(cmds))
     time.sleep(0.5)  # klocek dogania palec z opóźnieniem
     aim = screenshot()
     touch("UP", fx, fy)
@@ -607,6 +644,10 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
     empty_streak = 0
     game_number = 1
 
+    def write_row(entry):
+        entry["t"] = round(time.time(), 3)
+        log.write(json.dumps(entry) + "\n")
+
     def windowed_entry(okno):
         """Wpis okienkowy bez ruchu: liczy się do bezpiecznika postępu (#163), a po
         osiągnięciu `PROGRESS_SAFEGUARD_TRIES` z rzędu kończy partię zamiast kręcić się
@@ -618,15 +659,19 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
                  "tray": [s[0] if s else None for s in slots], "score": score, "okno": okno}
         if window_streak >= PROGRESS_SAFEGUARD_TRIES:
             entry["end"] = "okno: petla_bez_postepu"
-        log.write(json.dumps(entry) + "\n")
+        write_row(entry)
         log.flush()
         print(f"okno: {okno}" + (f", {entry['end']}" if "end" in entry else ""), flush=True)
         return entry
 
+    last_ok = False
+    moves_since_in_game = IN_GAME_EVERY
     while n < max_moves:
+        t_start = time.perf_counter()
         score = read_score(img)
         Image.fromarray(img.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_state.png"))
-        annotate(img, grid, os.path.join(OUT, f"{n:03d}_read.png"))
+        if tempo_stare():
+            annotate(img, grid, os.path.join(OUT, f"{n:03d}_read.png"))
         if is_exit_dialog_screen(img):
             close_exit_dialog()
             entry = windowed_entry("dialog_wyjscia")
@@ -677,7 +722,7 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
                      "zrzut_konca": os.path.basename(end_path), "nowa_partia": game_number}
             if window_streak >= PROGRESS_SAFEGUARD_TRIES:
                 entry["end"] = "okno: petla_bez_postepu"
-            log.write(json.dumps(entry) + "\n")
+            write_row(entry)
             log.flush()
             print(f"koniec_partii, wynik {final_score}, nowa_partia {game_number}"
                   + (f", {entry['end']}" if "end" in entry else ""), flush=True)
@@ -692,16 +737,23 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
         moves = legal_moves(board, pieces)
         entry = {"n": n, "policy": policy.name, "board": grid,
                  "tray": [s[0] if s else None for s in slots], "score": score}
-        if not in_game():
+        moves_since_in_game += 1
+        if tempo_stare() or not moves or not last_ok or moves_since_in_game >= IN_GAME_EVERY:
+            moves_since_in_game = 0
+            focused = in_game()
+        else:
+            focused = True  # nowa ścieżka (#266): po zgodnym ruchu nie pytamy `dumpsys window` co ruch
+        if not focused:
+            last_ok = False
             if restart_app():
                 entry["restart"] = "apka wznowiona po awarii (monkey, bez instalacji/ToS)"
-                log.write(json.dumps(entry) + "\n")
+                write_row(entry)
                 log.flush()
                 print("restart udany, kontynuacja partii", flush=True)
                 img, grid, slots = stable_state()
                 continue
             entry["end"] = "gra nie jest na pierwszym planie"
-            log.write(json.dumps(entry) + "\n")
+            write_row(entry)
             print(entry["end"], flush=True)
             break
         if not moves and (is_ad_screen(img) or board_and_tray_empty(grid, slots)):
@@ -728,29 +780,35 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
                 img, grid, slots = stable_state()
                 continue
             entry["end"] = "okno: reklama_interstitial"
-            log.write(json.dumps(entry) + "\n")
+            write_row(entry)
             print(entry["end"], flush=True)
             break
         if not moves:
             entry["end"] = "brak legalnego ruchu wg odczytu"
-            log.write(json.dumps(entry) + "\n")
+            write_row(entry)
             break
         window_streak = 0
         empty_streak = 0
         game = make_game_stub(board, pieces)
         t0 = time.perf_counter()
         i, x, y = policy.act(game, moves)
-        decision_ms = (time.perf_counter() - t0) * 1000
+        t1 = time.perf_counter()
+        decision_ms = (t1 - t0) * 1000
         expected = simulate(board, pieces[i], x, y)
         info, aim = drag(slots[i][1], pieces[i], x, y)
         Image.fromarray(aim.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_aim.png"))
+        t2 = time.perf_counter()
         img, observed, slots = stable_state()
+        t3 = time.perf_counter()
         ok = observed == expected
         frozen = observed == board.grid
         board_stuck_streak = board_stuck_streak + 1 if frozen else 0
         grid = observed
         ok_streak = ok_streak + 1 if ok else 0
         best_streak = max(best_streak, ok_streak)
+        last_ok = ok
+        entry["t_ms"] = {"odczyt": round((t0 - t_start) * 1000, 1), "decyzja": round(decision_ms, 1),
+                         "przeciagniecie": round((t2 - t1) * 1000, 1), "stabilny_stan": round((t3 - t2) * 1000, 1)}
         entry.update(move={"slot": i, "x": x, "y": y}, drag=info, expected=expected, observed=observed, ok=ok,
                       decision_ms=round(decision_ms, 2))
         if board_stuck_streak >= BOARD_STUCK_TRIES:
@@ -759,11 +817,11 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
             entry["okno"] = "plansza_zawieszona"
             entry["end"] = "okno: plansza_zawieszona"
             entry["zrzut_zawieszenia"] = os.path.basename(stuck_path)
-            log.write(json.dumps(entry) + "\n")
+            write_row(entry)
             log.flush()
             print(f"okno: plansza_zawieszona, zrzut {stuck_path}", flush=True)
             break
-        log.write(json.dumps(entry) + "\n")
+        write_row(entry)
         log.flush()
         print(f"ruch {n}: slot {i} -> ({x},{y}) wynik {score} {'OK' if ok else 'ROZBIEŻNOŚĆ'}", flush=True)
         n += 1
