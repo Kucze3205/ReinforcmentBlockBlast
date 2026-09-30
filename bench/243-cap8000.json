@@ -1,0 +1,52 @@
+{
+  "sha": "fdc672101c38016c503fb6b72a14e219b171d701",
+  "dirty": false,
+  "issue": 243,
+  "status": "ok",
+  "blocked_reason": null,
+  "config": {
+    "n_seeds": 300,
+    "move_cap": 8000,
+    "epsilon": 0.0,
+    "torch_seed": 0,
+    "threshold_pct": 10.0,
+    "fixed_seed_file": "bench/seeds_fixed.json",
+    "rotated_seed_salt": 2654435761
+  },
+  "source_hashes": {
+    "game.py": "9ce7d22a3b62df05",
+    "scoring.py": "1e4a1b8730243ce6",
+    "generator.py": "5b11ec3b1759b05f",
+    "pieces.py": "7241459a3cb11706",
+    "features.py": "3e4c45d8cafa246c",
+    "policies.py": "1a8328dee03b3378",
+    "benchmark.py": "c2fa564c2385781d",
+    "ntuple.py": "281f545b1d75340b",
+    "ntuple_native.c": "12ca06d5f205d1eb",
+    "ntuple_native.py": "d66d10665c472dc3"
+  },
+  "arms": {
+    "candidate": {
+      "policy": "lookahead-ntuple",
+      "spec": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1",
+      "weights_hash": "741a1e664463f3d7",
+      "fixed": {
+        "mean": 1126300.71,
+        "median": 1122909.5,
+        "p10": 977772.8,
+        "survival_mean": 8000,
+        "capped_pct": 100.0
+      },
+      "rotated": {
+        "mean": 1141669.19,
+        "median": 1129187.5,
+        "p10": 981888.7,
+        "survival_mean": 8000,
+        "capped_pct": 100.0
+      },
+      "overfit_gap_pct": -1.36
+    }
+  },
+  "deltas": {},
+  "duration_s": 7966.9
+}
