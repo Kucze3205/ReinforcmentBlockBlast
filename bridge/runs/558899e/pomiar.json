@@ -13,7 +13,8 @@
    "chunk8_moves.jsonl",
    "chunk9_moves.jsonl",
    "chunk10_moves.jsonl",
-   "chunk11_moves.jsonl"
+   "chunk11_moves.jsonl",
+   "chunk12_moves.jsonl"
   ],
   "czasy": [
    [
@@ -59,16 +60,20 @@
    [
     1790749946.3563542,
     1790750651.245484
+   ],
+   [
+    1790750653.9726818,
+    1790751344.3812764
    ]
   ],
   "decision_ms": {
-   "mediana": 1.6349999999999998,
-   "p95": 12.08,
+   "mediana": 1.625,
+   "p95": 11.87,
    "max": 48.85,
-   "n": 1650
+   "n": 1800
   },
-  "postawienia": 1645,
-  "ruchy_zapisane": 1650,
+  "postawienia": 1795,
+  "ruchy_zapisane": 1800,
   "dziury": [
    "chunk1_moves.jsonl: ruch 0 ok=false",
    "chunk1_moves.jsonl: ruch 46 ok=false",
@@ -77,9 +82,9 @@
    "chunk2_moves.jsonl: ruch 147 ok=false"
   ],
   "okna": [],
-  "min_gry_kawalkow": 131.3,
-  "minuty": 132.8,
-  "postawien_na_minute": 12.53,
-  "ostatni_wynik_apka_pole_score": 38
+  "min_gry_kawalkow": 142.8,
+  "minuty": 144.4,
+  "postawien_na_minute": 12.57,
+  "ostatni_wynik_apka_pole_score": 3909
  }
 }
