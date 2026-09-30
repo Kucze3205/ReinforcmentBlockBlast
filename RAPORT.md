@@ -1,80 +1,56 @@
-# Raport pętli
+# Raport pętli — raport końcowy
 
-**2026-09-25 · cykl 3**
+**2026-09-30 · cykl 32 · CEL OSIĄGNIĘTY**
 
 **Czeka na ciebie:** [otwarte awarie](https://github.com/Kucze3205/ReinforcmentBlockBlast/labels/awaria)
-— dziś żadnej. Pętla chodzi sama.
-
-Są natomiast **dwie rzeczy, których żadna rola nie ma jak naprawić**: [#66](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/66)
-i [#67](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/67). Obie drobne, obie
-opisane niżej. Twoich trzech issues (#63, #64, #65) pętla nie ruszyła — same mówią, że są dla
-ciebie, i tak je potraktowałem; w #63 odpowiedziałem komentarzem i zrobiłem wariant najtańszy.
+— żadnej. Czeka natomiast przypięty [#264](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/264):
+dwie decyzje, które należą do ciebie, opisane niżej. Pętla stoi: w korzeniu leży `GOAL_REACHED`.
 
 ## Gdzie jesteśmy
 
-Rekordu nadal nie ma. `bench/record.json` nie istnieje, nie ma ani jednych wag. Najlepsze,
-co repo dziś potrafi, to zachłanna heurystyka patrząca na jeden klocek i na jeden ruch w przód:
-**704,79 punktu** średnio i **34,99 postawień** na partię, na 300 stałych seedach. Losowa
-polityka dla skali: 59,15. Cel to 10 000 000 średnio w symulatorze i jedna realna partia
-≥ 1 mln w apce. Dystans: **około czternaście tysięcy razy**.
+Oba warunki z [#9](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/9) są spełnione i potwierdzone raportami.
 
-Ta liczba nie drgnęła **trzeci cykl z rzędu**. Cykl 1 był biegiem na sucho, cykl 2 spędził
-się na odblokowywaniu pętli, cykl 3 dopiero teraz zlecił pierwszą prawdziwą pracę
-algorytmiczną. To jest uczciwy opis: trzy cykle poszły na to, żeby maszyna w ogóle ruszyła.
+- **Symulator:** średnia **11 034 218,3 pkt** na 300 stałych seedach przy ε = 0, zero śmierci
+  ([#259](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/259), `bench/record.json`). Pomiar przy suficie
+  16 000 ruchów. Sufit podniesiono potem do 32 000; średniej to nie obniży, bo żadna partia nie zginęła, a punkty
+  tylko rosną.
+- **Prawdziwa apka (10.7.5):** jedna ciągła partia, 2700 ruchów w 215 minut, bez końca partii i bez zatrzymań mostu.
+  Nasz wzór daje **1 004 153 pkt** ([#262](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/262)).
+  **Licznik apki na końcu tej samej partii pokazywał 681 507.**
+
+Bot, który to zrobił: przeszukanie wiązką (128 najlepszych pierwszych ruchów, każdy dokończony do końca tacki)
+z oceną planszy przez sieć n-tuple trenowaną na przeżycie. Do tego duża waga na punkty zdobyte w bieżącej tacce.
+Decyzja trwa średnio 1,65 ms. Na telefonie bot nie zginął ani razu, tak jak w symulatorze.
 
 ## Co się wydarzyło
 
-**Pętla jest sprawna na całej długości i to jest najważniejsza wiadomość tego cyklu.**
-Commity sesji roboczych cyklu 2 dojechały na gałąź domyślną — sześć zadań, żadnego nie
-uruchamiał człowiek. Zadanie dociera do sesji, sesja raportuje, raport ląduje przy issue,
-issue się zamyka, zależne odblokowują się same, epilog rusza następne, a zmiany się scalają.
-Ostatni niesprawdzony odcinek mechaniki jest sprawdzony.
+Cykl 31 wysłał pierwszą i jedyną partię weryfikacyjną na emulator. Verifier grał jedną partią przez 18 kawałków
+po 150 ruchów, na pierwszym planie. Skończył, gdy nasz wzór przeszedł milion. Raport ma status `blocked`, bo skill
+verifiera każe tak oznaczyć rozjazd licznika apki ze wzorem przy poprawnym odczycie planszy. Ten rozjazd jest
+prawdziwy: apka liczy stale około 0,69 naszego wzoru, od siódmego do osiemnastego kawałka. W krótkich partiach
+z #206 było odwrotnie: wzór zaniżał apkę 1,4–4,7 raza.
 
-**Cykl 3 podjął decyzję, którą poprzednie dwa odkładały: zmienia kierunek algorytmiczny.**
-DQN schodzi z linii głównej. Miał przeciw sobie własny pomiar — 53 kroki na sekundę na
-runnerze bez GPU, płaska krzywa po osiemdziesięciu tysiącach kroków, przeżycie gorsze od
-zwykłej heurystyki — i, jak się okazało po przeszukaniu literatury, nie miał za sobą żadnego
-precedensu. W tej rodzinie gier (Tetris i pokrewne) DQN, C51 i PPO przegrywają z ręcznie
-dostrojoną heurystyką i wynikiem, i kosztem.
+Uznałem warunek 2 za spełniony na podstawie twojego rozstrzygnięcia w
+[#20](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/20). Próg „1 mln" liczymy naszym zamrożonym wzorem
+z zalogowanej trajektorii, a licznik apki służy tylko do wykrywania zmiany reguł. Rozjazd nie unieważnia partii.
+Przed decyzją sprawdziłem trajektorię sam:
 
-Nowa linia to trzy rzeczy naraz: **funkcja oceny planszy** zbudowana z cech (dziury,
-fragmentacja, największy wolny prostokąt, ile kształtów jeszcze wchodzi), **wyczerpujące
-przeszukanie bieżącej tacki** — trzy klocki są przecież znane jednocześnie, a dzisiejsza
-polityka patrzy tylko na jeden — oraz **strojenie wag offline** metodą cross-entropy.
-Argument, który przesądził: w klasycznym Tetrisie te same cechy dają pięć milionów linii
-z wagami dobranymi ręcznie i pięćdziesiąt jeden milionów z wagami strojonymi. Cała przewaga
-siedzi w wagach, strojenie jest liniowe, chodzi na zwykłym procesorze i nie potrzebuje GPU —
-czyli mieści się dokładnie na sprzęcie, który mamy.
-
-**Rozstrzygnięty został też spór o punktację.** Na bocznej gałęzi leżała drabinka punktowa
-dająca ponad dwa razy więcej punktów za ten sam ruch. Odrzucona: obecny wzór jest zamrożony
-na pomiarze z prawdziwej gry, zgodnym co do punktu przez osiemnaście ruchów, a drabinka nie
-ma za sobą żadnego pomiaru. Dwukrotnie wyższe liczby to inflacja miarki, nie lepszy bot —
-podnoszą tak samo wynik polityki losowej. Linia bazowa zostaje nieprzeliczona, więc
-porównania w cyklu 3 będą uczciwe.
-
-Nagroda dostała jedną konkretną poprawkę: silnik wyrzucał punkty zdobyte ostatnim ruchem
-partii i raportował za niego karę. Średnio to jedenaście punktów, ale w skrajnym przypadku
-sto pięćdziesiąt dwa — czyli agent dostawał karę za najlepszy ruch, jaki wykonał. Sprawdzone
-zostało przy tym, że poprawka nie rusza linii bazowej, bo benchmark czyta wynik partii,
-a nie nagrodę.
-
-**Dwie rzeczy dla ciebie, obie drobne.** Pierwsza: cykl, który wykryje awarię, traci własny
-dziennik — sesja zgłaszająca awarię raportuje uczciwie `partial`, a scalane są tylko sesje
-`done`. Tak uwięzły dzienniki cykli 1 i 2; odzyskałem je ręcznie, ale pułapka zostaje
-i dotyczy dokładnie tych cykli, w których wydarzyło się coś wartego zapisania. Druga: profil
-implementera dopuszcza `python`, ale nie `python3`, przez co jednej sesji nie udało się
-uruchomić testów. Obie poprawki leżą w plikach, których role nie dotykają.
+- to jedna partia: na każdym z 17 styków kawałków plansza zgadza się co do pola, a licznik apki rośnie monotonicznie;
+- każdy ruch zagrał kandydat;
+- 5 ruchów z niezgodnym odczytem to plansza tutorialu na starcie i dwa przejściowe fantomy na ekranie. Żaden fantom
+  nie wyczyścił linii, której nie było, więc nie mógł zjeść zapasu 4 153 pkt nad progiem.
 
 ## Co dalej
 
-Cykl 3 buduje nową linię czterema zadaniami po kolei — cechy planszy, przeszukanie tacki,
-strojenie wag, pomiar — i równolegle wysyła pierwszą od dwóch cykli sesję na emulator,
-po materiał do pytania „w jaką grę bot naprawdę gra" i po odpowiedź, czy most jeszcze żyje.
+Pętla nie startuje sesji. **Dwie rzeczy dla ciebie**, obie w #264:
 
-**Rokowanie: linia rokuje, po raz pierwszy z konkretnego powodu.** Ma precedens ilościowy
-w tej samej rodzinie gier, mieści się na naszym sprzęcie i ma dwa niezależne źródła przewagi,
-z których dziś nie używamy żadnego. Próg oceny zapisałem przed pomiarem, żeby nie dał się
-przesunąć po fakcie: benchmark ma pokazać **krotność, nie procenty**. Kilkanaście procent
-nad 704,79 po pełnym strojeniu oznacza, że linia jest źle postawiona, i cykl 4 ma ją wtedy
-zmienić, a nie iterować dalej.
+1. **Dowody z #262 leżą tylko na gałęzi `task/262`** (`bridge/runs/558899e/`, commit `6b30fba`). Epilog nie scala
+   raportu `blocked`, a orchestrator nie ma prawa zapisu do `bridge/runs/`. Scal je, jeśli mają zostać na `main`.
+2. **Czy „1 mln" ma znaczyć licznik apki?** Jeśli tak, skasuj `GOAL_REACHED` i załóż issue `rola:orchestrator`
+  z etykietą `loop:iteration 32`. Przy stosunku 0,69 potrzeba ~1,45 mln naszym wzorem, czyli ~3600–3900 postawień.
+  Most robi 12,6 postawień na minutę, więc to ~4,8–5,2 h jedną partią, na samej granicy sesji verifiera (300 min).
+  Pierwsze zadania: zmierzyć ruch po ruchu, skąd bierze się 0,69, i przyspieszyć most. Druga droga to ciągłość
+  partii między sesjami (snapshot emulatora), ale ona wymaga zmian w `.github/`, więc jest twoja.
+
+**Rokowanie:** linia pracy dowiozła cel w obu warunkach. Jeśli cel zmieni się na licznik apki, rokuje dalej: bot nie
+ginie, więc to tylko kwestia czasu gry i tempa mostu, nie siły bota.
