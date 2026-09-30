@@ -1,0 +1,41 @@
+{
+  "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+  "zakonczenie": "przerwanie",
+  "przyczyna": "brak_legalnego_ruchu_wg_odczytu",
+  "okno": null,
+  "licznik_apki": null,
+  "licznik_odrzucone": [],
+  "wynik_wzor": 20821,
+  "postawienia": 206,
+  "minuty": 10.286,
+  "postawien_na_minute": 20.05,
+  "decision_ms": {
+    "mediana": 4.36,
+    "p95": 30.04,
+    "max": 82.04
+  },
+  "okna": [
+    {
+      "kawalek": 2,
+      "n": 1,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790805309.16
+    },
+    {
+      "kawalek": 2,
+      "n": 20,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790805365.152
+    },
+    {
+      "kawalek": 2,
+      "n": 35,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790805406.585
+    }
+  ],
+  "kawalki": [
+    "chunk1_moves.jsonl",
+    "chunk2_moves.jsonl"
+  ]
+}

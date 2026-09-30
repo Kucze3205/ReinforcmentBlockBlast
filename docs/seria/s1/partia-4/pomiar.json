@@ -1,0 +1,100 @@
+{
+  "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+  "zakonczenie": "przerwanie",
+  "przyczyna": "petla_bez_postepu",
+  "okno": "menu_glowne",
+  "licznik_apki": null,
+  "licznik_odrzucone": [],
+  "wynik_wzor": 3609,
+  "postawienia": 36,
+  "minuty": 2.201,
+  "postawien_na_minute": 21.72,
+  "decision_ms": {
+    "mediana": 4.16,
+    "p95": 31.67,
+    "max": 57.08
+  },
+  "okna": [
+    {
+      "kawalek": 1,
+      "n": 1,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790804707.997
+    },
+    {
+      "kawalek": 1,
+      "n": 36,
+      "okno": "menu_glowne",
+      "t": 1790804809.221
+    },
+    {
+      "kawalek": 1,
+      "n": 36,
+      "okno": "menu_glowne",
+      "t": 1790804811.989
+    },
+    {
+      "kawalek": 1,
+      "n": 36,
+      "okno": "menu_glowne",
+      "t": 1790804814.784
+    },
+    {
+      "kawalek": 1,
+      "n": 36,
+      "okno": "menu_glowne",
+      "t": 1790804817.524
+    },
+    {
+      "kawalek": 1,
+      "n": 36,
+      "okno": "menu_glowne",
+      "t": 1790804820.317
+    },
+    {
+      "kawalek": 1,
+      "n": 36,
+      "okno": "menu_glowne",
+      "t": 1790804823.085
+    },
+    {
+      "kawalek": 1,
+      "n": 36,
+      "okno": "menu_glowne",
+      "t": 1790804825.832
+    },
+    {
+      "kawalek": 1,
+      "n": 36,
+      "okno": "menu_glowne",
+      "t": 1790804828.582
+    },
+    {
+      "kawalek": 1,
+      "n": 36,
+      "okno": "menu_glowne",
+      "t": 1790804831.37
+    },
+    {
+      "kawalek": 1,
+      "n": 36,
+      "okno": "menu_glowne",
+      "t": 1790804834.103
+    },
+    {
+      "kawalek": 1,
+      "n": 36,
+      "okno": "menu_glowne",
+      "t": 1790804836.843
+    },
+    {
+      "kawalek": 1,
+      "n": 36,
+      "okno": "menu_glowne",
+      "t": 1790804839.593
+    }
+  ],
+  "kawalki": [
+    "chunk1_moves.jsonl"
+  ]
+}
