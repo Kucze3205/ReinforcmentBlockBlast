@@ -189,23 +189,35 @@ krawędzią do wcześniejszego.
 
 ## Cel i weryfikacja
 
-Cel = średnia ≥ 10 mln na stałych 300 seedach w symulatorze (definicja benchmarku z #8,
-ε = 0) **i** jedna realna partia ≥ 1 mln pkt w apce (#9).
+Cel = **agent nie przegrywa** (definicje: `CONTEXT.md`, „Cel i weryfikacja"). 1 mln licznika apki to
+limit długości partii, nie miara poziomu. Dwa warunki, oba potwierdzone raportami:
 
+1. **Symulator:** 0 przegranych na stałych 300 seedach (benchmark z #8, ε = 0) przy suficie ruchów
+   ≥ 10× liczby postawień potrzebnych do 1 mln licznika apki. Średnia punktów idzie do każdego raportu
+   i dziennika jako informacja, nie próg.
+2. **Oryginał:** zaliczona **seria weryfikacyjna** — 10 partii równolegle, każda do 1 mln **licznika
+   apki** bez przegranej.
+
+- **Przeżycie przed punktami.** Zmiana, która dodaje punkty kosztem choćby jednej przegranej w
+  benchmarku, jest odrzucana. Punkty rozstrzygają tylko remis w przeżyciu.
 - **Sufit ruchów** w `bench/config.json` podnosisz ×2, gdy > 5% partii benchmarku kończy
   na suficie. Osobny commit, nigdy w dół. Po zmianie linia bazowa przebiega się na nowo
   (zleć `rola:bench`), żeby porównania zostały uczciwe.
-- **Weryfikację na oryginale zlecasz dopiero po średniej ≥ 10 mln w symulatorze.**
-  Wyzwala postęp, nie czas. **Nigdy dwa łańcuchy naraz.** Po nieudanej próbie następna
-  dopiero po rekalibracji i ponownym ≥ 10 mln.
-- Nieudana weryfikacja to **nie porażka**, tylko pełne źródło danych do kalibracji. Ustal
-  przyczynę, zleć zadania naprawcze, zacznij kolejną iterację. Bez limitu prób i bez stopu.
+- **Serię zlecasz dopiero po warunku 1** i gdy zmierzone tempo mostu mieści partię 1 mln licznika
+  apki w jobie z zapasem 30%. Wyzwala postęp, nie czas. **Nigdy dwie serie naraz.** Na czas serii
+  pętla prawie stoi (10 jobów z emulatorem) — tak ma być.
+- **Przegrana w serii:** serię dogrywasz do końca (każda przegrana to dane). Potem: odtwórz w
+  symulatorze stan sprzed przegranej (plansza i tacki z mostu), ustal przyczynę (generator apki czy
+  ślepa plamka przeszukania), zleć naprawę, odzyskaj warunek 1 i dopiero wtedy nowa seria.
+- **Przerwanie** (nieznane okno, koniec czasu joba, zgon runnera) nie wlicza się do serii — partię
+  gra się od nowa. Dwa przerwania z tej samej przyczyny → zadanie naprawcze mostu.
+- Nieudana seria to **nie porażka**, tylko pełne źródło danych. Bez limitu prób i bez stopu.
 - **Sesje danych** (krótkie `rola:verifier`, zbierające stan+trójkę+ruch z mostu) zlecasz
-  osobno od weryfikacji: po pierwszym moście, po zmianie symulatora, po nieudanej weryfikacji.
+  osobno od serii: po pierwszym moście, po zmianie symulatora, po nieudanej serii.
   Zmiana generatora symulatora (`generator.py`, `pieces.py`) to zadanie implementera na
   danych z logów.
-- Rozjazd real/sim odkryty w trakcie partii to materiał do #20 (punktacja zamrożona);
-  zleć zadanie, nie rozstrzygaj sam.
+- `scoring.py` (nasz wzór) liczy punkty w symulatorze; celu nie liczy. Rozjazd wzoru z licznikiem apki
+  to materiał do #20; zleć zadanie, nie rozstrzygaj sam.
 - **Cel osiągnięty** — dopiero gdy oba warunki potwierdzone raportami: zapisz plik
   `GOAL_REACHED` w repo **i** przypięty issue, napisz raport końcowy (`RAPORT.md`) i nie
   startuj więcej sesji. Wznowienie należy do człowieka (kasuje plik).

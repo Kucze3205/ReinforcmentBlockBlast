@@ -195,8 +195,8 @@ gałęzi — ale **czyta** także z gałęzi domyślnej. Stąd podział:
 | Partia | `task/<n>` | `userdata-qemu.img.qcow2` bieżącej partii | między ogniwami **jednej** sesji |
 
 Świeża sesja weryfikacyjna zaczyna partię od zera i to jest w porządku:
-[#9](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/9) wymaga jednej partii ≥1M w obrębie jednego łańcucha ogniw, nie ciągłości
-między sesjami.
+każda partia serii weryfikacyjnej (`CONTEXT.md`) mieści się w jednym jobie; ciągłość między sesjami nie jest
+potrzebna.
 
 **Merge na gałąź pętli w trakcie sesji weryfikacyjnej nie unieważnia jej cache'u.**
 Wpis cache'u jest związany z kluczem i gałęzią, nie z commitem, a sesja siedzi na
