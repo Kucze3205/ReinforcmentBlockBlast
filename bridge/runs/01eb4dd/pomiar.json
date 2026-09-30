@@ -1,0 +1,238 @@
+{
+ "run": "01eb4dd",
+ "cel": "#286: tempo mostu stare/nowe, licznik apki vs wzór, próba skryptu serii",
+ "tempo_mostu": {
+  "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+  "kawalki": 18,
+  "postawienia": 2470,
+  "zakonczenie": "czas",
+  "zakonczenie_uwaga": "partia nie skończona (brak przegranej); przerwana po ~105 turach sesji, licznik apki 1 967 415 na zrzucie chunk18_final.png; kawałki 14 i 15 to ruchy prób skryptu (50 + 20 ruchów, zapisane w chunk14/15_moves.jsonl), kawałek 13→16 ciągły",
+  "minuty": 156.4,
+  "stare": {
+   "kawalki": [
+    1
+   ],
+   "postawienia": 150,
+   "minuty": 17.33,
+   "postawien_na_minute": 8.66,
+   "mediana_t_ms": 6829.7,
+   "odsetek_ok_false": 0.0
+  },
+  "nowe": {
+   "kawalki": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    16,
+    17,
+    18
+   ],
+   "postawienia": 2250,
+   "minuty": 139.09,
+   "postawien_na_minute": 16.18,
+   "mediana_t_ms": 3748.3,
+   "odsetek_ok_false": 2.4
+  },
+  "licznik_vs_wzor": [
+   {
+    "kawalek": 1,
+    "postawienia": 150,
+    "licznik_apki": 26407,
+    "zrzut": "chunk1_final.png",
+    "wynik_wzor": 30059,
+    "stosunek": 0.879
+   },
+   {
+    "kawalek": 2,
+    "postawienia": 300,
+    "licznik_apki": 75177,
+    "zrzut": "chunk2_final.png",
+    "wynik_wzor": 108218,
+    "stosunek": 0.695
+   },
+   {
+    "kawalek": 3,
+    "postawienia": 450,
+    "licznik_apki": 138629,
+    "zrzut": "chunk3_final.png",
+    "wynik_wzor": 206238,
+    "stosunek": 0.672
+   },
+   {
+    "kawalek": 4,
+    "postawienia": 600,
+    "licznik_apki": 157704,
+    "zrzut": "chunk4_final.png",
+    "wynik_wzor": 219896,
+    "stosunek": 0.717
+   },
+   {
+    "kawalek": 5,
+    "postawienia": 750,
+    "licznik_apki": 170276,
+    "zrzut": "chunk5_final.png",
+    "wynik_wzor": 239517,
+    "stosunek": 0.711
+   },
+   {
+    "kawalek": 6,
+    "postawienia": 900,
+    "licznik_apki": 202829,
+    "zrzut": "chunk6_final.png",
+    "wynik_wzor": 290404,
+    "stosunek": 0.698
+   },
+   {
+    "kawalek": 7,
+    "postawienia": 1050,
+    "licznik_apki": 267874,
+    "zrzut": "chunk7_final.png",
+    "wynik_wzor": 393452,
+    "stosunek": 0.681
+   },
+   {
+    "kawalek": 8,
+    "postawienia": 1200,
+    "licznik_apki": 371248,
+    "zrzut": "chunk8_final.png",
+    "wynik_wzor": 553492,
+    "stosunek": 0.671
+   },
+   {
+    "kawalek": 9,
+    "postawienia": 1350,
+    "licznik_apki": 513389,
+    "zrzut": "chunk9_final.png",
+    "wynik_wzor": 788452,
+    "stosunek": 0.651
+   },
+   {
+    "kawalek": 10,
+    "postawienia": 1500,
+    "licznik_apki": 684052,
+    "zrzut": "chunk10_final.png",
+    "wynik_wzor": 1046868,
+    "stosunek": 0.653
+   },
+   {
+    "kawalek": 11,
+    "postawienia": 1650,
+    "licznik_apki": 881444,
+    "zrzut": "chunk11_final.png",
+    "wynik_wzor": 1360952,
+    "stosunek": 0.648
+   },
+   {
+    "kawalek": 12,
+    "postawienia": 1800,
+    "licznik_apki": 1124408,
+    "zrzut": "chunk12_final.png",
+    "wynik_wzor": 1743805,
+    "stosunek": 0.645
+   },
+   {
+    "kawalek": 13,
+    "postawienia": 1950,
+    "licznik_apki": 1399270,
+    "zrzut": "chunk13_final.png",
+    "wynik_wzor": 2181609,
+    "stosunek": 0.641
+   },
+   {
+    "kawalek": 14,
+    "postawienia": 2000,
+    "licznik_apki": 1512468,
+    "zrzut": "zrzut ręczny po próbie 1 (licznik_1.png miał 1509545 w animacji)",
+    "wynik_wzor": 2361865,
+    "stosunek": 0.64
+   },
+   {
+    "kawalek": 15,
+    "postawienia": 2020,
+    "licznik_apki": 1547434,
+    "zrzut": "seria-proba2/licznik_1.png",
+    "wynik_wzor": 2417477,
+    "stosunek": 0.64
+   },
+   {
+    "kawalek": 16,
+    "postawienia": 2170,
+    "licznik_apki": 1887842,
+    "zrzut": "chunk16_final.png",
+    "wynik_wzor": 2959043,
+    "stosunek": 0.638
+   },
+   {
+    "kawalek": 17,
+    "postawienia": 2320,
+    "licznik_apki": 1916865,
+    "zrzut": "chunk17_final.png",
+    "wynik_wzor": 3006169,
+    "stosunek": 0.638
+   },
+   {
+    "kawalek": 18,
+    "postawienia": 2470,
+    "licznik_apki": 1967415,
+    "zrzut": "chunk18_final.png",
+    "wynik_wzor": 3088771,
+    "stosunek": 0.637
+   }
+  ],
+  "szacunek": {
+   "postawienia_do_1mln_pomiar": 1723,
+   "minuty_do_1mln_nowe_tempo": 106.5,
+   "z_ostatniego_stosunku": {
+    "stosunek": 0.637,
+    "wzor_potrzebny": 1569859,
+    "pkt_wzor_na_postawienie_marginalnie_k11_18": 2107.1
+   },
+   "uwaga": "1 mln licznika apki osiągnięty po ok. 1720 postawieniach (pomiar), nie ~3950 z #262; kawałek 17-18: przyrost licznika 29k/51k na 150 postawień, wyraźnie wolniejszy niż k12-13 (ok. 250k)."
+  },
+  "proba_skryptu": {
+   "proba1": {
+    "komenda": "--limit-minut 10 --kawalek 50",
+    "kod_wyjscia": 0,
+    "zakonczenie": "cel",
+    "przyczyna": null,
+    "licznik_ze_skryptu": 1519468,
+    "licznik_ze_zrzutu": 1512468,
+    "zgodny": false,
+    "postawien_na_minute": 16.58,
+    "katalog": "seria-proba",
+    "uwaga": "licznik już >1 mln przed startem, więc po jednym kawałku `cel`; zrzut licznika_1.png miał 1509545 (animacja), stabilny ekran po chwili 1512468"
+   },
+   "proba2": {
+    "komenda": "--limit-minut 1 --kawalek 20 --prog 100000000",
+    "kod_wyjscia": 2,
+    "zakonczenie": "przerwanie",
+    "przyczyna": "limit_minut",
+    "licznik_ze_skryptu": 1549434,
+    "licznik_ze_zrzutu": 1547434,
+    "zgodny": false,
+    "postawien_na_minute": 17.23,
+    "katalog": "seria-proba2"
+   },
+   "wniosek": "read_score czyta 7-cyfrową wartość z błędem w 4. cyfrze (2→9, 7→9: pod żółtym rombem); dwa zgodne odczyty nie chronią, bo błąd jest powtarzalny"
+  },
+  "read_7_cyfr": {
+   "zgodny_ze_zrzutem": false,
+   "przyklady": [
+    "skrypt 1519468 / ekran 1512468 (seria-proba)",
+    "skrypt 1549434 / ekran 1547434 (seria-proba2)",
+    "licznik w trakcie ruchów: zgubione cyfry, np. 'wynik 15119' na ruchu 48 (seria-proba), 100261/110560 w chunk12"
+   ]
+  },
+  "okna": [],
+  "okno": "brak"
+ }
+}
