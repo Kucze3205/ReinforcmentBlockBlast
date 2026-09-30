@@ -115,6 +115,40 @@
   "min_gry_kawalkow": 213.4,
   "minuty": 215.1,
   "postawien_na_minute": 12.63,
-  "ostatni_wynik_apka_pole_score": 68
+  "ostatni_wynik_apka_pole_score": 68,
+  "wynik_wzor": 1004153,
+  "wynik_apka": {
+   "wartosc": 681507,
+   "zrzut": "chunk18_final.png",
+   "uwaga": "odczyt z zrzutu; pole score w moves.jsonl bywa zle odczytane w animacji (np. 2, 68)"
+  },
+  "odczyty_apki_ze_zrzutow": {
+   "chunk7_final.png": 275615,
+   "chunk8_final.png": 295619,
+   "chunk18_final.png": 681507
+  },
+  "wzor_main_po_kawalku": {
+   "1": 21594,
+   "2": 89470,
+   "4": 225361,
+   "5": 305421,
+   "6": 368400,
+   "7": 394187,
+   "8": 422266,
+   "9": 463547,
+   "10": 497663,
+   "11": 532427,
+   "12": 577300,
+   "13": 672860,
+   "14": 793898,
+   "15": 809452,
+   "16": 855204,
+   "17": 901037,
+   "18": 1004153
+  },
+  "pkt_na_postawienie_wzor": 372.6,
+  "zakonczenie": "cel",
+  "okna_uwaga": "zadne zatrzymanie mostu; brak okien, brak konca partii",
+  "dziury_uwaga": "ruch 0 (ekran tutorialu na starcie), 46-47, 146-147 kawalek 2: ok=false; 5 z 2700 ruchow, partia ta sama, brak brakujacych kawalkow"
  }
 }
