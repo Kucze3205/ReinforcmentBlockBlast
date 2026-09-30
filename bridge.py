@@ -41,6 +41,7 @@ PACKAGE = "com.block.juggle"
 SCREEN = (320, 640)
 BOARD_X, BOARD_Y, CELL = 17, 136, 35.6
 TRAY_Y0, TRAY_Y1, TRAY_CELL = 440, 585, 16
+TRAY_BG_DIST = 60  # read_tray: piksel bliżej mediany paska (w sumie |ΔRGB|) to tło, nie klocek (#294)
 SCORE_BOX = (60, 70, 260, 130)
 GAME_OVER_SCORE_BOX = (60, 312, 260, 368)  # wynik na ekranie fioletowym "Can you Top that?" (#169)
 GAME_OVER_SCORE_BOX_BLUE = (60, 268, 260, 318)  # wynik na ekranie niebieskim "Your Best is Next" (#173):
@@ -507,8 +508,16 @@ def read_board(img):
 
 
 def read_tray(img):
-    """Trzy sloty: (kształt, środek w px) albo None, gdy slot pusty."""
-    mask = is_block(img[TRAY_Y0:TRAY_Y1])
+    """Trzy sloty: (kształt, środek w px) albo None, gdy slot pusty.
+
+    Tło tacki skórki fioletowej (#294, `docs/seria/s1/partia-2/kawalek_2/056_state.png`) to opalizujący błękit
+    (148,202,255) z rozpiętością kanałów równą progowi `is_block`, więc 23 896 z 46 400 pikseli paska
+    przechodziło jako klocki i wszystkie trzy sloty wychodziły jako kształt 9x7. Piksel bliski medianie paska
+    (tło zajmuje ponad połowę paska) nie jest klockiem: odległość L1 od mediany to tam najwyżej 70
+    (99. percentyl 28), a klocka 74-154."""
+    strip = img[TRAY_Y0:TRAY_Y1]
+    bg = np.median(strip.reshape(-1, 3), axis=0)
+    mask = is_block(strip) & (np.abs(strip - bg).sum(axis=-1) > TRAY_BG_DIST)
     slots = []
     for s in range(3):
         x0, x1 = s * SCREEN[0] // 3, (s + 1) * SCREEN[0] // 3
