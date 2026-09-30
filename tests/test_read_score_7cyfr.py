@@ -1,8 +1,7 @@
 """
 Testy dla #290: `bridge.read_score` na zapisanych zrzutach z 01eb4dd (licznik HUD, 6 i 7 cyfr).
 
-Wartości to odczyt wzrokowy ze zrzutu. Pominięte: chunk1/2_final.png (różowy ekran, białe cyfry) i
-chunk3_final.png (niebieski ekran) — to nie HUD; chunk14/15 nie mają zrzutu; chunk1–3 nie są w tabeli.
+Wartości to odczyt wzrokowy ze zrzutu. Pominięte: chunk14/15 nie mają zrzutu; chunk1–3 nie są w tabeli.
 """
 import os
 import sys
@@ -65,10 +64,17 @@ class ReadScoreTruthTable(unittest.TestCase):
             with self.subTest(n=n):
                 self.check(f"seria-proba/kawalek_1/{n:03d}_state.png", expected)
 
-    def test_non_hud_screens_give_none(self):
-        for n in (1, 2, 3):
+    def test_other_skins_chunk1_3(self):
+        """Różowy (białe cyfry) i niebieski ekran to też HUD (#294: dawniej None, bo czytnik znał tylko ciemne cyfry)."""
+        for n, expected in ((1, 26407), (2, 75177), (3, 138629)):
             with self.subTest(chunk=n):
-                self.assertIsNone(bridge.read_score(load(f"chunk{n}_final.png")))
+                self.check(f"chunk{n}_final.png", expected)
+
+    def test_int_frames_like_screenshot(self):
+        """`screenshot()` zwraca int, nie uint8 — ten sam zrzut musi dać ten sam odczyt (#294: dawniej None)."""
+        for n, expected in ((9, 513389), (13, 1399270)):
+            with self.subTest(chunk=n):
+                self.assertEqual(bridge.read_score(load(f"chunk{n}_final.png").astype(int)), expected)
 
     def test_blank_screen_gives_none(self):
         self.assertIsNone(bridge.read_score(np.full((640, 320, 3), 255, dtype=np.uint8)))
