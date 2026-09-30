@@ -4,7 +4,8 @@
   "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
   "kawalki": [
    "chunk1_moves.jsonl",
-   "chunk2_moves.jsonl"
+   "chunk2_moves.jsonl",
+   "chunk3_moves.jsonl"
   ],
   "czasy": [
    [
@@ -14,16 +15,20 @@
    [
     1790743463.65,
     1790744191.58
+   ],
+   [
+    1790744207.9518733,
+    1790744928.5773807
    ]
   ],
   "decision_ms": {
-   "mediana": 1.8,
-   "p95": 22.29,
+   "mediana": 1.645,
+   "p95": 16.84,
    "max": 48.85,
-   "n": 300
+   "n": 450
   },
-  "postawienia": 295,
-  "ruchy_zapisane": 300,
+  "postawienia": 445,
+  "ruchy_zapisane": 450,
   "dziury": [
    "chunk1_moves.jsonl: ruch 0 ok=false",
    "chunk1_moves.jsonl: ruch 46 ok=false",
@@ -32,9 +37,9 @@
    "chunk2_moves.jsonl: ruch 147 ok=false"
   ],
   "okna": [],
-  "min_gry_kawalkow": 24.6,
-  "minuty": 25.2,
-  "postawien_na_minute": 11.99,
-  "ostatni_wynik_apka_pole_score": 60657
+  "min_gry_kawalkow": 36.6,
+  "minuty": 37.5,
+  "postawien_na_minute": 12.16,
+  "ostatni_wynik_apka_pole_score": 130480
  }
 }
