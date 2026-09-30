@@ -57,10 +57,28 @@ Reszta artefaktów: `kawalek_K/` (zrzuty mostu: `NNN_state.png`, `NNN_aim.png`, 
 
 ## Co job robi przed i po
 
-**Przed:** uruchomić emulator i apkę tak jak `tools/bridge.sh` — pauza 90 s po starcie obrazu, wyłączenie
+**Przed:** uruchomić emulator i apkę (`tools/start_apki.sh`, jak `tools/bridge.sh`) — pauza 90 s po starcie obrazu, wyłączenie
 weryfikatora pakietów, `adb install-multiple`, `monkey` z Accept ToS (do 3 prób, aż gra utrzyma pierwszy plan).
 Nie wołać `python3 bridge.py`. Skrypt startuje z apką **na planszy**. Na start (ok. 2–3 min) zostawić margines poza
 `--limit-minut`; limit liczy zegar skryptu, nie joba. Wymagane: `adb`, `tesseract`.
 
 **Po:** niezależnie od kodu wyjścia (krok `if: always()`) zachować `KATALOG` jako artefakt lub commit;
 `adb logcat -d` jak w `bridge.sh`. Kod wyjścia 1 i 2 to wyniki, nie awarie joba.
+
+## Job serii — `.github/workflows/seria.yml` (#287)
+
+```
+gh workflow run seria.yml -f polityka='<spec>' -f seria=<id> [-f limit_minut=300]
+```
+
+Macierz 10 jobów (`partia` 1–10), każdy: KVM, emulator, `tools/seria.sh` (start apki z `tools/start_apki.sh`,
+wspólny z `bridge.sh`, potem skrypt partii). Job ma 355 min; `limit_minut` + ~3 min startu musi się w tym zmieścić.
+Kody 0/1/2 kończą krok zerem, kod trafia do `KATALOG/kod_wyjscia.txt`. Trwa co najwyżej jedna seria (grupa
+`concurrency: seria`; kolejne wywołanie czeka).
+
+Wyniki: artefakt `seria-<id>-partia-K` na partię (cały `KATALOG`, także `logcat.txt`):
+
+```
+gh run list --workflow seria.yml --json databaseId,displayTitle,status   # displayTitle: "seria <id>"
+gh run download <run-id> -n seria-<id>-partia-K
+```
