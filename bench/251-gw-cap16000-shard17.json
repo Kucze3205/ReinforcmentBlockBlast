@@ -1,0 +1,251 @@
+{
+  "sha": "4fd7b08d5052e0dea58f5f7e43eddce84007fac7",
+  "dirty": false,
+  "issue": 251,
+  "status": "ok",
+  "blocked_reason": null,
+  "config": {
+    "n_seeds": 300,
+    "move_cap": 16000,
+    "epsilon": 0.0,
+    "torch_seed": 0,
+    "threshold_pct": 10.0,
+    "fixed_seed_file": "bench/seeds_fixed.json",
+    "rotated_seed_salt": 2654435761
+  },
+  "source_hashes": {
+    "game.py": "9ce7d22a3b62df05",
+    "scoring.py": "1e4a1b8730243ce6",
+    "generator.py": "5b11ec3b1759b05f",
+    "pieces.py": "7241459a3cb11706",
+    "features.py": "3e4c45d8cafa246c",
+    "policies.py": "16a79d4d7695573b",
+    "benchmark.py": "70364cd6a14eb721",
+    "ntuple.py": "281f545b1d75340b",
+    "ntuple_native.c": "12ca06d5f205d1eb",
+    "ntuple_native.py": "d66d10665c472dc3"
+  },
+  "arms": {
+    "candidate": {
+      "policy": "lookahead-ntuple",
+      "fixed": {
+        "mean": 10661873.08,
+        "median": 10517425.0,
+        "p10": 8536088.7,
+        "survival_mean": 16000,
+        "capped_pct": 100.0,
+        "scores": [
+          10023585,
+          8296914,
+          11028216,
+          8801853,
+          13005156,
+          8525241,
+          9398336,
+          11241700,
+          11011265,
+          8633718,
+          16909323,
+          11067170
+        ],
+        "survivals": [
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000
+        ],
+        "capped_flags": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ]
+      },
+      "rotated": {
+        "mean": 10646862.42,
+        "median": 10673315.5,
+        "p10": 9152112.3,
+        "survival_mean": 16000,
+        "capped_pct": 100.0,
+        "scores": [
+          8158556,
+          10166480,
+          9111630,
+          13792037,
+          11392117,
+          11488195,
+          11518899,
+          10428460,
+          9821223,
+          11450128,
+          9516453,
+          10918171
+        ],
+        "survivals": [
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000
+        ],
+        "capped_flags": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ]
+      },
+      "overfit_gap_pct": 0.14,
+      "spec": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+      "weights_hash": "741a1e664463f3d7"
+    },
+    "record": {
+      "policy": "lookahead-ntuple",
+      "fixed": {
+        "mean": 2249505.92,
+        "median": 2263429.0,
+        "p10": 2088107.4,
+        "survival_mean": 16000,
+        "capped_pct": 100.0,
+        "scores": [
+          2327646,
+          2043500,
+          2375547,
+          2253788,
+          2420088,
+          2162439,
+          2273094,
+          2084355,
+          2121879,
+          2466805,
+          2191860,
+          2273070
+        ],
+        "survivals": [
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000
+        ],
+        "capped_flags": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ]
+      },
+      "rotated": {
+        "mean": 2256629.42,
+        "median": 2262919.5,
+        "p10": 2071554.3,
+        "survival_mean": 16000,
+        "capped_pct": 100.0,
+        "scores": [
+          2006982,
+          2399255,
+          2311786,
+          2389005,
+          2141054,
+          2083302,
+          2425621,
+          2070249,
+          2482822,
+          2243638,
+          2266101,
+          2259738
+        ],
+        "survivals": [
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000,
+          16000
+        ],
+        "capped_flags": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ]
+      },
+      "overfit_gap_pct": -0.32,
+      "spec": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1",
+      "weights_hash": "741a1e664463f3d7"
+    }
+  },
+  "deltas": {
+    "kandydat vs record": {
+      "mean_diff": 8412367.17,
+      "pct": 373.97,
+      "sd_diff": 2327557.91,
+      "se_diff": 671908.09,
+      "se_pct": 29.87,
+      "mean_diff_over_se": 12.52,
+      "label": "poprawa"
+    }
+  },
+  "duration_s": 1356.0,
+  "shard": "17/24"
+}
