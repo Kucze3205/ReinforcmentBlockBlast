@@ -79,6 +79,9 @@ PLAY_BUTTON = (160, 456)  # przycisk "Play" na obu wariantach ekranu końca part
 MAIN_MENU_TEAL_FRAC = 0.03  # próg dla is_main_menu_screen, patrz docstring
 MAIN_MENU_TILE_BOX = (66, 463, 254, 506)  # kafelek „Classic" (x0, y0, x1, y1), patrz CLASSIC_BUTTON
 MAIN_MENU_TILE_FRAC = 0.5  # ile kafelka ma być teal: menu 0.85; klocki skórki teal na planszy najwyżej 0.02 (#294)
+TROPHY_GOLD_CENTER = 0.25  # is_trophy_overlay_screen: progi, patrz docstring
+TROPHY_GOLD_TEXT = 0.1
+TROPHY_GEM_PIXELS = 100
 CLASSIC_BUTTON = (160, 484)  # środek kafelka "Classic" na menu głównym, zmierzony na
 # bridge/runs/4a1796f/chunk4_003_menu_end.png (#204): maska koloru kafelka (teal, patrz
 # is_main_menu_screen) daje x 66-253, y 463-505 bez plakietki "Continue!"; bliskie ręcznemu
@@ -103,6 +106,7 @@ BOARD_STUCK_TRIES = 3  # K ruchów z rzędu, po których plansza wcale się nie 
 # slot1->(3,5)); w całym pozostałym materiale `bridge/runs/*` taka zbieżność zdarzyła się
 # co najwyżej raz pod rząd (OCR, nie zawieszenie) i nigdy się nie powtórzyła — próg 3
 # odróżnia realne zawieszenie od pojedynczego szumu, tracąc najwyżej 2 ruchy nawigacji.
+TRAY_DEAL_WAIT = 1.0  # s przerwy przed ponownym odczytem, gdy tacka jest pusta albo widać nakładkę pucharu (#294)
 GAME_OVER_SCORE_TRIES = 12  # limit prób `stable_score` na ekranie końca partii (#218): wariant
 # fioletowo-złoty z koroną i confetti (`chunk6_025_end.png`, #212) miał serię rosnącą
 # [None, 8004, 14226, 20284, 25644, 30179] z malejącymi przyrostami (8004, 6222, 6058, 5360,
@@ -232,6 +236,22 @@ def is_main_menu_screen(img):
     return bool(teal.mean() > MAIN_MENU_TEAL_FRAC and teal[y0:y1, x0:x1].mean() > MAIN_MENU_TILE_FRAC)
 
 
+def is_trophy_overlay_screen(img):
+    """Nakładka kamienia milowego „Better than N%!" z pucharem (#294, s1 partia 10): na środku planszy złoty puchar
+    z czerwonym klejnotem, nad nim złoty napis z procentem. Most czytał puchar jako klocki, a tacka bywała wtedy pusta
+    („brak legalnego ruchu wg odczytu"). Znika sama po chwili, więc pętla tylko czeka i czyta ponownie.
+
+    Trzy znaki naraz, bo każdy pojedynczo zdarza się w zwykłej grze (złoty klocek, napis pochwalny): złoto w środku
+    planszy (`partia-10/kawalek_1/048_state.png`: 0.47; najwyżej 0.36 na innych zrzutach s1), złoto w pasie napisu
+    (0.19; inne najwyżej 0.34) i czerwony klejnot pod nim (ponad 100 px; klocki czerwone tam nie leżą razem ze złotem)."""
+    r, g, b = img[..., 0], img[..., 1], img[..., 2]
+    gold = (r > 200) & (g > 130) & (g < 225) & (b < 100) & (r - b > 120)
+    gem = (r > 190) & (g < 90) & (b < 110) & (r - g > 100)
+    return bool(gold[240:370, 100:220].mean() > TROPHY_GOLD_CENTER
+                and gold[168:198, 190:270].mean() > TROPHY_GOLD_TEXT
+                and gem[262:300, 140:180].sum() > TROPHY_GEM_PIXELS)
+
+
 def is_bright_ad_screen(img):
     """Jasna reklama interaktywna (quiz/„Connect Words", #154): za jasna i za ciemna nie jest —
     `is_ad_screen` (próg ciemności) jej nie łapie, a most bez tego odczytuje planszę pod spodem
@@ -320,6 +340,13 @@ def board_and_tray_empty(grid, slots):
     planszę bez legalnego ruchu (#129).
     """
     return not any(any(row) for row in grid) and all(s is None for s in slots)
+
+
+def tray_awaiting_deal(grid, slots):
+    """Wszystkie trzy sloty puste przy niepustej planszy (#294): most czyta klatkę po postawieniu ostatniego
+    klocka, zanim apka dosypie nową trójkę (s1, partie 7-9: `tray: [null, null, null]`). Pusta tacka przy pustej
+    planszy to inny przypadek (`board_and_tray_empty`, nierozpoznane okno)."""
+    return all(s is None for s in slots) and any(any(row) for row in grid)
 
 
 def close_ad(tries=3):
@@ -844,6 +871,13 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
                 break
             img, grid, slots = stable_state()
             continue
+        if is_trophy_overlay_screen(img):
+            time.sleep(TRAY_DEAL_WAIT)  # nakładka znika sama; nie dotykamy ekranu (#294)
+            entry = windowed_entry("nakladka_better_than")
+            if "end" in entry:
+                break
+            img, grid, slots = stable_state()
+            continue
         if is_game_over_screen(img):
             end_path = os.path.join(OUT, f"{n:03d}_end.png")
             Image.fromarray(img.astype(np.uint8)).save(end_path)
@@ -923,6 +957,15 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
             write_row(entry)
             print(entry["end"], flush=True)
             break
+        if not moves and tray_awaiting_deal(grid, slots):
+            # #294: ostatni klocek tacki postawiony, nowa trójka jeszcze nie dosypana — pusta tacka nigdy nie jest
+            # końcem gry. Czekamy i czytamy ponownie; wpis liczy się do bezpiecznika postępu.
+            time.sleep(TRAY_DEAL_WAIT)
+            entry = windowed_entry("tacka_pusta_przejsciowo")
+            if "end" in entry:
+                break
+            img, grid, slots = stable_state()
+            continue
         if not moves:
             entry["end"] = "brak legalnego ruchu wg odczytu"
             write_row(entry)
