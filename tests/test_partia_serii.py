@@ -76,7 +76,7 @@ class Harness:
 
 class TestZakonczenia(unittest.TestCase):
     def test_cel_na_stabilnej_klatce(self):
-        h = Harness(self, [chunk(0, 5), chunk(5, 5)], counter_reads=[[400, 400], [1_000_120, 1_000_120]])
+        h = Harness(self, [chunk(0, 5), chunk(5, 5)], counter_reads=[[900_000, 900_000], [1_000_120, 1_000_120]])
         code, p = h.run("--prog", "1000000", "--kawalek", "5")
         self.assertEqual(code, 0)
         self.assertEqual(p["zakonczenie"], "cel")
@@ -168,7 +168,7 @@ class TestZakonczenia(unittest.TestCase):
 class TestCheckpoint(unittest.TestCase):
     def test_checkpoint_po_kazdym_kawalku_atomowo(self):
         h = Harness(self, [chunk(0, 3), chunk(3, 3), chunk(6, 3)],
-                    counter_reads=[[5, 5], [9, 9], [2_000_000, 2_000_000]])
+                    counter_reads=[[500_000, 500_000], [900_000, 900_000], [2_000_000, 2_000_000]])
         replaced = []
         real = os.replace
 
@@ -190,6 +190,40 @@ class TestCheckpoint(unittest.TestCase):
         self.assertEqual(len(writes), 3)  # 2 checkpointy w toku + końcowy
         self.assertTrue(all(s == pomiar + ".tmp" for s, _ in writes))
         self.assertFalse(os.path.exists(pomiar + ".tmp"))
+
+
+class TestSpojnoscLicznika(unittest.TestCase):
+    def test_niespojny_odczyt_to_brak_odczytu(self):
+        # 1 519 468 -> 151 946 (zgubiona cyfra): maleje i 10x poniżej; potem 1 520 000 kończy jako cel
+        h = Harness(self, [chunk(0, 3), chunk(3, 3), chunk(6, 3)],
+                    counter_reads=[[1_200_000, 1_200_000], [150_545, 150_545], [1_520_000, 1_520_000]])
+        code, p = h.run("--kawalek", "3", "--prog", "1500000")
+        self.assertEqual(code, 0)
+        self.assertEqual(len(h.calls), 3)
+        self.assertEqual(h.snapshots[2]["licznik_apki"]["wartosc"], 1_200_000)
+        self.assertEqual([r["wartosc"] for r in p["licznik_odrzucone"]], [150_545])
+        self.assertEqual(p["licznik_apki"]["wartosc"], 1_520_000)
+
+    def test_skok_o_rzad_wielkosci_nie_konczy_jako_cel(self):
+        h = Harness(self, [chunk(0, 3), chunk(3, 3)], counter_reads=[[150_000, 150_000], [1_500_000, 1_500_000]])
+        code, p = h.run("--kawalek", "3", "--limit-minut", "0.0001")
+        self.assertEqual(code, 2)
+        self.assertEqual(p["przyczyna"], "limit_minut")
+        self.assertEqual(p["licznik_apki"]["wartosc"], 150_000)
+        self.assertEqual(len(p["licznik_odrzucone"]), 1)
+
+    def test_zrzut_to_klatka_zaakceptowanego_odczytu(self):
+        frames = iter(np.full((640, 320, 3), v, dtype=int) for v in (10, 20))
+
+        def stable(img, box, tries=6):
+            bridge.screenshot()  # drugi odczyt robi nowy zrzut
+            return 900, [899, 900, 900]
+
+        with mock.patch("partia_serii.bridge.screenshot", lambda: next(frames)), \
+             mock.patch("partia_serii.bridge.stable_score", stable):
+            value, reads, is_stable, img = partia_serii.read_stable_counter()
+        self.assertEqual((value, is_stable), (900, True))
+        self.assertEqual(int(img[0, 0, 0]), 20)  # klatka ostatniego odczytu, nie pierwszy zrzut (10)
 
 
 class TestBridgeSeria(unittest.TestCase):

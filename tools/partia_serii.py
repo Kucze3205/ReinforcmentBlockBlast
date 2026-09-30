@@ -3,7 +3,7 @@
 
 Dostaje emulator z apką na planszy (start apki robi job, jak `tools/bridge.sh`); nie woła `git`.
 Zakończenie (pole `zakonczenie` w `pomiar.json`, kod wyjścia):
-  cel        0  licznik apki >= progu na stabilnej klatce (dwa zgodne odczyty)
+  cel        0  licznik apki >= progu na stabilnej klatce (dwa zgodne odczyty, spójne z poprzednimi)
   przegrana  1  ekran końca partii (nie stuka „Play”)
   przerwanie 2  nieznane okno, petla_bez_postepu, plansza_zawieszona, apka nie wraca, limit minut, wyjątek
   (błąd argumentów: 3)
@@ -78,12 +78,30 @@ def percentile(values, q):
     return v[min(len(v) - 1, int(round(q * (len(v) - 1))))]
 
 
+def counter_consistent(prev, value):
+    """Czy odczyt licznika pasuje do poprzedniego zaakceptowanego (#290): nie maleje i nie skacze o rząd wielkości
+    (zgubiona albo dopisana cyfra). Bez poprzedniego odczytu każdy jest spójny."""
+    return prev is None or prev <= value < 10 * max(prev, 1)
+
+
 def read_stable_counter():
-    """Licznik apki: (wartość|None, odczyty, stabilny, obraz). Stabilny = dwa ostatnie odczyty zgodne."""
-    img = bridge.screenshot()
-    value, reads = bridge.stable_score(img, bridge.SCORE_BOX, tries=STABLE_TRIES)
+    """Licznik apki: (wartość|None, odczyty, stabilny, obraz). Stabilny = dwa ostatnie odczyty zgodne.
+
+    Obraz to klatka, z której pochodzi zwrócona wartość (ostatni odczyt), nie pierwszy zrzut (#290)."""
+    frames = [bridge.screenshot()]
+    shot = bridge.screenshot
+
+    def recording():
+        frames.append(shot())
+        return frames[-1]
+
+    bridge.screenshot = recording
+    try:
+        value, reads = bridge.stable_score(frames[0], bridge.SCORE_BOX, tries=STABLE_TRIES)
+    finally:
+        bridge.screenshot = shot
     stable = len(reads) >= 2 and reads[-1] == reads[-2] and value is not None
-    return value, reads, stable, img
+    return value, reads, stable, frames[-1]
 
 
 def save_png(img, path):
@@ -98,7 +116,7 @@ def run(args, now=time.time):
     pomiar_path = os.path.join(out, "pomiar.json")
     start = now()
     pomiar = {"polityka": args.polityka, "zakonczenie": "w_toku", "przyczyna": None, "okno": None,
-              "licznik_apki": None, "wynik_wzor": None, "postawienia": 0, "minuty": 0.0,
+              "licznik_apki": None, "licznik_odrzucone": [], "wynik_wzor": None, "postawienia": 0, "minuty": 0.0,
               "postawien_na_minute": None, "decision_ms": None, "okna": [], "kawalki": []}
     files, rows = [], []
 
@@ -135,6 +153,7 @@ def run(args, now=time.time):
         print(f"zakonczenie: {zakonczenie}" + (f" ({przyczyna})" if przyczyna else ""), flush=True)
         return EXIT[zakonczenie]
 
+    accepted = None  # ostatni stabilny i spójny odczyt licznika
     k = 0
     while True:
         if (now() - start) / 60 >= args.limit_minut:
@@ -169,12 +188,17 @@ def run(args, now=time.time):
         if not new:
             return finish("przerwanie", "pusty_plik_ruchow")
         value, reads, stable, img = read_stable_counter()
+        if value is not None and not counter_consistent(accepted, value):
+            pomiar["licznik_odrzucone"].append({"kawalek": k, "wartosc": value, "odczyty": reads, "poprzedni": accepted})
+            value = None  # niespójny odczyt to brak odczytu
         if value is not None:
             zrzut = f"licznik_{k}.png"
             pomiar["licznik_apki"] = {"wartosc": value, "odczyty": reads, "stabilny": stable, "zrzut": zrzut}
             save_png(img, os.path.join(out, zrzut))
-            if stable and value >= args.prog:
-                return finish("cel")
+            if stable:
+                accepted = value
+                if value >= args.prog:
+                    return finish("cel")
         checkpoint()
 
 
