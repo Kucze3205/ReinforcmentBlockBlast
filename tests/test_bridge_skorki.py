@@ -1,0 +1,326 @@
+"""
+Testy dla #294: skórki i nakładki apki 10.7.5, które przerywały partie serii s1 (`docs/seria/s1/`).
+
+Zrzuty to klatki z tej serii. Wartości (plansza, tacka, licznik) to odczyt wzrokowy ze zrzutu — `final.png`
+ma narysowane kropki adnotacji poza środkami pól, więc czytniki widzą go tak samo jak `NNN_state.png`.
+
+1. Skórka teal nie jest menu głównym (`is_main_menu_screen`).
+2. Pusta tacka przy niepustej planszy to okno przejściowe, nie koniec partii.
+3. Nakładka „Better than N%!" z pucharem to okno przejściowe.
+4. `read_board`/`read_tray` na każdej skórce: teal, różowa, beżowa, domyślna, fioletowa.
+5. `read_hud_score` na każdej skórce; zły odczyt jest gorszy niż brak.
+"""
+import glob
+import json
+import os
+import sys
+import unittest
+from unittest import mock
+
+import numpy as np
+from PIL import Image
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import bridge
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+S1 = os.path.join(ROOT, "docs", "seria", "s1")
+RUNS = os.path.join(ROOT, "bridge", "runs")
+
+
+def s1(*parts):
+    return np.asarray(Image.open(os.path.join(S1, *parts)).convert("RGB")).astype(int)
+
+
+def rows(text):
+    return [[int(ch == "#") for ch in line] for line in text.split()]
+
+
+def shapes(tray):
+    return [None if s is None else s[0] for s in tray]
+
+
+TEAL = ("partia-4", "kawalek_1", "036_state.png")
+TEAL_6 = ("partia-6", "kawalek_1", "148_state.png")
+PINK = ("partia-2", "kawalek_1", "final.png")
+PINK_8 = ("partia-8", "kawalek_2", "final.png")
+TAN = ("partia-2", "kawalek_2", "054_state.png")
+DEFAULT = ("partia-9", "kawalek_1", "044_state.png")
+PURPLE = ("partia-2", "kawalek_2", "056_state.png")
+TROPHY = ("partia-10", "kawalek_1", "048_state.png")
+MENU = ("4a1796f", "chunk4_003_menu_end.png")
+
+
+class TestMainMenuVsTealSkin(unittest.TestCase):
+    def test_teal_skin_boards_are_not_the_main_menu(self):
+        for frame in (TEAL, TEAL_6, ("partia-4", "kawalek_1", "final.png"), ("partia-6", "kawalek_1", "final.png"),
+                      ("partia-4", "kawalek_1", "035_state.png"), ("partia-6", "kawalek_1", "147_state.png")):
+            with self.subTest(frame=frame):
+                self.assertFalse(bridge.is_main_menu_screen(s1(*frame)))
+
+    def test_main_menu_is_still_the_main_menu(self):
+        img = np.asarray(Image.open(os.path.join(RUNS, *MENU)).convert("RGB")).astype(int)
+        self.assertTrue(bridge.is_main_menu_screen(img))
+
+    def test_no_s1_frame_is_the_main_menu(self):
+        for path in sorted(glob.glob(os.path.join(S1, "partia-*", "kawalek_*", "*.png"))):
+            with self.subTest(path=os.path.relpath(path, S1)):
+                img = np.asarray(Image.open(path).convert("RGB")).astype(int)
+                self.assertFalse(bridge.is_main_menu_screen(img))
+
+
+class TestTrophyOverlay(unittest.TestCase):
+    def test_positive_on_better_than_45(self):
+        self.assertTrue(bridge.is_trophy_overlay_screen(s1(*TROPHY)))
+
+    def test_negative_on_every_other_s1_frame(self):
+        for path in sorted(glob.glob(os.path.join(S1, "partia-*", "kawalek_*", "*.png"))):
+            rel = os.path.relpath(path, S1)
+            if rel.startswith(os.path.join("partia-10", "kawalek_1")) and (
+                    rel.endswith("048_state.png") or rel.endswith("final.png")):
+                continue
+            with self.subTest(path=rel):
+                img = np.asarray(Image.open(path).convert("RGB")).astype(int)
+                self.assertFalse(bridge.is_trophy_overlay_screen(img))
+
+    def test_negative_on_menu_and_game_over(self):
+        for frame in (MENU, ("1402cff", "chunk7_010_gameover_screen.png"), ("0d96333", "120_state.png")):
+            with self.subTest(frame=frame):
+                img = np.asarray(Image.open(os.path.join(RUNS, *frame)).convert("RGB")).astype(int)
+                self.assertFalse(bridge.is_trophy_overlay_screen(img))
+
+
+class TestTrayAwaitingDeal(unittest.TestCase):
+    def test_real_frames_with_empty_tray_and_board(self):
+        """Partie 7, 8, 9 z s1: ostatni klocek tacki postawiony, nowa trójka jeszcze nie dosypana."""
+        for frame in (DEFAULT, ("partia-7", "kawalek_2", "final.png"), PINK_8):
+            with self.subTest(frame=frame):
+                img = s1(*frame)
+                grid, tray = bridge.read_board(img), bridge.read_tray(img)
+                self.assertEqual(shapes(tray), [None, None, None])
+                self.assertTrue(bridge.tray_awaiting_deal(grid, tray))
+
+    def test_not_awaiting_when_tray_has_a_piece_or_board_is_empty(self):
+        grid = [[0] * 8 for _ in range(8)]
+        grid[2][2] = 1
+        piece = ([[1]], (10, 10))
+        self.assertFalse(bridge.tray_awaiting_deal(grid, [None, piece, None]))
+        self.assertFalse(bridge.tray_awaiting_deal([[0] * 8 for _ in range(8)], [None, None, None]))
+
+
+def run_main(first, then, max_moves=1, overlay=False):
+    """`bridge.main` z atrapami: pierwszy odczyt `first` = (obraz, plansza, tacka), kolejne `then()`.
+    Zwraca wpisy logu ruchów."""
+    def settled():
+        return first
+
+    def stable(tries=6):
+        return then()
+
+    playable_img = s1(*DEFAULT)
+    with mock.patch("bridge.settled_state", side_effect=settled), \
+         mock.patch("bridge.stable_state", side_effect=stable), \
+         mock.patch("bridge.in_game", return_value=True), \
+         mock.patch("bridge.read_score", return_value=None), \
+         mock.patch("bridge.drag", return_value=({"finger": [0, 0]}, playable_img)), \
+         mock.patch("bridge.annotate"), \
+         mock.patch("bridge.press_back") as press_back, \
+         mock.patch("bridge.tap_classic") as tap_classic, \
+         mock.patch("bridge.time.sleep"), \
+         mock.patch("PIL.Image.Image.save"), \
+         mock.patch("bridge.os.makedirs"), \
+         mock.patch("builtins.open", mock.mock_open()) as m_open:
+        bridge.main(max_moves, policy_spec="greedy")
+    press_back.assert_not_called()
+    tap_classic.assert_not_called()
+    return [json.loads(c.args[0]) for c in m_open().write.call_args_list]
+
+
+class TestMainWaitsForTray(unittest.TestCase):
+    def setUp(self):
+        self.img = s1(*DEFAULT)
+        self.grid = bridge.read_board(self.img)
+        self.empty = (self.img, self.grid, [None, None, None])
+        self.playable = (self.img, self.grid, [([[1, 1]], (20, 460)), None, None])
+
+    def test_empty_tray_is_a_window_then_the_game_goes_on(self):
+        states = [self.empty, self.empty, self.playable]
+        entries = run_main(self.empty, lambda: states.pop(0) if len(states) > 1 else states[0])
+        okna = [e.get("okno") for e in entries if "okno" in e]
+        self.assertEqual(okna, ["tacka_pusta_przejsciowo"] * 3)
+        self.assertFalse(any("end" in e for e in entries))
+        self.assertIn("move", entries[-1])
+
+    def test_endless_empty_tray_ends_by_the_progress_safeguard(self):
+        entries = run_main(self.empty, lambda: self.empty, max_moves=5)
+        self.assertEqual(len(entries), bridge.PROGRESS_SAFEGUARD_TRIES)
+        self.assertEqual(entries[-1]["end"], "okno: petla_bez_postepu")
+        self.assertEqual({e["okno"] for e in entries}, {"tacka_pusta_przejsciowo"})
+
+    def test_board_with_no_legal_move_still_ends_the_game(self):
+        """Pełna plansza z klockiem w tacce, którego nie da się postawić, to nadal koniec."""
+        full = [[1] * 8 for _ in range(8)]
+        state = (self.img, full, [([[1]], (20, 460)), None, None])
+        entries = run_main(state, lambda: state)
+        self.assertEqual(entries[-1]["end"], "brak legalnego ruchu wg odczytu")
+
+
+class TestMainSurvivesTrophyOverlay(unittest.TestCase):
+    def test_overlay_is_logged_as_a_window_not_read_as_board(self):
+        trophy = s1(*TROPHY)
+        game = s1(*DEFAULT)
+        grid = bridge.read_board(game)
+        overlay_state = (trophy, bridge.read_board(trophy), [None, None, None])
+        playable = (game, grid, [([[1, 1]], (20, 460)), None, None])
+        states = [overlay_state, playable]
+        entries = run_main(overlay_state, lambda: states.pop(0) if len(states) > 1 else states[0])
+        okna = [e.get("okno") for e in entries if "okno" in e]
+        self.assertEqual(okna[0], "nakladka_better_than")
+        self.assertFalse(any("end" in e for e in entries))
+        self.assertIn("move", entries[-1])
+
+
+class TestSkinsReadBoardAndTray(unittest.TestCase):
+    """Stan zgodny ze zrzutem (sprawdzony wzrokowo) na każdej skórce."""
+
+    def check(self, frame, board, tray_shapes):
+        img = s1(*frame)
+        self.assertEqual(bridge.read_board(img), rows(board))
+        self.assertEqual(shapes(bridge.read_tray(img)), tray_shapes)
+
+    def test_teal(self):
+        self.check(TEAL, """
+            ..#.....
+            ..#.....
+            ..#.....
+            ..#..###
+            ....####
+            ..######
+            ..#.#...
+            #.#.....""", [[[0, 1, 1], [1, 1, 0]], None, None])
+
+    def test_pink(self):
+        self.check(PINK, """
+            #.#.....
+            #.#.....
+            #.......
+            .....###
+            ....#.##
+            ..######
+            ..#....#
+            ..#.....""", [None, [[0, 1], [1, 1], [1, 0]], [[1], [1], [1], [1]]])
+
+    def test_pink_second_game(self):
+        self.check(PINK_8, """
+            #....###
+            ...#.#..
+            ...#....
+            ..#####.
+            #...###.
+            #......#
+            .......#
+            #..#....""", [None, None, None])
+
+    def test_tan_with_three_pieces(self):
+        self.check(TAN, """
+            ........
+            ........
+            ........
+            .....###
+            .....###
+            .....###
+            ........
+            ........""", [[[1] * 3] * 3, [[1, 1]] * 3, [[1] * 3] * 3])
+
+    def test_default(self):
+        self.check(DEFAULT, """
+            ........
+            ........
+            ###.....
+            ........
+            ........
+            ........
+            ........
+            ....#...""", [None, None, None])
+
+    def test_purple_reads_one_piece_not_three_garbage_trays(self):
+        """Dawniej trzy sloty 9x7 (opalizujące tło paska tacki), plansza pusta już wtedy była poprawna."""
+        self.check(PURPLE, """
+            ........
+            ........
+            ........
+            ........
+            ........
+            ........
+            ........
+            ........""", [None, None, [[1] * 3] * 3])
+
+    def test_blue_purple_skin_board_with_purple_blocks(self):
+        """01eb4dd/chunk3_final.png (138629): niebieskofioletowa skórka, klocki fioletowe, niebieskie i żółty."""
+        img = np.asarray(Image.open(os.path.join(RUNS, "01eb4dd", "chunk3_final.png")).convert("RGB")).astype(int)
+        self.assertEqual(bridge.read_board(img), rows("""
+            ........
+            ##......
+            ##......
+            ##...#..
+            ....##..
+            .....#..
+            #.......
+            ........"""))
+        self.assertEqual(shapes(bridge.read_tray(img)), [None, None, [[0, 1], [1, 1], [0, 1]]])
+
+
+class TestHudScoreOnEverySkin(unittest.TestCase):
+    TRUTH = (  # (zrzut, licznik widoczny na zrzucie)
+        (TEAL, 5499),
+        (TEAL_6, 19935),
+        (PINK, 26949),
+        (("partia-7", "kawalek_2", "final.png"), 42199),
+        (PINK_8, 16209),
+        (TAN, 43348),
+        (("partia-2", "kawalek_2", "050_state.png"), 43023),
+        (DEFAULT, 1326),
+        (PURPLE, 44328),
+    )
+
+    def test_visible_number_on_each_skin(self):
+        for frame, expected in self.TRUTH:
+            with self.subTest(frame=frame):
+                self.assertEqual(bridge.read_hud_score(s1(*frame)), expected)
+
+    def test_int_and_uint8_frames_agree(self):
+        img = s1(*TEAL)
+        self.assertEqual(bridge.read_hud_score(img.astype(np.uint8)), bridge.read_hud_score(img))
+
+    def test_trophy_overlay_never_gives_a_wrong_number(self):
+        """Licznik pod nakładką jest przyciemniony (8513); odczyt albo trafny, albo None."""
+        self.assertIn(bridge.read_hud_score(s1(*TROPHY)), (None, 8513))
+
+    def test_counter_never_decreases_along_a_game(self):
+        """Na całym materiale s1 (hundreds klatek, 7 skórek) żaden odczyt nie wypada poza rosnący ciąg partii —
+        zła cyfra zwykle łamie monotoniczność; klatki bez odczytu (animacja) są pomijane."""
+        for partia in sorted(glob.glob(os.path.join(S1, "partia-*"))):
+            seq = []
+            for kawalek in sorted(glob.glob(os.path.join(partia, "kawalek_*"))):
+                for path in sorted(glob.glob(os.path.join(kawalek, "*_state.png"))):
+                    img = np.asarray(Image.open(path).convert("RGB")).astype(int)
+                    value = bridge.read_hud_score(img)
+                    if value is not None:
+                        seq.append((os.path.relpath(path, S1), value))
+            with self.subTest(partia=os.path.basename(partia)):
+                self.assertGreater(len(seq), 5)
+                for (p0, v0), (p1, v1) in zip(seq, seq[1:]):
+                    self.assertLessEqual(v0, v1, f"{p0}={v0} > {p1}={v1}")
+
+    def test_most_frames_are_read(self):
+        total = read = 0
+        for path in glob.glob(os.path.join(S1, "partia-*", "kawalek_*", "*_state.png")):
+            img = np.asarray(Image.open(path).convert("RGB")).astype(int)
+            total += 1
+            read += bridge.read_hud_score(img) is not None
+        self.assertGreater(read / total, 0.9)
+
+
+if __name__ == "__main__":
+    unittest.main()
