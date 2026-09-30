@@ -1,12 +1,12 @@
 {
-  "sha": "a618fe8d8f4c50844cea34a3b6e2ccfc7266d409",
+  "sha": "13b503a2b3881fad0639fae72412ca99554d9e34",
   "dirty": false,
-  "issue": 251,
+  "issue": 265,
   "status": "ok",
   "blocked_reason": null,
   "config": {
     "n_seeds": 300,
-    "move_cap": 16000,
+    "move_cap": 64000,
     "epsilon": 0.0,
     "torch_seed": 0,
     "threshold_pct": 10.0,
@@ -31,52 +31,22 @@
       "spec": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
       "weights_hash": "741a1e664463f3d7",
       "fixed": {
-        "mean": 11034218.3,
-        "median": 10897188.5,
-        "p10": 8801644.6,
-        "survival_mean": 16000,
+        "mean": 44163856.2,
+        "median": 43804267.5,
+        "p10": 39713751.5,
+        "survival_mean": 64000,
         "capped_pct": 100.0
       },
       "rotated": {
-        "mean": 10937418.41,
-        "median": 10679633.0,
-        "p10": 8952068.2,
-        "survival_mean": 16000,
+        "mean": 43850159.09,
+        "median": 43390260.0,
+        "p10": 39488112.8,
+        "survival_mean": 64000,
         "capped_pct": 100.0
       },
-      "overfit_gap_pct": 0.88
-    },
-    "record": {
-      "policy": "lookahead-ntuple",
-      "spec": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1",
-      "weights_hash": "741a1e664463f3d7",
-      "fixed": {
-        "mean": 2268143.15,
-        "median": 2254316.0,
-        "p10": 2051491.2,
-        "survival_mean": 16000,
-        "capped_pct": 100.0
-      },
-      "rotated": {
-        "mean": 2265114.47,
-        "median": 2250083.0,
-        "p10": 2070033.4,
-        "survival_mean": 16000,
-        "capped_pct": 100.0
-      },
-      "overfit_gap_pct": 0.13
+      "overfit_gap_pct": 0.71
     }
   },
-  "deltas": {
-    "kandydat vs record": {
-      "mean_diff": 8766075.14,
-      "pct": 386.49,
-      "sd_diff": 1860511.29,
-      "se_diff": 107416.67,
-      "se_pct": 4.74,
-      "mean_diff_over_se": 81.61,
-      "label": "poprawa"
-    }
-  },
-  "duration_s": 31586.5
+  "deltas": {},
+  "duration_s": 59572.4
 }
