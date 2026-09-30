@@ -625,7 +625,9 @@ def make_game_stub(board, pieces, combo=0):
     return SimpleNamespace(board=board, pieces=pieces, combo=combo, combo_counter=COMBO_COUNTER_BASE)
 
 
-def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
+def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False):
+    """`seria=True` (#283, `tools/partia_serii.py`): ekran końca partii kończy kawałek wpisem
+    `end: koniec_partii` i nie stuka „Play” — dla serii to koniec partii."""
     os.makedirs(OUT, exist_ok=True)
     policy = build_policy(policy_spec, {"torch_seed": 0})
     print(f"polityka: {policy.name} (źródło: {policy_source})", flush=True)
@@ -720,7 +722,9 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna"):
                      "koniec_partii": True, "wynik_koncowy": final_score,
                      "wynik_koncowy_odczyty": score_reads,
                      "zrzut_konca": os.path.basename(end_path), "nowa_partia": game_number}
-            if window_streak >= PROGRESS_SAFEGUARD_TRIES:
+            if seria:
+                entry["end"] = "koniec_partii"
+            elif window_streak >= PROGRESS_SAFEGUARD_TRIES:
                 entry["end"] = "okno: petla_bez_postepu"
             write_row(entry)
             log.flush()
