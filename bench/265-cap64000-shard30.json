@@ -1,0 +1,107 @@
+{
+  "sha": "be968656c3d3b78f03e6b8e93d3b2a511fd7b511",
+  "dirty": false,
+  "issue": 265,
+  "status": "ok",
+  "blocked_reason": null,
+  "config": {
+    "n_seeds": 300,
+    "move_cap": 64000,
+    "epsilon": 0.0,
+    "torch_seed": 0,
+    "threshold_pct": 10.0,
+    "fixed_seed_file": "bench/seeds_fixed.json",
+    "rotated_seed_salt": 2654435761
+  },
+  "source_hashes": {
+    "game.py": "9ce7d22a3b62df05",
+    "scoring.py": "1e4a1b8730243ce6",
+    "generator.py": "5b11ec3b1759b05f",
+    "pieces.py": "7241459a3cb11706",
+    "features.py": "3e4c45d8cafa246c",
+    "policies.py": "16a79d4d7695573b",
+    "benchmark.py": "70364cd6a14eb721",
+    "ntuple.py": "281f545b1d75340b",
+    "ntuple_native.c": "12ca06d5f205d1eb",
+    "ntuple_native.py": "d66d10665c472dc3"
+  },
+  "arms": {
+    "candidate": {
+      "policy": "lookahead-ntuple",
+      "fixed": {
+        "mean": 44898590.29,
+        "median": 45287208,
+        "p10": 39633859.4,
+        "survival_mean": 64000,
+        "capped_pct": 100.0,
+        "scores": [
+          40991521,
+          53083240,
+          37597367,
+          47667439,
+          47423666,
+          45287208,
+          42239691
+        ],
+        "survivals": [
+          64000,
+          64000,
+          64000,
+          64000,
+          64000,
+          64000,
+          64000
+        ],
+        "capped_flags": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ]
+      },
+      "rotated": {
+        "mean": 43792966.43,
+        "median": 43134138,
+        "p10": 41014622.6,
+        "survival_mean": 64000,
+        "capped_pct": 100.0,
+        "scores": [
+          43134138,
+          39903872,
+          42277686,
+          43252662,
+          48238972,
+          41755123,
+          47988312
+        ],
+        "survivals": [
+          64000,
+          64000,
+          64000,
+          64000,
+          64000,
+          64000,
+          64000
+        ],
+        "capped_flags": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ]
+      },
+      "overfit_gap_pct": 2.46,
+      "spec": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+      "weights_hash": "741a1e664463f3d7"
+    }
+  },
+  "deltas": {},
+  "duration_s": 1606.1,
+  "shard": "30/40"
+}
