@@ -20,12 +20,17 @@ python3 tools/partia_serii.py POLITYKA KATALOG [--limit-minut 300] [--prog 10000
 Gra kawałkami przez `bridge.main(..., seria=True)` (ścieżka ruchu z `docs/most-tempo.md`, ta sama obsługa znanych
 okien). Jedyna różnica względem zwykłego mostu: **ekran końca partii nie stuka „Play"** — kończy partię.
 Po każdym kawałku skrypt czyta licznik apki na stabilnej klatce (dwa zgodne odczyty; `stable_score`).
+Odczyt HUD robi `bridge.read_hud_score` (dopasowanie wzorców cyfr z `bridge_digits.npz`, nie tesseract; #290).
+**Reguła akceptacji:** odczyt liczy się (do `cel` i jako punkt odniesienia), tylko gdy jest stabilny i spójny z poprzednim
+zaakceptowanym — licznik nie maleje i nie rośnie dziesięciokrotnie (zgubiona lub dopisana cyfra). Odczyt niespójny to
+brak odczytu: nie kończy `cel`, ląduje w `licznik_odrzucone`. Zrzut `licznik_apki.zrzut` to klatka ostatniego odczytu,
+z której pochodzi wartość.
 
 ## Kody wyjścia i `zakonczenie`
 
 | kod | `zakonczenie` | kiedy |
 |---|---|---|
-| 0 | `cel` | licznik apki ≥ progu na stabilnej klatce (odczyty zgodne). Klatka niestabilna ≥ progu **nie** kończy — gra idzie dalej |
+| 0 | `cel` | licznik apki ≥ progu na stabilnej klatce (odczyty zgodne i spójne z poprzednim). Klatka niestabilna ≥ progu **nie** kończy — gra idzie dalej |
 | 1 | `przegrana` | ekran końca partii |
 | 2 | `przerwanie` | nieznane okno, `petla_bez_postepu`, `plansza_zawieszona`, apka nie wraca po restarcie, limit minut, wyjątek |
 | 3 | — | błąd argumentów |
@@ -43,7 +48,8 @@ Zapisywany atomowo (plik `.tmp` + `os.replace`) po każdym kawałku i na końcu.
 | `polityka` | napis specyfikacji |
 | `zakonczenie` | `w_toku` do końca, potem `cel`/`przegrana`/`przerwanie` |
 | `przyczyna`, `okno` | patrz wyżej (`null` dla `cel`/`przegrana`/`w_toku`) |
-| `licznik_apki` | `{wartosc, odczyty, stabilny, zrzut}` — ostatni odczyt po kawałku; `zrzut` to PNG w `KATALOG` |
+| `licznik_apki` | `{wartosc, odczyty, stabilny, zrzut}` — ostatni spójny odczyt po kawałku; `zrzut` to PNG w `KATALOG` z klatką tego odczytu |
+| `licznik_odrzucone` | odczyty odrzucone jako niespójne: `{kawalek, wartosc, odczyty, poprzedni}` |
 | `wynik_wzor` | wynik naszym wzorem (`tools/score_from_trajectory.py`, `wynik_main`) z dotychczasowych kawałków |
 | `postawienia` | liczba ruchów w plikach ruchów |
 | `minuty` | od pierwszego do ostatniego pola `t` pliku ruchów (bez startu apki) |
