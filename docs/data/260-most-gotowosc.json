@@ -1,0 +1,153 @@
+{
+ "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+ "stany": 2831,
+ "stany_wg_liczby_klockow_na_tacce": {
+  "1": 929,
+  "2": 950,
+  "3": 952
+ },
+ "pominiete": {
+  "bez_ruchu": 37,
+  "wiersz_konca_partii": 23,
+  "powtorzenie": 70
+ },
+ "wyjatki": 0,
+ "wyjatki_lista": [],
+ "nielegalne_akcje": 0,
+ "nielegalne_lista": [],
+ "czas_decyzji_ms": {
+  "n": 2831,
+  "mediana": 1.98,
+  "p95": 16.47,
+  "max": 68.68
+ },
+ "czas_decyzji_ms_wg_klockow_na_tacce": {
+  "1": {
+   "n": 929,
+   "mediana": 0.28,
+   "p95": 0.43,
+   "max": 0.71
+  },
+  "2": {
+   "n": 950,
+   "mediana": 2.15,
+   "p95": 6.08,
+   "max": 68.68
+  },
+  "3": {
+   "n": 952,
+   "mediana": 7.78,
+   "p95": 24.77,
+   "max": 36.55
+  }
+ },
+ "czas_decyzji_ms_w_logach": {
+  "n": 2831,
+  "mediana": 0.42,
+  "p95": 19.04,
+  "max": 103.85
+ },
+ "czas_decyzji_ms_w_logach_wg_polityki": {
+  "greedy": {
+   "n": 2480,
+   "mediana": 0.37,
+   "p95": 1.21,
+   "max": 4.63
+  },
+  "lookahead-ntuple": {
+   "n": 351,
+   "mediana": 16.45,
+   "p95": 51.27,
+   "max": 103.85
+  }
+ },
+ "combo": {
+  "stany_gdzie_rekonstrukcja_rozna_od_zaslepki": 2630,
+  "decyzje_zmienione_przez_stan_combo": 4,
+  "udzial_zmienionych_w_stanach_z_roznica": 0.0015,
+  "udzial_zmienionych_we_wszystkich_stanach": 0.0014,
+  "tylko_stany_wiarygodne": {
+   "stany": 1669,
+   "roznica_stanu": 1545,
+   "decyzja_zmieniona": 2
+  },
+  "niedeterminizm_na_probce_bez_roznicy": 0,
+  "zgodnosc_przyrostu_wyniku_z_ekranu": {
+   "porownane": 1371,
+   "rekonstrukcja_zgodna": 652,
+   "zaslepka_zgodna": 557,
+   "roznica_modeli_i_wynik_zgodny_z_rekonstrukcja": 95,
+   "roznica_modeli": 523
+  },
+  "przyklady": [
+   {
+    "run": "1b1763a",
+    "plik": "chunk12_moves.jsonl",
+    "wiersz": 22,
+    "combo": 1,
+    "licznik": 3,
+    "akcja_zaslepka": [
+     2,
+     7,
+     1
+    ],
+    "akcja_rekonstrukcja": [
+     0,
+     1,
+     2
+    ]
+   },
+   {
+    "run": "4a1796f",
+    "plik": "chunk5_moves.jsonl",
+    "wiersz": 27,
+    "combo": 5,
+    "licznik": 3,
+    "akcja_zaslepka": [
+     0,
+     0,
+     1
+    ],
+    "akcja_rekonstrukcja": [
+     2,
+     3,
+     2
+    ]
+   },
+   {
+    "run": "4a1796f",
+    "plik": "chunk8_moves.jsonl",
+    "wiersz": 16,
+    "combo": 3,
+    "licznik": 3,
+    "akcja_zaslepka": [
+     0,
+     5,
+     4
+    ],
+    "akcja_rekonstrukcja": [
+     1,
+     5,
+     4
+    ]
+   },
+   {
+    "run": "7e25817",
+    "plik": "chunk7_moves.jsonl",
+    "wiersz": 34,
+    "combo": 13,
+    "licznik": 3,
+    "akcja_zaslepka": [
+     0,
+     3,
+     0
+    ],
+    "akcja_rekonstrukcja": [
+     0,
+     3,
+     3
+    ]
+   }
+  ]
+ }
+}
