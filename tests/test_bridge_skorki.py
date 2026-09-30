@@ -318,6 +318,18 @@ class TestHudScoreOnEverySkin(unittest.TestCase):
             with self.subTest(frame=frame):
                 self.assertEqual(bridge.read_hud_score(s1(*frame)), expected)
 
+    def test_gold_diamond_behind_digits(self):
+        """Złoty romb za cyframi (#297): klatki int jak ze `screenshot()`, wartości wpisane z obrazu."""
+        for frame, expected in (
+            (("partia-5", "kawalek_1", "080_state.png"), 12730),
+            (("partia-5", "kawalek_1", "140_state.png"), 44670),
+            (("partia-5", "kawalek_2", "000_state.png"), 50115),
+        ):
+            with self.subTest(frame=frame):
+                img = s1(*frame)
+                self.assertEqual(img.dtype, int)
+                self.assertEqual(bridge.read_hud_score(img), expected)
+
     def test_int_and_uint8_frames_agree(self):
         img = s1(*TEAL)
         self.assertEqual(bridge.read_hud_score(img.astype(np.uint8)), bridge.read_hud_score(img))
@@ -348,8 +360,8 @@ class TestHudScoreOnEverySkin(unittest.TestCase):
             img = np.asarray(Image.open(path).convert("RGB")).astype(int)
             total += 1
             read += bridge.read_hud_score(img) is not None
-        # 0.85: partia-5/kawalek_1 (klatki 045-140) ma skórkę, na której licznik się nie czyta (#295, odkrycie)
-        self.assertGreater(read / total, 0.85)
+        # nieczytelne zostają klatki z nakładką "+N" na cyfrach (np. partia-5/kawalek_1/055, kawalek_3/100)
+        self.assertGreater(read / total, 0.9)
 
 
 if __name__ == "__main__":

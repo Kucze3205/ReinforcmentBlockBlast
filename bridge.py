@@ -54,7 +54,8 @@ HUD_DIGIT_DARK = 150  # piksel cyfry HUD: max kanału poniżej (cyfry 74,77,90; 
 HUD_INK_MIN_DIST = 150  # `_hud_ink_unmixed`: suma |ΔRGB| od tła, od której kolor liczy się jako tusz cyfr
 HUD_INK_RESID = 0.35  # odrzuć piksel, którego odległość od prostej tło→tusz przekracza tyle długości odcinka
 HUD_INK_LOW = 0.55  # rzut na odcinek tło→tusz poniżej tego to tło (blady romb skórki teal ma ok. 0.3-0.5)
-HUD_INK_MASK = 0.5  # piksel jest cyfrą, gdy `soft` z `_hud_ink_unmixed` > tyle
+HUD_ROW_MIN_FRAC = 0.25  # odczyt tło/tusz: wiersz z mniej niż tyle maksymalnej liczby pikseli tuszu to nie cyfry (romb, #297)
+HUD_INK_MASK = 0.5 # piksel jest cyfrą, gdy `soft` z `_hud_ink_unmixed` > tyle
 DIGIT_MAX_DIST = 0.35  # odrzuć glif, gdy L1 do najlepszego wzorca > tyle masy glifu (zmierzone max 0.16)
 DIGIT_MAX_RATIO = 0.95  # odrzuć glif, gdy najlepszy wzorzec prawie remisuje z drugim (zmierzone max 0.91)
 GAME_OVER_PURPLE_FRAC = 0.5  # próg dla is_game_over_screen: tło ma 0.92-0.96, reszta ekranów <=0.065
@@ -646,7 +647,13 @@ def read_hud_score(img, box=SCORE_BOX):
     soft = _hud_ink_unmixed(crop.astype(float))
     if soft is None:
         return None
-    canvases = _hud_canvases(soft, soft > HUD_INK_MASK)
+    mask = soft > HUD_INK_MASK
+    # złoty romb za cyframi zostawia pojedyncze piksele nad/pod cyframi i rozciąga glif (#297): tylko wiersze,
+    # w których tuszu jest wyraźnie (>= HUD_ROW_MIN_FRAC maksimum wierszy), należą do cyfr
+    rows = mask.sum(axis=1)
+    band = rows >= HUD_ROW_MIN_FRAC * rows.max()
+    mask, soft = mask & band[:, None], soft * band[:, None]
+    canvases = _hud_canvases(soft, mask)
     return None if canvases is None else _hud_match(canvases, _digit_templates(DIGIT_INK_TEMPLATES_FILE))
 
 

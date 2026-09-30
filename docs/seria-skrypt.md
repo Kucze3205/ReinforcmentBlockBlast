@@ -145,6 +145,6 @@ planszy to nadal `plansza_pusta_przejsciowo`.
 
 **Licznik HUD.** `read_hud_score` najpierw próbuje maski ciemnych cyfr skórki oryginalnej (`bridge_digits.npz`), a gdy ta nie
 daje odczytu — rozdzielenia tło/tusz (kolor cyfr = najczęstszy kolor odległy od tła) i wzorców `bridge_digits_ink.npz`
-(`tools/wzorce_hud.py`). Nie umie: licznika pod przyciemnioną nakładką pucharu i klatek z animacją rombu — zwraca `None`.
+(`tools/wzorce_hud.py`). Nie umie: licznika pod przyciemnioną nakładką pucharu i klatek z animacją rombu — zwraca `None`. Złoty romb za cyframi na granatowej skórce (#297) czyta się: odczyt tło/tusz odcina wiersze z pojedynczymi pikselami rombu (`HUD_ROW_MIN_FRAC`); nieczytelne zostają klatki z nakładką „+N” na cyfrach.
 Ścieżka ciemna dostaje `uint8`: wzorce powstały z tej reprezentacji, a `int` ze `screenshot()` dawał `None` także na skórce
 oryginalnej (przed #294 licznik w serii nie czytał niczego).
