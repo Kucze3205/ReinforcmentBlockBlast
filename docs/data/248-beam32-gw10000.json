@@ -1,0 +1,119 @@
+{
+ "policy": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=32,samples=0,complete=1,gain_weight=10000",
+ "n_games": 16,
+ "elapsed_s": 160.3,
+ "summary": {
+  "n_games": 16,
+  "n_capped": 16,
+  "n_deaths": 0,
+  "a_search_miss": 0,
+  "a_search_miss_pct": null,
+  "n_deaths_with_previous_tray": 0,
+  "b_any_survive": 0,
+  "b_any_survive_pct": null,
+  "b_median_survive_frac": null,
+  "b_median_survive_frac_among_avoidable": null,
+  "b_median_chosen_rank": null,
+  "b_median_best_survivor_rank": null,
+  "b_median_n_final_boards": null,
+  "b_times_sampled": 0
+ },
+ "games": [
+  {
+   "seed": 1259289227,
+   "placements": 20000,
+   "score": 8597457,
+   "capped": true
+  },
+  {
+   "seed": 1358106528,
+   "placements": 20000,
+   "score": 7717687,
+   "capped": true
+  },
+  {
+   "seed": 1524307444,
+   "placements": 20000,
+   "score": 10916318,
+   "capped": true
+  },
+  {
+   "seed": 601855227,
+   "placements": 20000,
+   "score": 8203031,
+   "capped": true
+  },
+  {
+   "seed": 274288237,
+   "placements": 20000,
+   "score": 7659060,
+   "capped": true
+  },
+  {
+   "seed": 972234272,
+   "placements": 20000,
+   "score": 7390341,
+   "capped": true
+  },
+  {
+   "seed": 1934775205,
+   "placements": 20000,
+   "score": 7241840,
+   "capped": true
+  },
+  {
+   "seed": 1747973984,
+   "placements": 20000,
+   "score": 8225481,
+   "capped": true
+  },
+  {
+   "seed": 880427736,
+   "placements": 20000,
+   "score": 10696120,
+   "capped": true
+  },
+  {
+   "seed": 744386736,
+   "placements": 20000,
+   "score": 9407195,
+   "capped": true
+  },
+  {
+   "seed": 518084881,
+   "placements": 20000,
+   "score": 8701944,
+   "capped": true
+  },
+  {
+   "seed": 2056331490,
+   "placements": 20000,
+   "score": 8669303,
+   "capped": true
+  },
+  {
+   "seed": 940942013,
+   "placements": 20000,
+   "score": 8781654,
+   "capped": true
+  },
+  {
+   "seed": 744895268,
+   "placements": 20000,
+   "score": 8169573,
+   "capped": true
+  },
+  {
+   "seed": 45415092,
+   "placements": 20000,
+   "score": 9587462,
+   "capped": true
+  },
+  {
+   "seed": 271614896,
+   "placements": 20000,
+   "score": 8654534,
+   "capped": true
+  }
+ ]
+}
