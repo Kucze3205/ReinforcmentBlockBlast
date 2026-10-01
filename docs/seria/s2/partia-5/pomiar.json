@@ -1,0 +1,60 @@
+{
+  "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+  "zakonczenie": "cel",
+  "przyczyna": null,
+  "okno": null,
+  "licznik_apki": {
+    "wartosc": 1258218,
+    "odczyty": [
+      1258218,
+      1258218
+    ],
+    "stabilny": true,
+    "zrzut": "licznik_7.png"
+  },
+  "licznik_odrzucone": [],
+  "wynik_wzor": 316920,
+  "postawienia": 1050,
+  "minuty": 49.468,
+  "postawien_na_minute": 21.23,
+  "decision_ms": {
+    "mediana": 2.62,
+    "p95": 17.61,
+    "max": 522.21
+  },
+  "okna": [
+    {
+      "kawalek": 1,
+      "n": 9,
+      "okno": "restart",
+      "t": 1790823423.838
+    },
+    {
+      "kawalek": 1,
+      "n": 104,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790823729.088
+    },
+    {
+      "kawalek": 1,
+      "n": 119,
+      "okno": "nakladka_better_than",
+      "t": 1790823772.591
+    },
+    {
+      "kawalek": 1,
+      "n": 127,
+      "okno": "tacka_pusta_przejsciowo",
+      "t": 1790823798.5
+    }
+  ],
+  "kawalki": [
+    "chunk1_moves.jsonl",
+    "chunk2_moves.jsonl",
+    "chunk3_moves.jsonl",
+    "chunk4_moves.jsonl",
+    "chunk5_moves.jsonl",
+    "chunk6_moves.jsonl",
+    "chunk7_moves.jsonl"
+  ]
+}
