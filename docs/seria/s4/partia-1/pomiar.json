@@ -1,0 +1,330 @@
+{
+  "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+  "zakonczenie": "przerwanie",
+  "przyczyna": "petla_bez_postepu",
+  "okno": "ustawienia_wstecz",
+  "licznik_apki": {
+    "wartosc": 167289,
+    "odczyty": [
+      166983,
+      167055,
+      167106,
+      167177,
+      167228,
+      167289
+    ],
+    "stabilny": false,
+    "zrzut": "licznik_5.png"
+  },
+  "licznik_odrzucone": [
+    {
+      "kawalek": 6,
+      "wartosc": 265147,
+      "odczyty": [
+        262589,
+        263118,
+        263647,
+        264088,
+        264706,
+        265147
+      ],
+      "poprzedni": 25662
+    },
+    {
+      "kawalek": 7,
+      "wartosc": 398505,
+      "odczyty": [
+        398505,
+        398505
+      ],
+      "poprzedni": 25662
+    },
+    {
+      "kawalek": 8,
+      "wartosc": 531682,
+      "odczyty": [
+        531652,
+        531657,
+        531664,
+        531670,
+        531676,
+        531682
+      ],
+      "poprzedni": 25662
+    },
+    {
+      "kawalek": 9,
+      "wartosc": 553408,
+      "odczyty": [
+        553408,
+        553408
+      ],
+      "poprzedni": 25662
+    },
+    {
+      "kawalek": 10,
+      "wartosc": 568109,
+      "odczyty": [
+        568109,
+        568109
+      ],
+      "poprzedni": 25662
+    },
+    {
+      "kawalek": 11,
+      "wartosc": 614113,
+      "odczyty": [
+        614113,
+        614113
+      ],
+      "poprzedni": 25662
+    },
+    {
+      "kawalek": 12,
+      "wartosc": 674368,
+      "odczyty": [
+        674368,
+        674368
+      ],
+      "poprzedni": 25662
+    },
+    {
+      "kawalek": 13,
+      "wartosc": 699061,
+      "odczyty": [
+        699061,
+        699061
+      ],
+      "poprzedni": 25662
+    },
+    {
+      "kawalek": 14,
+      "wartosc": 730234,
+      "odczyty": [
+        730234,
+        730234
+      ],
+      "poprzedni": 25662
+    },
+    {
+      "kawalek": 15,
+      "wartosc": 764840,
+      "odczyty": [
+        764840,
+        764840
+      ],
+      "poprzedni": 25662
+    },
+    {
+      "kawalek": 16,
+      "wartosc": 831338,
+      "odczyty": [
+        831338,
+        831338
+      ],
+      "poprzedni": 25662
+    },
+    {
+      "kawalek": 17,
+      "wartosc": 941414,
+      "odczyty": [
+        941414,
+        941414
+      ],
+      "poprzedni": 25662
+    },
+    {
+      "kawalek": 18,
+      "wartosc": 1076156,
+      "odczyty": [
+        1076156,
+        1076156
+      ],
+      "poprzedni": 25662
+    },
+    {
+      "kawalek": 19,
+      "wartosc": 1124488,
+      "odczyty": [
+        1124488,
+        1124488
+      ],
+      "poprzedni": 25662
+    },
+    {
+      "kawalek": 20,
+      "wartosc": 1171169,
+      "odczyty": [
+        1170924,
+        1170973,
+        1171022,
+        1171071,
+        1171120,
+        1171169
+      ],
+      "poprzedni": 25662
+    },
+    {
+      "kawalek": 21,
+      "wartosc": 1249752,
+      "odczyty": [
+        1249321,
+        1249397,
+        1249499,
+        1249587,
+        1249663,
+        1249752
+      ],
+      "poprzedni": 25662
+    }
+  ],
+  "wynik_wzor": 1944095,
+  "postawienia": 3207,
+  "minuty": 123.284,
+  "postawien_na_minute": 26.24,
+  "decision_ms": {
+    "mediana": 1.9,
+    "p95": 11.97,
+    "max": 52.88
+  },
+  "okna": [
+    {
+      "kawalek": 1,
+      "n": 1,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790847133.442
+    },
+    {
+      "kawalek": 1,
+      "n": 68,
+      "okno": "tacka_pusta_przejsciowo",
+      "t": 1790847309.817
+    },
+    {
+      "kawalek": 2,
+      "n": 4,
+      "okno": "tacka_pusta_przejsciowo",
+      "t": 1790847525.778
+    },
+    {
+      "kawalek": 2,
+      "n": 35,
+      "okno": "nakladka_better_than",
+      "t": 1790847600.942
+    },
+    {
+      "kawalek": 2,
+      "n": 132,
+      "okno": "nakladka_better_than",
+      "t": 1790847826.085
+    },
+    {
+      "kawalek": 4,
+      "n": 63,
+      "okno": "nakladka_better_than",
+      "t": 1790848367.014
+    },
+    {
+      "kawalek": 22,
+      "n": 57,
+      "okno": "brak_ruchu_ponowny_odczyt",
+      "t": 1790854466.339
+    },
+    {
+      "kawalek": 22,
+      "n": 57,
+      "okno": "tacka_pusta_przejsciowo",
+      "t": 1790854468.181
+    },
+    {
+      "kawalek": 22,
+      "n": 57,
+      "okno": "reklama_wideo",
+      "t": 1790854472.149
+    },
+    {
+      "kawalek": 22,
+      "n": 57,
+      "okno": "restart",
+      "t": 1790854493.648
+    },
+    {
+      "kawalek": 22,
+      "n": 57,
+      "okno": "reklama_wideo",
+      "t": 1790854496.4
+    },
+    {
+      "kawalek": 22,
+      "n": 57,
+      "okno": "ustawienia_wstecz",
+      "t": 1790854500.666
+    },
+    {
+      "kawalek": 22,
+      "n": 57,
+      "okno": "ustawienia_wstecz",
+      "t": 1790854504.85
+    },
+    {
+      "kawalek": 22,
+      "n": 57,
+      "okno": "ustawienia_wstecz",
+      "t": 1790854509.047
+    },
+    {
+      "kawalek": 22,
+      "n": 57,
+      "okno": "ustawienia_wstecz",
+      "t": 1790854513.215
+    },
+    {
+      "kawalek": 22,
+      "n": 57,
+      "okno": "ustawienia_wstecz",
+      "t": 1790854517.435
+    },
+    {
+      "kawalek": 22,
+      "n": 57,
+      "okno": "ustawienia_wstecz",
+      "t": 1790854521.65
+    },
+    {
+      "kawalek": 22,
+      "n": 57,
+      "okno": "ustawienia_wstecz",
+      "t": 1790854525.883
+    },
+    {
+      "kawalek": 22,
+      "n": 57,
+      "okno": "ustawienia_wstecz",
+      "t": 1790854530.082
+    }
+  ],
+  "kawalki": [
+    "chunk1_moves.jsonl",
+    "chunk2_moves.jsonl",
+    "chunk3_moves.jsonl",
+    "chunk4_moves.jsonl",
+    "chunk5_moves.jsonl",
+    "chunk6_moves.jsonl",
+    "chunk7_moves.jsonl",
+    "chunk8_moves.jsonl",
+    "chunk9_moves.jsonl",
+    "chunk10_moves.jsonl",
+    "chunk11_moves.jsonl",
+    "chunk12_moves.jsonl",
+    "chunk13_moves.jsonl",
+    "chunk14_moves.jsonl",
+    "chunk15_moves.jsonl",
+    "chunk16_moves.jsonl",
+    "chunk17_moves.jsonl",
+    "chunk18_moves.jsonl",
+    "chunk19_moves.jsonl",
+    "chunk20_moves.jsonl",
+    "chunk21_moves.jsonl",
+    "chunk22_moves.jsonl"
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+  "zakonczenie": "cel",
+  "przyczyna": null,
+  "okno": null,
+  "licznik_apki": {
+    "wartosc": 1010567,
+    "odczyty": [
+      1010567,
+      1010567
+    ],
+    "stabilny": true,
+    "zrzut": "licznik_18.png"
+  },
+  "licznik_odrzucone": [],
+  "wynik_wzor": 1574249,
+  "postawienia": 2700,
+  "minuty": 122.847,
+  "postawien_na_minute": 21.98,
+  "decision_ms": {
+    "mediana": 2.37,
+    "p95": 16.46,
+    "max": 91.59
+  },
+  "okna": [
+    {
+      "kawalek": 1,
+      "n": 1,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790847052.414
+    },
+    {
+      "kawalek": 1,
+      "n": 89,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790847323.63
+    },
+    {
+      "kawalek": 3,
+      "n": 6,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790847924.761
+    },
+    {
+      "kawalek": 3,
+      "n": 34,
+      "okno": "tacka_pusta_przejsciowo",
+      "t": 1790848001.992
+    },
+    {
+      "kawalek": 3,
+      "n": 79,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790848125.612
+    },
+    {
+      "kawalek": 3,
+      "n": 111,
+      "okno": "tacka_pusta_przejsciowo",
+      "t": 1790848219.865
+    },
+    {
+      "kawalek": 4,
+      "n": 18,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790848377.469
+    },
+    {
+      "kawalek": 4,
+      "n": 24,
+      "okno": "brak_ruchu_ponowny_odczyt",
+      "t": 1790848395.237
+    }
+  ],
+  "kawalki": [
+    "chunk1_moves.jsonl",
+    "chunk2_moves.jsonl",
+    "chunk3_moves.jsonl",
+    "chunk4_moves.jsonl",
+    "chunk5_moves.jsonl",
+    "chunk6_moves.jsonl",
+    "chunk7_moves.jsonl",
+    "chunk8_moves.jsonl",
+    "chunk9_moves.jsonl",
+    "chunk10_moves.jsonl",
+    "chunk11_moves.jsonl",
+    "chunk12_moves.jsonl",
+    "chunk13_moves.jsonl",
+    "chunk14_moves.jsonl",
+    "chunk15_moves.jsonl",
+    "chunk16_moves.jsonl",
+    "chunk17_moves.jsonl",
+    "chunk18_moves.jsonl"
+  ]
+}

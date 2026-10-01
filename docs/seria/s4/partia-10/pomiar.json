@@ -1,0 +1,115 @@
+{
+  "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+  "zakonczenie": "przerwanie",
+  "przyczyna": "plansza_zawieszona",
+  "okno": "plansza_zawieszona",
+  "licznik_apki": {
+    "wartosc": 532427,
+    "odczyty": [
+      531474,
+      531650,
+      531876,
+      532076,
+      532227,
+      532427
+    ],
+    "stabilny": false,
+    "zrzut": "licznik_15.png"
+  },
+  "licznik_odrzucone": [],
+  "wynik_wzor": 825204,
+  "postawienia": 2282,
+  "minuty": 103.092,
+  "postawien_na_minute": 22.14,
+  "decision_ms": {
+    "mediana": 2.56,
+    "p95": 17.5,
+    "max": 72.72
+  },
+  "okna": [
+    {
+      "kawalek": 1,
+      "n": 1,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790847050.817
+    },
+    {
+      "kawalek": 1,
+      "n": 94,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790847326.849
+    },
+    {
+      "kawalek": 2,
+      "n": 71,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790847692.018
+    },
+    {
+      "kawalek": 3,
+      "n": 11,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790847938.721
+    },
+    {
+      "kawalek": 3,
+      "n": 45,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790848033.284
+    },
+    {
+      "kawalek": 3,
+      "n": 92,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790848166.363
+    },
+    {
+      "kawalek": 3,
+      "n": 129,
+      "okno": "tacka_pusta_przejsciowo",
+      "t": 1790848271.581
+    },
+    {
+      "kawalek": 4,
+      "n": 30,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790848415.184
+    },
+    {
+      "kawalek": 16,
+      "n": 29,
+      "okno": "brak_ruchu_ponowny_odczyt",
+      "t": 1790853224.692
+    },
+    {
+      "kawalek": 16,
+      "n": 29,
+      "okno": "tacka_pusta_przejsciowo",
+      "t": 1790853226.964
+    },
+    {
+      "kawalek": 16,
+      "n": 31,
+      "okno": "plansza_zawieszona",
+      "t": 1790853235.601
+    }
+  ],
+  "kawalki": [
+    "chunk1_moves.jsonl",
+    "chunk2_moves.jsonl",
+    "chunk3_moves.jsonl",
+    "chunk4_moves.jsonl",
+    "chunk5_moves.jsonl",
+    "chunk6_moves.jsonl",
+    "chunk7_moves.jsonl",
+    "chunk8_moves.jsonl",
+    "chunk9_moves.jsonl",
+    "chunk10_moves.jsonl",
+    "chunk11_moves.jsonl",
+    "chunk12_moves.jsonl",
+    "chunk13_moves.jsonl",
+    "chunk14_moves.jsonl",
+    "chunk15_moves.jsonl",
+    "chunk16_moves.jsonl"
+  ]
+}
