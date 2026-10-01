@@ -1,0 +1,110 @@
+{
+  "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+  "zakonczenie": "przerwanie",
+  "przyczyna": "petla_bez_postepu",
+  "okno": "ekran_startowy",
+  "licznik_apki": {
+    "wartosc": 203885,
+    "odczyty": [
+      203885,
+      203885
+    ],
+    "stabilny": true,
+    "zrzut": "licznik_2.png"
+  },
+  "licznik_odrzucone": [],
+  "wynik_wzor": 103467,
+  "postawienia": 309,
+  "minuty": 16.186,
+  "postawien_na_minute": 20.04,
+  "decision_ms": {
+    "mediana": 3.28,
+    "p95": 26.78,
+    "max": 476.32
+  },
+  "okna": [
+    {
+      "kawalek": 1,
+      "n": 1,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790833056.336
+    },
+    {
+      "kawalek": 3,
+      "n": 9,
+      "okno": "ekran_startowy",
+      "t": 1790833983.908
+    },
+    {
+      "kawalek": 3,
+      "n": 9,
+      "okno": "ekran_startowy",
+      "t": 1790833987.778
+    },
+    {
+      "kawalek": 3,
+      "n": 9,
+      "okno": "ekran_startowy",
+      "t": 1790833991.675
+    },
+    {
+      "kawalek": 3,
+      "n": 9,
+      "okno": "ekran_startowy",
+      "t": 1790833995.543
+    },
+    {
+      "kawalek": 3,
+      "n": 9,
+      "okno": "ekran_startowy",
+      "t": 1790833999.412
+    },
+    {
+      "kawalek": 3,
+      "n": 9,
+      "okno": "ekran_startowy",
+      "t": 1790834003.304
+    },
+    {
+      "kawalek": 3,
+      "n": 9,
+      "okno": "ekran_startowy",
+      "t": 1790834007.17
+    },
+    {
+      "kawalek": 3,
+      "n": 9,
+      "okno": "ekran_startowy",
+      "t": 1790834011.133
+    },
+    {
+      "kawalek": 3,
+      "n": 9,
+      "okno": "ekran_startowy",
+      "t": 1790834015.062
+    },
+    {
+      "kawalek": 3,
+      "n": 9,
+      "okno": "ekran_startowy",
+      "t": 1790834018.944
+    },
+    {
+      "kawalek": 3,
+      "n": 9,
+      "okno": "ekran_startowy",
+      "t": 1790834022.812
+    },
+    {
+      "kawalek": 3,
+      "n": 9,
+      "okno": "ekran_startowy",
+      "t": 1790834026.712
+    }
+  ],
+  "kawalki": [
+    "chunk1_moves.jsonl",
+    "chunk2_moves.jsonl",
+    "chunk3_moves.jsonl"
+  ]
+}
