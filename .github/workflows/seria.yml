@@ -55,7 +55,13 @@ jobs:
       - name: Pobierz APK z prywatnego release
         env:
           GH_TOKEN: ${{ secrets.ASSETS_READ_TOKEN }}
-        run: gh release download v10.7.5 --repo Kucze3205/blockblast-assets --dir assets --pattern '*.apk'
+        run: |
+          for i in 1 2 3; do
+            gh release download v10.7.5 --repo Kucze3205/blockblast-assets --dir assets --pattern '*.apk' --clobber && break
+            echo "Pobranie APK nieudane (proba $i), ponawiam za 20 s"
+            sleep 20
+          done
+          ls assets/*.apk
 
       - uses: reactivecircus/android-emulator-runner@v2
         with:
