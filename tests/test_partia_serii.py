@@ -215,6 +215,38 @@ class TestSpojnoscLicznika(unittest.TestCase):
         self.assertEqual(p["licznik_apki"]["wartosc"], 150_000)
         self.assertEqual(len(p["licznik_odrzucone"]), 1)
 
+    def test_kotwica_nie_utyka_na_ciagu_z_s4_partii_1(self):
+        # #324: kawałek 4 przyjęty (25 662), kawałek 5 niestabilny (167 289), od 6. odczyty ≥ 10× kotwicy.
+        # Ciąg z docs/seria/s4/partia-1/pomiar.json; kawałki 150 postawień jak w serii.
+        with open(os.path.join(ROOT, "docs", "seria", "s4", "partia-1", "pomiar.json")) as f:
+            pomiar = json.load(f)
+        reads = {4: [25_662, 25_662], 5: pomiar["licznik_apki"]["odczyty"]}
+        reads.update({r["kawalek"]: r["odczyty"] for r in pomiar["licznik_odrzucone"]})
+        self.assertEqual(reads[5][-1], 167_289)
+        self.assertFalse(len(set(reads[5][-2:])) == 1)  # niestabilny: kotwica zostaje na 25 662
+        kawalki = sorted(reads)
+        last = next(k for k in kawalki if reads[k][-1] >= 1_000_000 and reads[k][-1] == reads[k][-2])
+        kawalki = [k for k in kawalki if k <= last]
+        h = Harness(self, [chunk(150 * i, 150) for i in range(len(kawalki))],
+                    counter_reads=[list(reads[k]) for k in kawalki])
+        code, p = h.run("--kawalek", "150")
+        self.assertEqual(code, 0)
+        self.assertEqual(p["zakonczenie"], "cel")
+        self.assertEqual(p["licznik_apki"]["wartosc"], reads[last][-1])
+        self.assertGreaterEqual(p["licznik_apki"]["wartosc"], 1_000_000)
+        self.assertEqual(len(h.calls), len(kawalki))
+        # kotwica ruszyła się najpóźniej po kilku kawałkach: odrzucone tylko początek ciągu
+        self.assertLessEqual(len(p["licznik_odrzucone"]), 1)
+
+    def test_granica_przyrostu_od_kotwicy(self):
+        cc = partia_serii.counter_consistent
+        self.assertTrue(cc(None, 5))
+        self.assertFalse(cc(25_662, 25_661, 10_000))                          # zgubiona cyfra: maleje
+        self.assertTrue(cc(25_662, 265_147, 300))                             # tempo partii, 300 postawień
+        self.assertFalse(cc(150_000, 1_500_000, 150))                         # dopisana cyfra zaraz po kotwicy
+        self.assertTrue(cc(150_000, 1_500_000, 250))                          # to samo po dłuższej przerwie w odczytach
+        self.assertTrue(cc(1_200_000, 1_520_000))                             # < 10× jak dotąd
+
     def test_zrzut_to_klatka_zaakceptowanego_odczytu(self):
         frames = iter(np.full((640, 320, 3), v, dtype=int) for v in (10, 20))
 

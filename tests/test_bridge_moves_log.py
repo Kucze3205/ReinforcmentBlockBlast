@@ -198,16 +198,27 @@ class TestMainDetectsFrozenBoard(unittest.TestCase):
         )
 
     def test_ends_chunk_after_board_stuck_tries_with_okno_and_snapshot(self):
+        """#323: pierwsze zawieszenie to twardy restart apki (wpis `restart_twardy`), dopiero
+        kolejne `BOARD_STUCK_TRIES` ruchów bez zmiany planszy kończy kawałek."""
         patches = self._frozen_board_kwargs()
         with patches["settled_state"], patches["stable_state"], patches["in_game"], \
              patches["read_score"], patches["drag"], patches["annotate"], patches["save"], \
-             patches["makedirs"], mock.patch("builtins.open", mock.mock_open()) as m_open:
+             patches["makedirs"], mock.patch("bridge.screenshot", return_value=None), \
+             mock.patch("bridge.hard_restart_app", return_value=True) as hard, \
+             mock.patch("bridge.time.sleep"), \
+             mock.patch("builtins.open", mock.mock_open()) as m_open:
             best_streak = bridge.main(30, policy_spec="greedy")
 
+        hard.assert_called_once()
         handle = m_open()
         entries = [json.loads(c.args[0]) for c in handle.write.call_args_list]
-        self.assertEqual(len(entries), bridge.BOARD_STUCK_TRIES)
+        self.assertEqual(len(entries), 2 * bridge.BOARD_STUCK_TRIES)
         self.assertTrue(all("move" in e for e in entries))
+        restart = entries[bridge.BOARD_STUCK_TRIES - 1]
+        self.assertEqual(restart["okno"], "restart_twardy")
+        self.assertEqual(restart["okno_przed_restartem"], "plansza_zawieszona")
+        self.assertIn("zrzut_zawieszenia", restart)
+        self.assertTrue(all(e.get("okno") != "plansza_zawieszona" for e in entries[:-1]))
         last = entries[-1]
         self.assertEqual(last["okno"], "plansza_zawieszona")
         self.assertEqual(last["end"], "okno: plansza_zawieszona")

@@ -15,8 +15,8 @@ menu apki (`menu_glowne`, #204) — kafelki Adventure/Classic/More Games — mos
 modalu Ustawień i stuka kafelek „Classic", zamiast „wstecz", żeby wrócić do partii w toku;
 `restart_app` robi to samo, gdy start apki po restarcie ląduje w tym menu zamiast w grze.
 Zawieszenie planszy (#218) — obserwacja po ruchu identyczna z planszą sprzed ruchu przez
-`BOARD_STUCK_TRIES` ruchów z rzędu — kończy kawałek wpisem `okno: plansza_zawieszona` ze
-zrzutem, zamiast powtarzać ten sam ruch bez końca (`docs/most-zawieszenie-planszy.md`).
+`BOARD_STUCK_TRIES` ruchów z rzędu — najpierw robi jeden twardy restart (#323), a gdy ciąg trwa dalej,
+kończy kawałek wpisem `okno: plansza_zawieszona` ze zrzutem, zamiast powtarzać ten sam ruch bez końca (`docs/most-zawieszenie-planszy.md`).
 
 Geometria zmierzona na zrzutach z sondy #14 — aktualizacja gry może ją zepsuć.
 """
@@ -938,6 +938,7 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
     no_move_streak = 0
     no_move_stan = None
     game_number = 1
+    stuck_hard_done = False  # twardy restart (#323) najwyżej raz na ciąg zawieszeń planszy bez zmiany
     hard_done = False  # twardy restart (#318) najwyżej raz na ciąg wpisów okienkowych bez ruchu
     hud_przed = None  # ostatni odczyt licznika HUD na klatce planszy (porównanie po twardym restarcie)
     plansza_niepusta = False  # czy od ostatniego ruchu/początku widziano na planszy jakikolwiek klocek
@@ -948,29 +949,35 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
         entry["t"] = round(time.time(), 3)
         log.write(json.dumps(entry) + "\n")
 
+    def hard_restart_entry(entry, okno_przed):
+        """Twardy restart apki (#318, #323): dopisuje do wpisu `restart_twardy` i odczyt licznika;
+        utrata partii albo brak powrotu apki daje `end`, inaczej zostaje `restart_pending`."""
+        nonlocal restart_pending
+        entry.update(okno="restart_twardy", okno_przed_restartem=okno_przed, licznik_przed=hud_przed)
+        if hard_restart_app():
+            po = read_score(screenshot())
+            entry["licznik_po"] = po
+            if hud_przed is not None and po is not None and po < hud_przed:
+                entry.update(okno="restart_utracil_partie", end="okno: restart_utracil_partie")
+            else:
+                restart_pending = {"licznik": hud_przed, "plansza_niepusta": plansza_niepusta, "ramki": 0}
+        else:
+            entry["end"] = "gra nie jest na pierwszym planie"
+
     def windowed_entry(okno, twardy=False):
         """Wpis okienkowy bez ruchu: liczy się do bezpiecznika postępu (#163). Gdy ciąg doszedłby do
         `PROGRESS_SAFEGUARD_TRIES` (albo wywołujący żąda `twardy`), robimy jeden twardy restart apki
         (#318) i liczymy ciąg od nowa; drugi taki ciąg bez ruchu kończy partię zamiast kręcić się
         bez końca (materiał #159: >130 wpisów `ustawienia_wstecz`/`reklama_interstitial`
         na stałym `n`, bo stary licznik zerował się na każdej nieokienkowej klatce)."""
-        nonlocal window_streak, hard_done, restart_pending
+        nonlocal window_streak, hard_done
         window_streak += 1
         entry = {"n": n, "policy": policy.name, "board": grid,
                  "tray": [s[0] if s else None for s in slots], "score": score, "okno": okno}
         if not hard_done and (twardy or window_streak >= PROGRESS_SAFEGUARD_TRIES):
             hard_done = True
             window_streak = 0
-            entry.update(okno="restart_twardy", okno_przed_restartem=okno, licznik_przed=hud_przed)
-            if hard_restart_app():
-                po = read_score(screenshot())
-                entry["licznik_po"] = po
-                if hud_przed is not None and po is not None and po < hud_przed:
-                    entry.update(okno="restart_utracil_partie", end="okno: restart_utracil_partie")
-                else:
-                    restart_pending = {"licznik": hud_przed, "plansza_niepusta": plansza_niepusta, "ramki": 0}
-            else:
-                entry["end"] = "gra nie jest na pierwszym planie"
+            hard_restart_entry(entry, okno)
         elif window_streak >= PROGRESS_SAFEGUARD_TRIES:
             entry["end"] = "okno: petla_bez_postepu"
         write_row(entry)
@@ -1206,6 +1213,8 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
         ok = observed == expected
         frozen = observed == board.grid
         board_stuck_streak = board_stuck_streak + 1 if frozen else 0
+        if not frozen:
+            stuck_hard_done = False
         grid = observed
         ok_streak = ok_streak + 1 if ok else 0
         best_streak = max(best_streak, ok_streak)
@@ -1219,9 +1228,23 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
         if board_stuck_streak >= BOARD_STUCK_TRIES:
             stuck_path = os.path.join(OUT, f"{n:03d}_stuck.png")
             Image.fromarray(img.astype(np.uint8)).save(stuck_path)
+            entry["zrzut_zawieszenia"] = os.path.basename(stuck_path)
+            if not stuck_hard_done:
+                stuck_hard_done = True
+                board_stuck_streak = 0
+                hard_restart_entry(entry, "plansza_zawieszona")
+                write_row(entry)
+                log.flush()
+                print(f"okno: {entry['okno']}, zrzut {stuck_path}" + (f", {entry['end']}" if "end" in entry else ""),
+                      flush=True)
+                if "end" in entry:
+                    break
+                n += 1
+                po_ruchu = None
+                img, grid, slots = stable_state()
+                continue
             entry["okno"] = "plansza_zawieszona"
             entry["end"] = "okno: plansza_zawieszona"
-            entry["zrzut_zawieszenia"] = os.path.basename(stuck_path)
             write_row(entry)
             log.flush()
             print(f"okno: plansza_zawieszona, zrzut {stuck_path}", flush=True)

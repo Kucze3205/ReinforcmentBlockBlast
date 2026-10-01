@@ -1,6 +1,6 @@
 """Regresja detektorow okien mostu (#311): przechodzi po klatkach `NNN_state.png` z `docs/seria/s*`,
 po ktorych most wykonal ruch (wpis `move` w `chunkK_moves.jsonl` dla tego `n` i kawalka `kawalek_K`),
-czyli po zywej planszy, i liczy trafienia kazdego detektora `is_*_screen` z `bridge.py`.
+czyli po zywej planszy (bez ruchow, po ktorych plansza sie nie zmienila), i liczy trafienia kazdego detektora `is_*_screen` z `bridge.py`.
 Kazde trafienie to falszywe okno. Uzycie: python3 tools/detektory_na_planszy.py [--lista]"""
 import collections
 import glob
@@ -36,6 +36,9 @@ def klatki_z_ruchem(seria_dir):
                 continue
             # po ruchu mogla wejsc prawdziwa reklama (nastepny wpis `reklama_*`): ta klatka nie jest plansza
             if i + 1 < len(wpisy) and str(wpisy[i + 1].get("okno", "")).startswith("reklama"):
+                continue
+            # ruch, po ktorym plansza stoi w miejscu (zawieszenie, #323), to nie zywa plansza: pod spodem reklama
+            if e.get("observed") is not None and e.get("observed") == e.get("board"):
                 continue
             p = os.path.join(partia, "kawalek_" + k, "%03d_state.png" % e["n"])
             if os.path.exists(p):
