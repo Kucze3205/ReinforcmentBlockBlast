@@ -1,0 +1,135 @@
+{
+  "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+  "zakonczenie": "przerwanie",
+  "przyczyna": "petla_bez_postepu",
+  "okno": "ustawienia_wstecz",
+  "licznik_apki": {
+    "wartosc": 139538,
+    "odczyty": [
+      139538,
+      139538
+    ],
+    "stabilny": true,
+    "zrzut": "licznik_3.png"
+  },
+  "licznik_odrzucone": [],
+  "wynik_wzor": 227098,
+  "postawienia": 511,
+  "minuty": 26.463,
+  "postawien_na_minute": 19.75,
+  "decision_ms": {
+    "mediana": 3.06,
+    "p95": 23.51,
+    "max": 527.31
+  },
+  "okna": [
+    {
+      "kawalek": 1,
+      "n": 1,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790823317.189
+    },
+    {
+      "kawalek": 1,
+      "n": 38,
+      "okno": "nakladka_better_than",
+      "t": 1790823443.602
+    },
+    {
+      "kawalek": 2,
+      "n": 70,
+      "okno": "restart",
+      "t": 1790824041.555
+    },
+    {
+      "kawalek": 2,
+      "n": 71,
+      "okno": "tacka_pusta_przejsciowo",
+      "t": 1790824048.048
+    },
+    {
+      "kawalek": 2,
+      "n": 143,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790824258.503
+    },
+    {
+      "kawalek": 4,
+      "n": 61,
+      "okno": "brak_ruchu_ponowny_odczyt",
+      "t": 1790824870.636
+    },
+    {
+      "kawalek": 4,
+      "n": 61,
+      "okno": "brak_ruchu_ponowny_odczyt",
+      "t": 1790824873.07
+    },
+    {
+      "kawalek": 4,
+      "n": 61,
+      "okno": "ustawienia_wstecz",
+      "t": 1790824878.327
+    },
+    {
+      "kawalek": 4,
+      "n": 61,
+      "okno": "ustawienia_wstecz",
+      "t": 1790824880.991
+    },
+    {
+      "kawalek": 4,
+      "n": 61,
+      "okno": "ustawienia_wstecz",
+      "t": 1790824883.661
+    },
+    {
+      "kawalek": 4,
+      "n": 61,
+      "okno": "ustawienia_wstecz",
+      "t": 1790824886.348
+    },
+    {
+      "kawalek": 4,
+      "n": 61,
+      "okno": "ustawienia_wstecz",
+      "t": 1790824889.373
+    },
+    {
+      "kawalek": 4,
+      "n": 61,
+      "okno": "ustawienia_wstecz",
+      "t": 1790824891.996
+    },
+    {
+      "kawalek": 4,
+      "n": 61,
+      "okno": "ustawienia_wstecz",
+      "t": 1790824894.659
+    },
+    {
+      "kawalek": 4,
+      "n": 61,
+      "okno": "ustawienia_wstecz",
+      "t": 1790824897.324
+    },
+    {
+      "kawalek": 4,
+      "n": 61,
+      "okno": "ustawienia_wstecz",
+      "t": 1790824899.983
+    },
+    {
+      "kawalek": 4,
+      "n": 61,
+      "okno": "ustawienia_wstecz",
+      "t": 1790824904.226
+    }
+  ],
+  "kawalki": [
+    "chunk1_moves.jsonl",
+    "chunk2_moves.jsonl",
+    "chunk3_moves.jsonl",
+    "chunk4_moves.jsonl"
+  ]
+}
