@@ -26,6 +26,9 @@ import score_from_trajectory
 
 EXIT = {"cel": 0, "przegrana": 1, "przerwanie": 2}
 STABLE_TRIES = 6
+# Górna granica przyrostu licznika na postawienie (#324). Zmierzone na s2–s4: największy średni przyrost w oknie
+# >= 150 postawień to ok. 3 050 (s2/5); 6 000 to dwukrotny zapas. Uzasadnienie: docs/seria-skrypt.md.
+MAX_PRZYROST_NA_POSTAWIENIE = 6000
 LAST_MOVES = 5
 
 
@@ -78,10 +81,17 @@ def percentile(values, q):
     return v[min(len(v) - 1, int(round(q * (len(v) - 1))))]
 
 
-def counter_consistent(prev, value):
-    """Czy odczyt licznika pasuje do poprzedniego zaakceptowanego (#290): nie maleje i nie skacze o rząd wielkości
-    (zgubiona albo dopisana cyfra). Bez poprzedniego odczytu każdy jest spójny."""
-    return prev is None or prev <= value < 10 * max(prev, 1)
+def counter_consistent(prev, value, moves=0):
+    """Czy odczyt licznika pasuje do poprzedniego zaakceptowanego (#290, #324): nie maleje (zgubiona cyfra) i albo
+    nie rośnie dziesięciokrotnie, albo przyrost mieści się w tempie partii: `moves` postawień od kotwicy
+    po najwyżej MAX_PRZYROST_NA_POSTAWIENIE. Granica rośnie z liczbą postawień, więc kotwica, która utknęła
+    (odczyt niestabilny po kilku kawałkach), dogania prawdziwy licznik; dopisana cyfra zaraz po kotwicy nie przechodzi.
+    Bez poprzedniego odczytu każdy jest spójny."""
+    if prev is None:
+        return True
+    if value < prev:
+        return False
+    return value < 10 * max(prev, 1) or value - prev <= moves * MAX_PRZYROST_NA_POSTAWIENIE
 
 
 def read_stable_counter():
@@ -154,6 +164,8 @@ def run(args, now=time.time):
         return EXIT[zakonczenie]
 
     accepted = None  # ostatni stabilny i spójny odczyt licznika
+    accepted_k = 0   # kawałek, po którym go odczytano
+    moves_in = {}    # kawałek -> postawienia (do granicy przyrostu od kotwicy)
     k = 0
     while True:
         if (now() - start) / 60 >= args.limit_minut:
@@ -173,6 +185,7 @@ def run(args, now=time.time):
         for r in new:
             r["_kawalek"] = k
         rows.extend(new)
+        moves_in[k] = len({r["n"] for r in new if "move" in r})
         last = new[-1] if new else {}
         end = last.get("end")
         if end == "koniec_partii":
@@ -188,7 +201,8 @@ def run(args, now=time.time):
         if not new:
             return finish("przerwanie", "pusty_plik_ruchow")
         value, reads, stable, img = read_stable_counter()
-        if value is not None and not counter_consistent(accepted, value):
+        moves_since = sum(moves_in[j] for j in range(accepted_k + 1, k + 1))
+        if value is not None and not counter_consistent(accepted, value, moves_since):
             pomiar["licznik_odrzucone"].append({"kawalek": k, "wartosc": value, "odczyty": reads, "poprzedni": accepted})
             value = None  # niespójny odczyt to brak odczytu
         if value is not None:
@@ -196,7 +210,7 @@ def run(args, now=time.time):
             pomiar["licznik_apki"] = {"wartosc": value, "odczyty": reads, "stabilny": stable, "zrzut": zrzut}
             save_png(img, os.path.join(out, zrzut))
             if stable:
-                accepted = value
+                accepted, accepted_k = value, k
                 if value >= args.prog:
                     return finish("cel")
         checkpoint()

@@ -22,9 +22,27 @@ okien). Jedyna różnica względem zwykłego mostu: **ekran końca partii nie st
 Po każdym kawałku skrypt czyta licznik apki na stabilnej klatce (dwa zgodne odczyty; `stable_score`).
 Odczyt HUD robi `bridge.read_hud_score` (dopasowanie wzorców cyfr z `bridge_digits.npz`, nie tesseract; #290).
 **Reguła akceptacji:** odczyt liczy się (do `cel` i jako punkt odniesienia), tylko gdy jest stabilny i spójny z poprzednim
-zaakceptowanym — licznik nie maleje i nie rośnie dziesięciokrotnie (zgubiona lub dopisana cyfra). Odczyt niespójny to
-brak odczytu: nie kończy `cel`, ląduje w `licznik_odrzucone`. Zrzut `licznik_apki.zrzut` to klatka ostatniego odczytu,
-z której pochodzi wartość.
+zaakceptowanym — licznik nie maleje (zgubiona cyfra) i albo nie rośnie dziesięciokrotnie, albo przyrost mieści się w tempie
+partii (#324, niżej). Odczyt niespójny to brak odczytu: nie kończy `cel`, ląduje w `licznik_odrzucone`. Zrzut
+`licznik_apki.zrzut` to klatka ostatniego odczytu, z której pochodzi wartość.
+
+**Kotwica nie może utknąć (#324).** Sama reguła „< 10× poprzedniego” utykała: w s4/1 kawałek 4 dał kotwicę 25 662, odczyt po
+kawałku 5 (167 289) był niestabilny (licznik się animował), więc kotwica się nie ruszyła, a od kawałka 6 każdy odczyt był ≥ 10 ×
+25 662 i szedł do `licznik_odrzucone` na zawsze, choć licznik rósł normalnie (1 076 156 w kawałku 18). Reguła ma teraz drugi
+warunek: odczyt jest spójny także, gdy `wartość − kotwica ≤ postawienia_od_kotwicy × MAX_PRZYROST_NA_POSTAWIENIE` (6000). Postawienia
+liczą się od kawałka po kawałku kotwicy do bieżącego, więc granica rośnie z każdym kawałkiem i prawdziwy licznik ją w końcu mieści
+(s4/1: 265 147 mieści się w kawałku 6, 239 tys. przy 300 postawieniach). Wartość 6000 to dwukrotny zapas nad zmierzonym: największy
+średni przyrost w oknie ≥ 150 postawień na s2–s4 to ok. 3 050/postawienie (s2/5; s3/4 2 815, s2/6 2 613), przy 300 postawieniach
+2 634, przy 450 — 2 295 (liczone na odczytach spójnych wg `docs/tempo-licznika.md`). Ochrona z #290 zostaje: odczyt zawsze nie maleje, a dopisana cyfra zaraz po kotwicy nie przechodzi
+(150 000 → 1 500 000 po 150 postawieniach wymagałoby 9000/postawienie; przyjęte byłoby dopiero po ok. 225 postawieniach bez
+żadnego stabilnego odczytu). Pojedynczy odczyt ×10 nie jest więc przyjmowany od ręki, chyba że przyrost jest fizycznie możliwy
+w tempie partii; wtedy nie da się go odróżnić od prawdziwego wzrostu. Wariant „dwa kolejne wzajemnie spójne odczyty” odrzucony:
+trwały błąd odczytu (np. nakładka zasłaniająca cyfrę) dałby dwa spójne złe odczyty i przeszedłby bez żadnej granicy fizycznej.
+Kotwica nadal przesuwa się tylko na odczycie stabilnym (dwa zgodne odczyty).
+
+**Ponowna ocena materiału.** `tools/licznik_ponownie.py KATALOG…` (wynik dla s1–s4: `docs/seria/licznik-ponownie.md`) czyta `score`
+z `chunk*_moves.jsonl` i podaje maksimum licznika oraz pierwszy kawałek i `n`, od których licznik ≥ 1 mln utrzymał się przez ≥ 3
+kolejne wpisy, i czy wcześniej był `koniec_partii`. Nie zmienia `pomiar.json`.
 
 ## Kody wyjścia i `zakonczenie`
 
