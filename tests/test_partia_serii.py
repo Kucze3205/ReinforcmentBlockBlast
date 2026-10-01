@@ -116,6 +116,8 @@ class TestZakonczenia(unittest.TestCase):
         cases = [
             ({"okno": "plansza_zawieszona", "end": "okno: plansza_zawieszona"}, "plansza_zawieszona", "plansza_zawieszona"),
             ({"okno": "menu_glowne", "end": "okno: petla_bez_postepu"}, "petla_bez_postepu", "menu_glowne"),
+            ({"okno": "restart_utracil_partie", "end": "okno: restart_utracil_partie"},
+             "restart_utracil_partie", "restart_utracil_partie"),  # #318
             ({"end": "gra nie jest na pierwszym planie"}, "apka_nie_wraca", None),
             ({"end": "okno: reklama_interstitial"}, "nieznane_okno", "reklama_interstitial"),
         ]

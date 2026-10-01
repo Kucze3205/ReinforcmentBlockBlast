@@ -352,6 +352,7 @@ class TestProgressSafeguard(unittest.TestCase):
         with mock.patch("bridge.settled_state", side_effect=fake_settled_state), \
              mock.patch("bridge.stable_state", side_effect=fake_stable_state), \
              mock.patch("bridge.in_game", return_value=True), \
+             mock.patch.multiple("bridge", hard_restart_app=mock.DEFAULT, screenshot=mock.DEFAULT), \
              mock.patch("bridge.press_back"), \
              mock.patch("bridge.read_score", return_value=None), \
              mock.patch("bridge.drag", return_value=({"finger": [0, 0]}, game_img)), \
@@ -366,8 +367,11 @@ class TestProgressSafeguard(unittest.TestCase):
         return [json.loads(c.args[0]) for c in handle.write.call_args_list]
 
     def test_stops_after_k_windowed_entries_without_progress(self):
-        entries = self._run_with_window_sequence(windows_before_move=bridge.PROGRESS_SAFEGUARD_TRIES, max_moves=1)
-        self.assertEqual(len(entries), bridge.PROGRESS_SAFEGUARD_TRIES)
+        # #318: pierwszy ciąg K wpisów kończy się twardym restartem, drugi dopiero `petla_bez_postepu`
+        k = bridge.PROGRESS_SAFEGUARD_TRIES
+        entries = self._run_with_window_sequence(windows_before_move=2 * k, max_moves=1)
+        self.assertEqual(len(entries), 2 * k)
+        self.assertEqual(entries[k - 1]["okno"], "restart_twardy")
         self.assertEqual(entries[-1]["end"], "okno: petla_bez_postepu")
         for e in entries[:-1]:
             self.assertNotIn("end", e)
@@ -376,8 +380,8 @@ class TestProgressSafeguard(unittest.TestCase):
         k = bridge.PROGRESS_SAFEGUARD_TRIES
         entries = self._run_with_window_sequence(windows_before_move=k - 1, max_moves=100)
         # k-1 wpisów okienkowych, jeden ruch (nie liczy się do licznika), potem znowu k wpisów
-        # okienkowych do zatrzymania: gdyby ruch nie zerował licznika, starczyłby jeden wpis.
-        self.assertEqual(len(entries), (k - 1) + 1 + k)
+        # okienkowych z twardym restartem i drugim ciągiem do zatrzymania: gdyby ruch nie zerował licznika, starczyłby jeden wpis.
+        self.assertEqual(len(entries), (k - 1) + 1 + 2 * k)  # po ruchu znów twardy restart + drugi ciąg
         self.assertEqual(entries[-1]["end"], "okno: petla_bez_postepu")
         self.assertNotIn("end", entries[k - 1])  # wpis ruchu, w środku sekwencji
 
@@ -389,6 +393,7 @@ class _StaticScreenHarness:
         with mock.patch("bridge.settled_state", return_value=(img, grid, [None, None, None])), \
              mock.patch("bridge.stable_state", return_value=(img, grid, [None, None, None])), \
              mock.patch("bridge.in_game", return_value=True), \
+             mock.patch.multiple("bridge", hard_restart_app=mock.DEFAULT, screenshot=mock.DEFAULT), \
              mock.patch("bridge.press_back") as press_back, \
              mock.patch("bridge.read_score", return_value=None), \
              mock.patch("bridge.annotate"), \
@@ -409,10 +414,12 @@ class TestMainStopsOnBrightAdWindow(unittest.TestCase):
         bright_ad_img = _load("44a8ea2", "p2b_ad_before.png")
         full_grid = [[1] * 8 for _ in range(8)]
         entries, press_back = _StaticScreenHarness().run(bright_ad_img, full_grid)
-        self.assertEqual(len(entries), bridge.PROGRESS_SAFEGUARD_TRIES)
-        self.assertTrue(all(e["okno"] == "reklama_jasna" for e in entries))
+        k = bridge.PROGRESS_SAFEGUARD_TRIES
+        self.assertEqual(len(entries), 2 * k)  # #318: K wpisów, twardy restart, K wpisów
+        self.assertEqual([e["okno"] for e in entries].count("restart_twardy"), 1)
+        self.assertEqual(entries[k - 1]["okno_przed_restartem"], "reklama_jasna")
         self.assertEqual(entries[-1]["end"], "okno: petla_bez_postepu")
-        self.assertEqual(press_back.call_count, bridge.PROGRESS_SAFEGUARD_TRIES)
+        self.assertEqual(press_back.call_count, 2 * k)
 
     def test_bright_ad_closed_by_one_back_lets_game_continue(self):
         bright_ad_img = _load("44a8ea2", "p2b_ad_before.png")
@@ -454,12 +461,13 @@ class TestEmptyBoardSeriesPressesBack(unittest.TestCase):
 
     def test_series_triggers_back_and_static_screen_ends_by_safeguard(self):
         entries, press_back = self._run_static()
-        self.assertEqual(len(entries), bridge.PROGRESS_SAFEGUARD_TRIES)
+        self.assertEqual(len(entries), 2 * bridge.PROGRESS_SAFEGUARD_TRIES)  # #318: twardy restart w środku
         self.assertEqual(entries[-1]["end"], "okno: petla_bez_postepu")
         k = bridge.EMPTY_BOARD_BACK_TRIES
         okna = [e["okno"] for e in entries]
         self.assertEqual(okna[:k], ["plansza_pusta_przejsciowo"] * (k - 1) + ["plansza_pusta_wstecz"])
-        self.assertEqual(press_back.call_count, bridge.PROGRESS_SAFEGUARD_TRIES // k)
+        self.assertEqual(okna[bridge.PROGRESS_SAFEGUARD_TRIES - 1], "restart_twardy")
+        self.assertEqual(press_back.call_count, 2 * bridge.PROGRESS_SAFEGUARD_TRIES // k)
 
 
 class TestChunk10WindowSequenceIsNotALoop(unittest.TestCase):
@@ -502,8 +510,8 @@ class TestChunk10WindowSequenceIsNotALoop(unittest.TestCase):
              mock.patch("bridge.is_bright_ad_screen", return_value=False), \
              mock.patch("bridge.is_game_over_screen", side_effect=is_("koniec_partii")), \
              mock.patch("bridge.stable_score", return_value=(100, [100, 100])), \
-             mock.patch("bridge.press_back"), mock.patch("bridge.tap_classic"), \
-             mock.patch("bridge.tap_play"), \
+             mock.patch.multiple("bridge", press_back=mock.DEFAULT, tap_classic=mock.DEFAULT, tap_play=mock.DEFAULT,
+                                 hard_restart_app=mock.DEFAULT, screenshot=mock.DEFAULT), \
              mock.patch("bridge.read_score", return_value=None), \
              mock.patch("bridge.drag", return_value=({"finger": [0, 0]}, game_img)), \
              mock.patch("bridge.annotate"), \

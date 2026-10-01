@@ -79,23 +79,38 @@ class TestInteractiveAdDetector(unittest.TestCase):
 class TestInteractiveAdLoop(unittest.TestCase):
     def test_taps_close_and_logs_window(self):
         ad, board_img = _ad("035_state.png"), _load(os.path.join(RUNS, "0d96333", "120_state.png"))
-        entries, (close, back, restart) = _run(
+        entries, (close, back, hard) = _run(
             ad, [board_img], [(("bridge.tap_interactive_close",), {}), (("bridge.press_back",), {}),
-                              (("bridge.restart_app",), {})])
+                              (("bridge.hard_restart_app",), {})])
         close.assert_called_once()
         back.assert_not_called()
-        restart.assert_not_called()
+        hard.assert_not_called()
         self.assertEqual(entries[0]["okno"], "reklama_interaktywna")
 
-    def test_falls_back_to_restart_after_k_failed_taps(self):
+    def test_falls_back_to_hard_restart_after_k_failed_taps(self):
+        """#318: po K nieudanych „>>" jeden twardy restart (`restart_app` byłby no-opem przy oknie w procesie
+        apki); gdy okno dalej stoi, „>>" jest stukane znów, a bezpiecznik kończy kawałek."""
         ad = _ad("035_state.png")
-        entries, (close, back, restart) = _run(
+        entries, (close, back, hard, _) = _run(
             ad, [ad], [(("bridge.tap_interactive_close",), {}), (("bridge.press_back",), {}),
-                       (("bridge.restart_app",), {})], max_moves=1000)
-        self.assertEqual(close.call_count, bridge.INTERACTIVE_AD_BACK_TRIES)
-        self.assertGreaterEqual(restart.call_count, 1)
+                       (("bridge.hard_restart_app",), {"return_value": True}), (("bridge.screenshot",), {})],
+            max_moves=1000)
+        k = bridge.INTERACTIVE_AD_BACK_TRIES
+        hard.assert_called_once()
         back.assert_not_called()
+        self.assertEqual(entries[k]["okno"], "restart_twardy")
+        self.assertEqual(entries[k]["okno_przed_restartem"], "reklama_interaktywna")
+        self.assertEqual(close.call_count, len(entries) - 1)  # każdy wpis poza twardym restartem stuka „>>"
         self.assertEqual(entries[-1]["end"], "okno: petla_bez_postepu")
+
+    def test_hard_restart_not_repeated_while_window_stands(self):
+        ad = _ad("035_state.png")
+        entries, (_, _, hard, _) = _run(
+            ad, [ad], [(("bridge.tap_interactive_close",), {}), (("bridge.press_back",), {}),
+                       (("bridge.hard_restart_app",), {"return_value": True}), (("bridge.screenshot",), {})],
+            max_moves=1000)
+        self.assertEqual(hard.call_count, 1)
+        self.assertEqual(sum(e.get("okno") == "restart_twardy" for e in entries), 1)
 
 
 if __name__ == "__main__":

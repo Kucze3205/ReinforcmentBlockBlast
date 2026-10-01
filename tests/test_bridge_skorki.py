@@ -122,6 +122,7 @@ def run_main(first, then, max_moves=1, overlay=False, seria=False):
     with mock.patch("bridge.settled_state", side_effect=settled), \
          mock.patch("bridge.stable_state", side_effect=stable), \
          mock.patch("bridge.in_game", return_value=True), \
+         mock.patch.multiple("bridge", hard_restart_app=mock.DEFAULT, screenshot=mock.DEFAULT), \
          mock.patch("bridge.read_score", return_value=None), \
          mock.patch("bridge.drag", return_value=({"finger": [0, 0]}, playable_img)), \
          mock.patch("bridge.annotate"), \
@@ -154,9 +155,9 @@ class TestMainWaitsForTray(unittest.TestCase):
 
     def test_endless_empty_tray_ends_by_the_progress_safeguard(self):
         entries = run_main(self.empty, lambda: self.empty, max_moves=5)
-        self.assertEqual(len(entries), bridge.PROGRESS_SAFEGUARD_TRIES)
+        self.assertEqual(len(entries), 2 * bridge.PROGRESS_SAFEGUARD_TRIES)  # #318: twardy restart w środku
         self.assertEqual(entries[-1]["end"], "okno: petla_bez_postepu")
-        self.assertEqual({e["okno"] for e in entries}, {"tacka_pusta_przejsciowo"})
+        self.assertEqual({e["okno"] for e in entries}, {"tacka_pusta_przejsciowo", "restart_twardy"})
 
     def test_board_with_no_legal_move_still_ends_the_game(self):
         """Pełna plansza z klockiem w tacce, którego nie da się postawić, to nadal koniec."""
