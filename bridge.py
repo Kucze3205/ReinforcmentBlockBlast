@@ -89,6 +89,11 @@ SPLASH_WAIT = 3.0  # s czekania na przejście ekranu startowego (limit: PROGRESS
 VIDEO_AD_TOP_DARK = 0.9  # reklama wideo (#304): górne 225 wierszy czarne (0.97 na `partia-2/kawalek_4/061_state.png`)
 VIDEO_AD_SKIP_BOX = (228, 22, 288, 46)  # pigułka „Skip" (x0, y0, x1, y1); środek stuka `VIDEO_AD_SKIP`
 VIDEO_AD_SKIP = (257, 34)
+INTERACTIVE_AD_GO_BOX = (0, 476, 208, 508)  # pomarańczowy przycisk „Go" reklamy interaktywnej (#317)
+INTERACTIVE_AD_GO_FRAC = 0.8  # odsetek pikseli „Go" w pomarańczu (1.0 na `partia-3/kawalek_18/035_state.png`; >> zaokrągla rogi)
+INTERACTIVE_AD_BG_FRAC = 0.9  # odsetek ciemnoszarego tła (51,51,51) pod przyciskiem (0.99 na tej klatce)
+INTERACTIVE_AD_CLOSE = (285, 35)  # okrągłe „>>" w prawym górnym rogu
+INTERACTIVE_AD_BACK_TRIES = 3  # po tylu nieudanych „>>" pętla przechodzi na `restart_app`
 VIDEO_AD_PILL_FRAC = 0.5  # odsetek pikseli pigułki o jasności 35-110 (0.85 na klatce 061; nie ma jej na innych zrzutach)
 PLAY_BUTTON = (160, 456)  # przycisk "Play" na obu wariantach ekranu końca partii, zmierzony przez verifiera (#173)
 MAIN_MENU_TEAL_FRAC = 0.03  # próg dla is_main_menu_screen, patrz docstring
@@ -307,6 +312,28 @@ def is_splash_screen(img):
     fx0, fy0, fx1, fy1 = SPLASH_FLAT_BOX
     flat = img[fy0:fy1, fx0:fx1]
     return bool(np.abs(flat - flat[:, :1]).max() <= SPLASH_FLAT_MAX)
+
+
+def is_interactive_ad_screen(img):
+    """Reklama interaktywna „koło fortuny" (#317, `partia-3/kawalek_18/035_state.png`, `final.png`): ciemnoszare
+    tło (51,51,51), pomarańczowy przycisk „Go" u dołu i „>>" w rogu. Ciemność 0.64 wpada w przedział Ustawień,
+    więc była `ustawienia_wstecz`, a „wstecz" nic nie robi. Rozdzielają: pomarańczowy przycisk w
+    `INTERACTIVE_AD_GO_BOX` i jednolite szare tło pod nim (plansza i Ustawienia nie mają ani jednego, ani drugiego)."""
+    x0, y0, x1, y1 = INTERACTIVE_AD_GO_BOX
+    box = img[y0:y1, x0:x1]
+    r, g, b = box[..., 0], box[..., 1], box[..., 2]
+    orange = (r > 240) & (g > 90) & (g < 150) & (b < 40)
+    if orange.mean() < INTERACTIVE_AD_GO_FRAC:
+        return False
+    bg = img[y1 + 12:]
+    return bool((np.abs(bg - 51).max(axis=-1) <= 3).mean() > INTERACTIVE_AD_BG_FRAC)
+
+
+def tap_interactive_close():
+    x, y = INTERACTIVE_AD_CLOSE
+    touch("DOWN", x, y)
+    touch("UP", x, y)
+    time.sleep(2)
 
 
 def is_video_ad_screen(img):
@@ -893,6 +920,7 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
     ok_streak = best_streak = 0
     n = 0
     window_streak = 0
+    interactive_streak = 0
     board_stuck_streak = 0
     empty_streak = 0
     no_move_streak = 0
@@ -942,6 +970,20 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
                 break
             img, grid, slots = stable_state()
             continue
+        if is_interactive_ad_screen(img):
+            # #317: „wstecz" nie zamyka koła fortuny; stukamy „>>", a po K nieudanych próbach
+            # (wpisy okna z rzędu) restartujemy apkę zamiast kręcić się do bezpiecznika.
+            interactive_streak += 1
+            if interactive_streak > INTERACTIVE_AD_BACK_TRIES:
+                restart_app()
+            else:
+                tap_interactive_close()
+            entry = windowed_entry("reklama_interaktywna")
+            if "end" in entry:
+                break
+            img, grid, slots = stable_state()
+            continue
+        interactive_streak = 0
         if is_settings_screen(img):
             press_back()
             entry = windowed_entry("ustawienia_wstecz")
