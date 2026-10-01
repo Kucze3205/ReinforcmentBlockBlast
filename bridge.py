@@ -42,7 +42,7 @@ SCREEN = (320, 640)
 BOARD_X, BOARD_Y, CELL = 17, 136, 35.6
 TRAY_Y0, TRAY_Y1, TRAY_CELL = 440, 585, 16
 TRAY_BG_DIST = 60  # read_tray: piksel bliżej mediany paska (w sumie |ΔRGB|) to tło, nie klocek (#294)
-SCORE_BOX = (60, 70, 260, 130)
+SCORE_BOX = (10, 70, 310, 130)  # 7-8 cyfr zajmuje > 200 px; wąskie (60..260) obcinało skrajne cyfry (#302)
 GAME_OVER_SCORE_BOX = (60, 312, 260, 368)  # wynik na ekranie fioletowym "Can you Top that?" (#169)
 GAME_OVER_SCORE_BOX_BLUE = (60, 268, 260, 318)  # wynik na ekranie niebieskim "Your Best is Next" (#173):
 # cyfry "20345" na chunk15_after_back.png leżą w wierszach 273-312, wyżej niż na wariancie fioletowym
@@ -55,6 +55,7 @@ HUD_INK_MIN_DIST = 150  # `_hud_ink_unmixed`: suma |ΔRGB| od tła, od której k
 HUD_INK_RESID = 0.35  # odrzuć piksel, którego odległość od prostej tło→tusz przekracza tyle długości odcinka
 HUD_INK_LOW = 0.55  # rzut na odcinek tło→tusz poniżej tego to tło (blady romb skórki teal ma ok. 0.3-0.5)
 HUD_ROW_MIN_FRAC = 0.25  # odczyt tło/tusz: wiersz z mniej niż tyle maksymalnej liczby pikseli tuszu to nie cyfry (romb, #297)
+HUD_SLIVER_W = 3  # `_hud_canvases`: przebieg kolumn nie szerszy niż tyle i niższy niż 10 wierszy to smuga, nie cyfra (#302)
 HUD_INK_MASK = 0.5 # piksel jest cyfrą, gdy `soft` z `_hud_ink_unmixed` > tyle
 DIGIT_MAX_DIST = 0.35  # odrzuć glif, gdy L1 do najlepszego wzorca > tyle masy glifu (zmierzone max 0.16)
 DIGIT_MAX_RATIO = 0.95  # odrzuć glif, gdy najlepszy wzorzec prawie remisuje z drugim (zmierzone max 0.91)
@@ -581,7 +582,7 @@ def _hud_ink_unmixed(crop):
     return np.clip((t - HUD_INK_LOW) / (1 - HUD_INK_LOW), 0, 1) * (resid < HUD_INK_RESID * np.sqrt(n2))
 
 
-def _hud_canvases(soft, mask):
+def _hud_canvases(soft, mask, drop_slivers=False):
     """Glify licznika jako płótna DIGIT_GLYPH_H x DIGIT_GLYPH_W (po kolumnach, skala do stałej wysokości);
     None, gdy podział nie wygląda na cyfry (sklejone, różnej wysokości, za dużo/mało)."""
     cols = mask.any(axis=0)
@@ -592,6 +593,10 @@ def _hud_canvases(soft, mask):
         elif not v and start is not None:
             runs.append((start, i))
             start = None
+    # cienka smuga (krawędź złotego rombu) nie jest cyfrą: najwęższa cyfra "1" ma ~11 px, smuga <= 3 px i < 10 wierszy;
+    # tylko dla maski tusz/tło — w masce ciemnych cyfr smugi to krawędzie białych glifów i zostawiłyby fałszywą cyfrę (#302)
+    if drop_slivers:
+        runs = [(a, b) for a, b in runs if b - a > HUD_SLIVER_W or mask[:, a:b].any(axis=1).sum() >= 10]
     if not 1 <= len(runs) <= 9:
         return None
     spans = [np.nonzero(mask[:, a:b].any(axis=1))[0] for a, b in runs]
@@ -653,7 +658,7 @@ def read_hud_score(img, box=SCORE_BOX):
     rows = mask.sum(axis=1)
     band = rows >= HUD_ROW_MIN_FRAC * rows.max()
     mask, soft = mask & band[:, None], soft * band[:, None]
-    canvases = _hud_canvases(soft, mask)
+    canvases = _hud_canvases(soft, mask, drop_slivers=True)
     return None if canvases is None else _hud_match(canvases, _digit_templates(DIGIT_INK_TEMPLATES_FILE))
 
 

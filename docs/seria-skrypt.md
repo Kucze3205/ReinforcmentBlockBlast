@@ -130,6 +130,11 @@ seria s1 zakończyła tak 7 partii przerwaniem. Test na zrzutach: `tests/test_br
 | teal (jasne tło, turkusowe klocki i cyfry) | jw.; **nie jest menu głównym** — `is_main_menu_screen` wymaga też kafelka „Classic" (`MAIN_MENU_TILE_BOX`) | partie 4, 6 |
 | fioletowa (opalizujące tło, fioletowa plansza, niebieskie cyfry) | jw.; `read_tray` odejmuje tło paska (mediana, `TRAY_BG_DIST`) | `partia-2/kawalek_2/056_state.png`; w s1 tylko klatki z pustą planszą |
 
+**7 cyfr licznika (#302).** Licznik ≥ 1 mln zajmuje cały pas HUD, więc `SCORE_BOX` obejmuje x 10–310 (wcześniej 60–260
+obcinał skrajne cyfry i odczyt był `None`). Cienka smuga od krawędzi złotego rombu (≤ 3 px, < 10 wierszy) jest pomijana
+przy podziale na glify w ścieżce tusz/tło. Partie 1 (beżowa) i 3 (domyślna z turkusowym rombem) czytają się w całości
+poza klatkami z nakładką „+N”; różowa i granatowa skórka w tych partiach kończą się przed 1 mln.
+
 **Combo i ponowny odczyt (#295).** Napis „Combo N" (zielone litery, „+1560") leży na planszy i `read_board` czyta litery jako
 klocki (`partia-5/kawalek_4/048_state.png`: klocek z tacki ma miejsce, odczyt mówi, że nie). Detektora combo nie ma —
 zamiast łatki na jedną nakładkę działa reguła ogólna: w trybie serii (`seria=True`) „brak legalnego ruchu" bez ekranu końca

@@ -330,6 +330,28 @@ class TestHudScoreOnEverySkin(unittest.TestCase):
                 self.assertEqual(img.dtype, int)
                 self.assertEqual(bridge.read_hud_score(img), expected)
 
+    def test_seven_digits_on_each_skin_in_s1_games_1_and_3(self):
+        """7 cyfr (>= 1 mln, #302): licznik wypełnia całą szerokość, więc wąskie `SCORE_BOX` obcinało skrajne cyfry;
+        klatki `int` jak ze `screenshot()`, wartości wpisane z obrazu. Różowa i granatowa skórka w tych partiach
+        kończą się przed 1 mln — tam 7 cyfr nie występuje."""
+        for frame, expected in (
+            (("partia-1", "kawalek_13", "final.png"), 1371295),  # beżowa, złoty romb za cyframi
+            (("partia-1", "kawalek_20", "050_state.png"), 2459073),  # beżowa
+            (("partia-1", "kawalek_35", "final.png"), 4909600),  # beżowa
+            (("partia-1", "kawalek_53", "final.png"), 8276063),  # beżowa, ostatni kawałek partii
+            (("partia-3", "kawalek_10", "final.png"), 1281620),  # domyślna z turkusowym rombem
+            (("partia-3", "kawalek_40", "050_state.png"), 5378565),  # domyślna
+            (("partia-3", "kawalek_55", "final.png"), 6685059),  # domyślna, ostatni kawałek
+        ):
+            with self.subTest(frame=frame):
+                img = s1(*frame)
+                self.assertEqual(img.dtype, int)
+                self.assertEqual(bridge.read_hud_score(img), expected)
+
+    def test_overlay_over_seven_digits_is_none(self):
+        """Napis „+432” zasłania cyfry licznika 2694319 — brak odczytu, nie zgadywanie."""
+        self.assertIsNone(bridge.read_hud_score(s1("partia-3", "kawalek_24", "050_state.png")))
+
     def test_int_and_uint8_frames_agree(self):
         img = s1(*TEAL)
         self.assertEqual(bridge.read_hud_score(img.astype(np.uint8)), bridge.read_hud_score(img))
@@ -343,7 +365,7 @@ class TestHudScoreOnEverySkin(unittest.TestCase):
         zła cyfra zwykle łamie monotoniczność; klatki bez odczytu (animacja) są pomijane."""
         for partia in sorted(glob.glob(os.path.join(S1, "partia-*"))):
             seq = []
-            for kawalek in sorted(glob.glob(os.path.join(partia, "kawalek_*"))):
+            for kawalek in sorted(glob.glob(os.path.join(partia, "kawalek_*")), key=lambda d: int(d.rsplit("_", 1)[1])):
                 for path in sorted(glob.glob(os.path.join(kawalek, "*_state.png"))):
                     img = np.asarray(Image.open(path).convert("RGB")).astype(int)
                     value = bridge.read_hud_score(img)
