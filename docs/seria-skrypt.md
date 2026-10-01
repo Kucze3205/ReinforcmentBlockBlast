@@ -128,6 +128,7 @@ seria s1 zakończyła tak 7 partii przerwaniem. Test na zrzutach: `tests/test_br
 | różowa (bordowa plansza, różowe klocki, białe cyfry) | jw. | partie 2, 7, 8 |
 | beżowa (brązowa plansza, zielone klocki, białe cyfry) | jw. | `partia-2/kawalek_2/054_state.png` |
 | teal (jasne tło, turkusowe klocki i cyfry) | jw.; **nie jest menu głównym** — `is_main_menu_screen` wymaga też kafelka „Classic" (`MAIN_MENU_TILE_BOX`) | partie 4, 6 |
+| drewniana (ceglasta rama, wielokolorowe klocki, białe cyfry; s2) | `read_board` poprawny; **`read_tray` czyta S/Z/T/L jako pełne prostokąty** (tło paska (173,89,58) przechodzi `is_block`) — przyczyna przegranych s2 partii 2 i 3, `docs/seria/s2/przegrane.md` (#305) | `partia-3/kawalek_3/087_state.png` |
 | fioletowa (opalizujące tło, fioletowa plansza, niebieskie cyfry) | jw.; `read_tray` odejmuje tło paska (mediana, `TRAY_BG_DIST`) | `partia-2/kawalek_2/056_state.png`; w s1 tylko klatki z pustą planszą |
 
 **7 cyfr licznika (#302).** Licznik ≥ 1 mln zajmuje cały pas HUD, więc `SCORE_BOX` obejmuje x 10–310 (wcześniej 60–260

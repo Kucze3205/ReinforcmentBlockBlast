@@ -1,0 +1,115 @@
+{
+ "werdykt": "rozjazd_mostu",
+ "powod": "ok_false_przed_ostatnim_ruchem",
+ "dane": {
+  "ostatnie_n": 91,
+  "plansza_po_ostatnim_ruchu": [
+   [
+    0,
+    1,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   [
+    0,
+    1,
+    0,
+    1,
+    1,
+    0,
+    0,
+    0
+   ],
+   [
+    0,
+    1,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   [
+    1,
+    1,
+    0,
+    1,
+    1,
+    1,
+    1,
+    1
+   ],
+   [
+    1,
+    1,
+    1,
+    0,
+    1,
+    1,
+    1,
+    1
+   ],
+   [
+    1,
+    1,
+    1,
+    0,
+    1,
+    1,
+    1,
+    1
+   ],
+   [
+    1,
+    1,
+    1,
+    1,
+    1,
+    0,
+    1,
+    1
+   ],
+   [
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    1,
+    0
+   ]
+  ],
+  "tacka_po_ostatnim_ruchu": [
+   [
+    [
+     1
+    ],
+    [
+     1
+    ],
+    [
+     1
+    ],
+    [
+     1
+    ]
+   ],
+   null,
+   null
+  ],
+  "ok_false_n": [
+   87,
+   88,
+   90
+  ]
+ },
+ "polityka_serii": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+ "wynik_koncowy": 55567,
+ "zrzut_konca": "kawalek_3/092_end.png"
+}
