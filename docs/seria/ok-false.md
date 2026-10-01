@@ -2,8 +2,8 @@
 
 Narzędzie: `python3 tools/ok_false.py --out ...` (`tools/ok_false.py`, testy w `tests/test_bridge_banner.py`).
 Każdy wpis z ruchem i `"ok": false` z `docs/seria/s*/partia-*/chunk*_moves.jsonl` trafia do jednej grupy wg różnicy
-`observed` vs `expected` pole po polu (linie wyczyszczone ruchem liczone z `board` + klocka + `move`, tak jak w mostach
-`bridge.cleared_cells`):
+`observed` vs `expected` pole po polu (linie wyczyszczone ruchem liczone z `board` + klocka + `move`, tak jak robi to most
+(`bridge.cleared_cells`)):
 
 - `duchy_w_czyszczonych` — tylko nadmiar pól (observed=1, expected=0), wszystkie w liniach wyczyszczonych tym ruchem
   (baner „Combo N” czytany jako klocki, przyczyna przegranej s5 p.7);
@@ -26,8 +26,8 @@ warunek, od którego poprawka zależy. `bez_nastepnego` = koniec pliku, brak wpi
 | **suma** | 79225 | 3530 | 871 | 581 | 1596 | 482 | 170 | 863 | 863 | 5 |
 
 **Pierwsza grupa nie wyczerpuje problemu:** 871 z 3530 wpisów (25%) to duchy w liniach wyczyszczonych, a pozostałe
-~75% (`brak_pol` 1596, `nadmiar_gdzie_indziej` 581, `mieszane` 482) to inne zjawiska — w większości plansza, na której
-klocek nie leży tam, gdzie celowano, albo odczyt gubi pola — i **ta zmiana ich nie rusza** (most nadal bierze
+~75% (`brak_pol` 1596, `nadmiar_gdzie_indziej` 581, `mieszane` 482) to inne zjawiska (przyczyn nie rozstrzygałem; 170 wpisów to ruch nieprzyjęty, reszta
+to plansza różna od `expected` w innych miejscach) i **ta zmiana ich nie rusza** (most nadal bierze
 wtedy ekran).
 
 ## Co się zmieniło w moście
