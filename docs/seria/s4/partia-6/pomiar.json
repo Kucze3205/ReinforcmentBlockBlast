@@ -1,0 +1,121 @@
+{
+  "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+  "zakonczenie": "przerwanie",
+  "przyczyna": "petla_bez_postepu",
+  "okno": "ustawienia_wstecz",
+  "licznik_apki": {
+    "wartosc": 173981,
+    "odczyty": [
+      173482,
+      173586,
+      173679,
+      173794,
+      173887,
+      173981
+    ],
+    "stabilny": false,
+    "zrzut": "licznik_3.png"
+  },
+  "licznik_odrzucone": [],
+  "wynik_wzor": 112158,
+  "postawienia": 540,
+  "minuty": 31.284,
+  "postawien_na_minute": 17.95,
+  "decision_ms": {
+    "mediana": 3.05,
+    "p95": 29.05,
+    "max": 75.65
+  },
+  "okna": [
+    {
+      "kawalek": 1,
+      "n": 1,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790847094.833
+    },
+    {
+      "kawalek": 4,
+      "n": 90,
+      "okno": "brak_ruchu_ponowny_odczyt",
+      "t": 1790848900.696
+    },
+    {
+      "kawalek": 4,
+      "n": 90,
+      "okno": "tacka_pusta_przejsciowo",
+      "t": 1790848903.312
+    },
+    {
+      "kawalek": 4,
+      "n": 90,
+      "okno": "reklama_wideo",
+      "t": 1790848908.131
+    },
+    {
+      "kawalek": 4,
+      "n": 90,
+      "okno": "restart",
+      "t": 1790848930.16
+    },
+    {
+      "kawalek": 4,
+      "n": 90,
+      "okno": "reklama_wideo",
+      "t": 1790848933.326
+    },
+    {
+      "kawalek": 4,
+      "n": 90,
+      "okno": "ustawienia_wstecz",
+      "t": 1790848938.099
+    },
+    {
+      "kawalek": 4,
+      "n": 90,
+      "okno": "ustawienia_wstecz",
+      "t": 1790848942.783
+    },
+    {
+      "kawalek": 4,
+      "n": 90,
+      "okno": "ustawienia_wstecz",
+      "t": 1790848947.491
+    },
+    {
+      "kawalek": 4,
+      "n": 90,
+      "okno": "ustawienia_wstecz",
+      "t": 1790848952.18
+    },
+    {
+      "kawalek": 4,
+      "n": 90,
+      "okno": "ustawienia_wstecz",
+      "t": 1790848956.835
+    },
+    {
+      "kawalek": 4,
+      "n": 90,
+      "okno": "ustawienia_wstecz",
+      "t": 1790848961.396
+    },
+    {
+      "kawalek": 4,
+      "n": 90,
+      "okno": "ustawienia_wstecz",
+      "t": 1790848966.05
+    },
+    {
+      "kawalek": 4,
+      "n": 90,
+      "okno": "ustawienia_wstecz",
+      "t": 1790848970.765
+    }
+  ],
+  "kawalki": [
+    "chunk1_moves.jsonl",
+    "chunk2_moves.jsonl",
+    "chunk3_moves.jsonl",
+    "chunk4_moves.jsonl"
+  ]
+}

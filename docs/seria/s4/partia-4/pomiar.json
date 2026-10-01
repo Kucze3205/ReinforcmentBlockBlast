@@ -1,0 +1,174 @@
+{
+  "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+  "zakonczenie": "przerwanie",
+  "przyczyna": "petla_bez_postepu",
+  "okno": "ustawienia_wstecz",
+  "licznik_apki": {
+    "wartosc": 372662,
+    "odczyty": [
+      372662,
+      372662
+    ],
+    "stabilny": true,
+    "zrzut": "licznik_6.png"
+  },
+  "licznik_odrzucone": [],
+  "wynik_wzor": 205145,
+  "postawienia": 968,
+  "minuty": 47.293,
+  "postawien_na_minute": 21.0,
+  "decision_ms": {
+    "mediana": 2.67,
+    "p95": 17.86,
+    "max": 74.64
+  },
+  "okna": [
+    {
+      "kawalek": 1,
+      "n": 1,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790847053.257
+    },
+    {
+      "kawalek": 1,
+      "n": 73,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790847276.733
+    },
+    {
+      "kawalek": 1,
+      "n": 127,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790847438.26
+    },
+    {
+      "kawalek": 1,
+      "n": 148,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790847497.589
+    },
+    {
+      "kawalek": 2,
+      "n": 34,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790847602.105
+    },
+    {
+      "kawalek": 2,
+      "n": 53,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790847654.527
+    },
+    {
+      "kawalek": 2,
+      "n": 78,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790847726.326
+    },
+    {
+      "kawalek": 2,
+      "n": 96,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790847778.929
+    },
+    {
+      "kawalek": 3,
+      "n": 35,
+      "okno": "tacka_pusta_przejsciowo",
+      "t": 1790848031.895
+    },
+    {
+      "kawalek": 7,
+      "n": 67,
+      "okno": "tacka_pusta_przejsciowo",
+      "t": 1790849811.864
+    },
+    {
+      "kawalek": 7,
+      "n": 68,
+      "okno": "reklama_wideo",
+      "t": 1790849820.258
+    },
+    {
+      "kawalek": 7,
+      "n": 68,
+      "okno": "restart",
+      "t": 1790849841.995
+    },
+    {
+      "kawalek": 7,
+      "n": 68,
+      "okno": "reklama_wideo",
+      "t": 1790849846.216
+    },
+    {
+      "kawalek": 7,
+      "n": 68,
+      "okno": "ustawienia_wstecz",
+      "t": 1790849850.585
+    },
+    {
+      "kawalek": 7,
+      "n": 68,
+      "okno": "ustawienia_wstecz",
+      "t": 1790849854.951
+    },
+    {
+      "kawalek": 7,
+      "n": 68,
+      "okno": "ustawienia_wstecz",
+      "t": 1790849859.303
+    },
+    {
+      "kawalek": 7,
+      "n": 68,
+      "okno": "ustawienia_wstecz",
+      "t": 1790849863.666
+    },
+    {
+      "kawalek": 7,
+      "n": 68,
+      "okno": "ustawienia_wstecz",
+      "t": 1790849868.039
+    },
+    {
+      "kawalek": 7,
+      "n": 68,
+      "okno": "ustawienia_wstecz",
+      "t": 1790849872.383
+    },
+    {
+      "kawalek": 7,
+      "n": 68,
+      "okno": "ustawienia_wstecz",
+      "t": 1790849876.755
+    },
+    {
+      "kawalek": 7,
+      "n": 68,
+      "okno": "ustawienia_wstecz",
+      "t": 1790849881.12
+    },
+    {
+      "kawalek": 7,
+      "n": 68,
+      "okno": "ustawienia_wstecz",
+      "t": 1790849885.662
+    },
+    {
+      "kawalek": 7,
+      "n": 68,
+      "okno": "ustawienia_wstecz",
+      "t": 1790849890.023
+    }
+  ],
+  "kawalki": [
+    "chunk1_moves.jsonl",
+    "chunk2_moves.jsonl",
+    "chunk3_moves.jsonl",
+    "chunk4_moves.jsonl",
+    "chunk5_moves.jsonl",
+    "chunk6_moves.jsonl",
+    "chunk7_moves.jsonl"
+  ]
+}
