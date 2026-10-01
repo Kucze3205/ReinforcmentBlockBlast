@@ -1,0 +1,106 @@
+{
+  "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+  "zakonczenie": "przerwanie",
+  "przyczyna": "petla_bez_postepu",
+  "okno": "ekran_startowy",
+  "licznik_apki": null,
+  "licznik_odrzucone": [],
+  "wynik_wzor": 1872,
+  "postawienia": 28,
+  "minuty": 2.829,
+  "postawien_na_minute": 13.68,
+  "decision_ms": {
+    "mediana": 7.82,
+    "p95": 50.1,
+    "max": 82.66
+  },
+  "okna": [
+    {
+      "kawalek": 1,
+      "n": 1,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790833105.85
+    },
+    {
+      "kawalek": 1,
+      "n": 17,
+      "okno": "restart",
+      "t": 1790833185.1
+    },
+    {
+      "kawalek": 1,
+      "n": 28,
+      "okno": "ekran_startowy",
+      "t": 1790833231.199
+    },
+    {
+      "kawalek": 1,
+      "n": 28,
+      "okno": "ekran_startowy",
+      "t": 1790833235.326
+    },
+    {
+      "kawalek": 1,
+      "n": 28,
+      "okno": "ekran_startowy",
+      "t": 1790833239.273
+    },
+    {
+      "kawalek": 1,
+      "n": 28,
+      "okno": "ekran_startowy",
+      "t": 1790833243.246
+    },
+    {
+      "kawalek": 1,
+      "n": 28,
+      "okno": "ekran_startowy",
+      "t": 1790833247.252
+    },
+    {
+      "kawalek": 1,
+      "n": 28,
+      "okno": "ekran_startowy",
+      "t": 1790833251.163
+    },
+    {
+      "kawalek": 1,
+      "n": 28,
+      "okno": "ekran_startowy",
+      "t": 1790833255.055
+    },
+    {
+      "kawalek": 1,
+      "n": 28,
+      "okno": "ekran_startowy",
+      "t": 1790833258.957
+    },
+    {
+      "kawalek": 1,
+      "n": 28,
+      "okno": "ekran_startowy",
+      "t": 1790833262.884
+    },
+    {
+      "kawalek": 1,
+      "n": 28,
+      "okno": "ekran_startowy",
+      "t": 1790833266.828
+    },
+    {
+      "kawalek": 1,
+      "n": 28,
+      "okno": "ekran_startowy",
+      "t": 1790833270.742
+    },
+    {
+      "kawalek": 1,
+      "n": 28,
+      "okno": "ekran_startowy",
+      "t": 1790833274.702
+    }
+  ],
+  "kawalki": [
+    "chunk1_moves.jsonl"
+  ]
+}

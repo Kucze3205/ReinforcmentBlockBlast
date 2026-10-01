@@ -1,0 +1,112 @@
+{
+  "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+  "zakonczenie": "przerwanie",
+  "przyczyna": "petla_bez_postepu",
+  "okno": "ekran_startowy",
+  "licznik_apki": null,
+  "licznik_odrzucone": [],
+  "wynik_wzor": 7041,
+  "postawienia": 91,
+  "minuty": 5.193,
+  "postawien_na_minute": 20.42,
+  "decision_ms": {
+    "mediana": 2.46,
+    "p95": 21.51,
+    "max": 83.73
+  },
+  "okna": [
+    {
+      "kawalek": 1,
+      "n": 1,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790833098.112
+    },
+    {
+      "kawalek": 1,
+      "n": 5,
+      "okno": "restart",
+      "t": 1790833151.695
+    },
+    {
+      "kawalek": 1,
+      "n": 42,
+      "okno": "ustawienia_wstecz",
+      "t": 1790833243.767
+    },
+    {
+      "kawalek": 1,
+      "n": 91,
+      "okno": "ekran_startowy",
+      "t": 1790833368.159
+    },
+    {
+      "kawalek": 1,
+      "n": 91,
+      "okno": "ekran_startowy",
+      "t": 1790833371.89
+    },
+    {
+      "kawalek": 1,
+      "n": 91,
+      "okno": "ekran_startowy",
+      "t": 1790833375.65
+    },
+    {
+      "kawalek": 1,
+      "n": 91,
+      "okno": "ekran_startowy",
+      "t": 1790833379.38
+    },
+    {
+      "kawalek": 1,
+      "n": 91,
+      "okno": "ekran_startowy",
+      "t": 1790833383.097
+    },
+    {
+      "kawalek": 1,
+      "n": 91,
+      "okno": "ekran_startowy",
+      "t": 1790833386.825
+    },
+    {
+      "kawalek": 1,
+      "n": 91,
+      "okno": "ekran_startowy",
+      "t": 1790833390.558
+    },
+    {
+      "kawalek": 1,
+      "n": 91,
+      "okno": "ekran_startowy",
+      "t": 1790833394.283
+    },
+    {
+      "kawalek": 1,
+      "n": 91,
+      "okno": "ekran_startowy",
+      "t": 1790833398.001
+    },
+    {
+      "kawalek": 1,
+      "n": 91,
+      "okno": "ekran_startowy",
+      "t": 1790833401.733
+    },
+    {
+      "kawalek": 1,
+      "n": 91,
+      "okno": "ekran_startowy",
+      "t": 1790833405.435
+    },
+    {
+      "kawalek": 1,
+      "n": 91,
+      "okno": "ekran_startowy",
+      "t": 1790833409.142
+    }
+  ],
+  "kawalki": [
+    "chunk1_moves.jsonl"
+  ]
+}
