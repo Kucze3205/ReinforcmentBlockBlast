@@ -416,5 +416,36 @@ class TestWoodenSkinTray(unittest.TestCase):
             self.assertEqual(po.compare_state(po.load(path))["sloty_tacki_rozne"], [], path)
 
 
+S3 = os.path.join(ROOT, "docs", "seria", "s3")
+
+
+@unittest.skipUnless(os.path.isdir(os.path.join(S3, "partia-7", "kawalek_1")), "brak materialu s3")
+class TestTrayWithInMobiBanner(unittest.TestCase):
+    """#312: napis banera InMobi (y od 581) wchodził do paska tacki (do y=584) i rozciągał obwiednię kształtu."""
+
+    def tray(self, n):
+        path = os.path.join(S3, "partia-7", "kawalek_1", f"{n:03d}_state.png")
+        return shapes(bridge.read_tray(np.asarray(Image.open(path).convert("RGB")).astype(int)))
+
+    def test_partia_7_klatki_z_banerem(self):
+        bar, hook = [[1, 1, 1]], [[1, 1], [1, 0]]
+        self.assertEqual(self.tray(5), [None, bar, hook])
+        self.assertEqual(self.tray(6), [None, None, hook])
+        self.assertEqual(self.tray(7), [None, None, hook])
+        self.assertEqual(self.tray(8), [None, None, hook])
+
+    def test_kazdy_ksztalt_ma_pelne_brzegi(self):
+        paths = []
+        for s in ("s1", "s2", "s3"):
+            paths += glob.glob(os.path.join(ROOT, "docs", "seria", s, "**", "*_state.png"), recursive=True)
+        self.assertGreater(len(paths), 700)
+        for path in paths:
+            img = np.asarray(Image.open(path).convert("RGB")).astype(int)
+            for sh in shapes(bridge.read_tray(img)):
+                if sh is not None:
+                    self.assertTrue(any(sh[0]) and any(sh[-1]) and any(r[0] for r in sh) and any(r[-1] for r in sh),
+                                    (path, sh))
+
+
 if __name__ == "__main__":
     unittest.main()

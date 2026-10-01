@@ -41,6 +41,7 @@ PACKAGE = "com.block.juggle"
 SCREEN = (320, 640)
 BOARD_X, BOARD_Y, CELL = 17, 136, 35.6
 TRAY_Y0, TRAY_Y1, TRAY_CELL = 440, 585, 16
+TRAY_MIN_LINE = 8  # read_tray: wiersz/kolumna maski slotu z mniejszą liczbą pikseli to szum (baner), nie klocek (#312)
 TRAY_BG_DIST = 60  # read_tray: piksel bliżej mediany paska (w sumie |ΔRGB|) to tło, nie klocek (#294)
 SCORE_BOX = (10, 70, 310, 130)  # 7-8 cyfr zajmuje > 200 px; wąskie (60..260) obcinało skrajne cyfry (#302)
 GAME_OVER_SCORE_BOX = (60, 312, 260, 368)  # wynik na ekranie fioletowym "Can you Top that?" (#169)
@@ -566,6 +567,17 @@ def read_board(img):
     return grid
 
 
+def tray_slot_mask(m):
+    """Maska slotu bez pojedynczych pikseli spoza klocka (#312): napis banera InMobi zaczyna się w y=581, tuż nad
+    dołem paska (TRAY_Y1=585), i zostawia w masce 2-4 piksele w wierszu, które rozciągały obwiednię kształtu.
+    Wiersz i kolumna klocka mają co najmniej TRAY_MIN_LINE pikseli (komórka ma TRAY_CELL px)."""
+    while True:
+        n = m & (m.sum(axis=1, keepdims=True) >= TRAY_MIN_LINE) & (m.sum(axis=0, keepdims=True) >= TRAY_MIN_LINE)
+        if n.sum() == m.sum():
+            return n
+        m = n
+
+
 def read_tray(img):
     """Trzy sloty: (kształt, środek w px) albo None, gdy slot pusty.
 
@@ -580,7 +592,7 @@ def read_tray(img):
     slots = []
     for s in range(3):
         x0, x1 = s * SCREEN[0] // 3, (s + 1) * SCREEN[0] // 3
-        ys, xs = np.nonzero(mask[:, x0:x1])
+        ys, xs = np.nonzero(tray_slot_mask(mask[:, x0:x1]))
         if len(xs) < 20:
             slots.append(None)
             continue

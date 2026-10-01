@@ -54,7 +54,7 @@ def tray_independent(img):
     out = []
     for s in range(3):
         x0, x1 = s * bridge.SCREEN[0] // 3, (s + 1) * bridge.SCREEN[0] // 3
-        ys, xs = np.nonzero(mask[:, x0:x1])
+        ys, xs = np.nonzero(bridge.tray_slot_mask(mask[:, x0:x1]))
         if len(xs) < 20:
             out.append(None)
             continue
