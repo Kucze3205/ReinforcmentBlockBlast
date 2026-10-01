@@ -189,6 +189,30 @@ class TestNieoceniane(unittest.TestCase):
         self.assertEqual(res["werdykt"], "nieoceniane")
         self.assertEqual(res["powod"], "nowa_tacka_niezalogowana")
 
+    def _okno_rows(self, window_board):
+        board = grid([(0, 0)])
+        tray = [[[1, 1]], [[1, 1]], [[1, 1]]]
+        full = grid([(x, y) for x in range(8) for y in range(8) if (x, y) not in ((0, 0), (7, 7))])
+        rows = [move_row(0, board, tray, {"slot": 0, "x": 1, "y": 0}, board),
+                move_row(1, board, [None, tray[1], tray[2]], {"slot": 1, "x": 1, "y": 1}, board),
+                move_row(2, board, [None, None, tray[2]], {"slot": 2, "x": 1, "y": 2}, full)]
+        okno = {"n": 3, "policy": "greedy", "board": window_board(full), "tray": tray, "score": 30,
+                "okno": "brak_ruchu_ponowny_odczyt"}
+        return rows + [okno, end_row(4)], full, tray
+
+    def test_okno_brak_ruchu_ponowny_odczyt_diagnozuje_nowa_tacke(self):
+        rows, full, tray = self._okno_rows(lambda f: f)
+        _, _, res = run_tool(make_dir(rows))
+        self.assertEqual(res["werdykt"], "tacka_nieukladalna")
+        self.assertEqual(res["dane"]["tacka_smierci"]["plansza"], full)
+        self.assertEqual(res["dane"]["tacka_smierci"]["tacka"], tray)
+
+    def test_okno_z_plansza_niezgodna_z_expected_to_rozjazd(self):
+        rows, _, _ = self._okno_rows(lambda f: grid([(0, 0)]))
+        _, _, res = run_tool(make_dir(rows))
+        self.assertEqual(res["werdykt"], "rozjazd_mostu")
+        self.assertEqual(res["powod"], "plansza_z_ponownego_odczytu_niezgodna_z_expected")
+
     def test_nierozpoznany_ksztalt(self):
         full = grid([(x, y) for x in range(8) for y in range(8)])
         weird = [[1, 1, 1], [1, 0, 1], [1, 1, 1]]

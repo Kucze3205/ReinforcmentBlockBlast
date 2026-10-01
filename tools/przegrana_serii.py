@@ -19,7 +19,10 @@ Wiersz `koniec_partii` to odczyt nakładki ekranu końca (plansza i kształty-ś
 bierzemy z ostatniego wiersza z ruchem: `expected` (plansza po ruchu; `observed` ostatniego ruchu bywa
 już nakładką) i tacka bez postawionego klocka; nowszy most niesie to też w polu `przed_koncem`.
 Jeśli ostatnia tacka została ułożona w całości, tacka, przy której padła gra, nie była widoczna
-w logu — werdykt `nieoceniane` (`nowa_tacka_niezalogowana`).
+w logu — werdykt `nieoceniane` (`nowa_tacka_niezalogowana`), chyba że po ostatnim ruchu jest wiersz okienkowy
+`okno: brak_ruchu_ponowny_odczyt` (#295/#299: plansza 8x8 i pełna tacka, bez ruchu). Wtedy to jest tacka, przy której
+padła gra: plansza z odczytu różna od `expected` ostatniego ruchu albo tacka z odczytu, którą da się ułożyć mimo braku
+ruchu u mostu → `rozjazd_mostu`; tacka bez ułożenia na tej planszy → `tacka_nieukladalna`.
 
 Dla innego `zakonczenie` niż `przegrana` kończy komunikatem i kodem 0.
 """
@@ -119,6 +122,38 @@ def policy_diffs(policy, rows):
     return diffs
 
 
+def window_after(rows, final_move, end_idx):
+    """Ostatni wiersz `okno: brak_ruchu_ponowny_odczyt` z poprawną planszą i pełną tacką między ostatnim ruchem a końcem."""
+    pos = next(i for i, r in enumerate(rows) if r is final_move)
+    found = None
+    for r in rows[pos + 1:end_idx]:
+        if (r.get("okno") == "brak_ruchu_ponowny_odczyt" and "move" not in r
+                and mtu.valid_board(r.get("board")) and mtu.full_tray(r.get("tray"))):
+            found = r
+    return found
+
+
+def diagnose_window(window, final_move, known, data, result):
+    data["tacka_smierci"] = {"n": window.get("n"), "plansza": window["board"], "tacka": window["tray"],
+                             "zrodlo": "okno_brak_ruchu_ponowny_odczyt"}
+    data.pop("nowa_tacka", None)
+    if window["board"] != final_move["expected"]:
+        return result("rozjazd_mostu", "plansza_z_ponownego_odczytu_niezgodna_z_expected", **data)
+    shapes = []
+    for s in window["tray"]:
+        t = mtu.trim(s) if isinstance(s, list) and s and isinstance(s[0], list) else None
+        if t is None or tuple(map(tuple, t)) not in known:
+            return result("nieoceniane", "ksztalt_nierozpoznany", **data)
+        shapes.append(t)
+    playable = mtu.tray_playable(window["board"], shapes)
+    data["tacka_smierci"]["ukladalna"] = playable
+    if playable is None:
+        return result("nieoceniane", "budzet_wezlow_wyczerpany", **data)
+    if not playable:
+        return result("tacka_nieukladalna", "przeglad_wyczerpujacy_bez_ukladu_z_ponownego_odczytu", **data)
+    return result("rozjazd_mostu", "tacka_ukladalna_mimo_braku_ruchu_u_mostu", **data)
+
+
 def diagnose(pomiar, rows, policy_spec, policy_factory=build_policy):
     """-> słownik wyniku: `werdykt`, `powod`, `dane`."""
     def result(verdict, reason, **data):
@@ -171,6 +206,9 @@ def diagnose(pomiar, rows, policy_spec, policy_factory=build_policy):
     else:
         data["nowa_tacka"] = "niezalogowana"
         dying, previous = None, last
+        window = window_after(rows, final_move, ends[-1])
+        if window is not None:
+            return diagnose_window(window, final_move, known, data, result)
 
     diffs, policy_err = {}, None
     policy = None

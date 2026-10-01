@@ -100,6 +100,9 @@ kodem 0. Dla `przegrana` odtwarza ostatnią tackę z logu (plansza z jej pojawie
 wyczerpującym (`board.tray_playable`), czy dało się ją ułożyć w całości, i porównuje ruchy mostu z wyborem polityki
 `--polityka` (domyślnie `arms.candidate.spec` z `bench/record.json`; uwaga na stderr, gdy różni się od `polityka` serii)
 na tych samych zalogowanych stanach — dla ostatniej i poprzedniej tacki. Zawsze kod 0; werdykt w stdout i w `--out`.
+Gdy ostatnia tacka była ułożona w całości, a po ostatnim ruchu jest wiersz `okno: brak_ruchu_ponowny_odczyt` (#299),
+narzędzie diagnozuje tackę z tego wiersza (w `dane.tacka_smierci`) zamiast `nowa_tacka_niezalogowana`: plansza
+niezgodna z `expected` → `rozjazd_mostu`, tacka nieukładalna → `tacka_nieukladalna`.
 
 | werdykt | znaczenie |
 |---|---|
