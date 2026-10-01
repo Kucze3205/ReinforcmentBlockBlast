@@ -58,7 +58,7 @@ z odczytem `bridge` na zrzucie w 100% stanów (to ten sam kod) — rozjazd jest 
 
 ## Co naprawić, żeby s3 miała sens
 
-1. `read_tray`: próbkować komórki kształtu tą samą maską (z odjętym tłem paska), nie samym `is_block`; test na
+1. **Zrobione w #307.** `read_tray`: próbkować komórki kształtu tą samą maską (z odjętym tłem paska), nie samym `is_block`; test na
    `partia-3/kawalek_3/087_state.png` (Z i S) i `partia-2/kawalek_4/060_state.png` (L, T, 2x3). Testu usterki
    pilnuje `tests/test_porownanie_odczytu.py` — po naprawie ma zacząć padać i trzeba go zamienić na test poprawnego odczytu.
 2. Bezpiecznik: trzy `ok=false` w czterech ruchach (n 87–90 w partii 3) nie zatrzymały mostu. Warto kończyć serię po

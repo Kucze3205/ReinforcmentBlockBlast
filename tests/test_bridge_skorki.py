@@ -386,5 +386,35 @@ class TestHudScoreOnEverySkin(unittest.TestCase):
         self.assertGreater(read / total, 0.9)
 
 
+S2 = os.path.join(ROOT, "docs", "seria", "s2")
+
+
+def s2(*parts):
+    return np.asarray(Image.open(os.path.join(S2, *parts)).convert("RGB")).astype(int)
+
+
+@unittest.skipUnless(os.path.isdir(S2), "brak materialu s2")
+class TestWoodenSkinTray(unittest.TestCase):
+    """#307: tło paska tacki skórki drewnianej (173,89,58) przechodzi `is_block`; kształty czytamy w masce z tłem."""
+
+    def test_z_and_s(self):
+        t = shapes(bridge.read_tray(s2("partia-3", "kawalek_3", "087_state.png")))
+        self.assertEqual(t[1], [[1, 1, 0], [0, 1, 1]])
+        self.assertEqual(t[2], [[0, 1, 1], [1, 1, 0]])
+
+    def test_l_t_and_2x3(self):
+        t = shapes(bridge.read_tray(s2("partia-2", "kawalek_4", "060_state.png")))
+        self.assertEqual(t, [[[1, 0], [1, 1]], [[0, 1, 0], [1, 1, 1]], [[1, 1], [1, 1], [1, 1]]])
+
+    def test_whole_material_agrees_with_independent_reading(self):
+        sys.path.insert(0, os.path.join(ROOT, "tools"))
+        import porownanie_odczytu as po
+        paths = glob.glob(os.path.join(S1, "**", "*_state.png"), recursive=True) + \
+            glob.glob(os.path.join(S2, "**", "*_state.png"), recursive=True)
+        self.assertGreater(len(paths), 600)
+        for path in paths:
+            self.assertEqual(po.compare_state(po.load(path))["sloty_tacki_rozne"], [], path)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -578,7 +578,9 @@ def read_tray(img):
         w = max(1, round((xs.max() - xs.min() + 1) / TRAY_CELL))
         step_y = (ys.max() - ys.min() + 1) / h
         step_x = (xs.max() - xs.min() + 1) / w
-        shape = [[int(is_block(img[int(top + (i + .5) * step_y), int(left + (j + .5) * step_x)]))
+        # komórkę próbkujemy w masce z odjętym tłem paska, nie samym is_block (#307: tło drewnianej (173,89,58)
+        # przechodzi is_block i S/Z/T/L wychodziły jako prostokąty)
+        shape = [[int(mask[int(top - TRAY_Y0 + (i + .5) * step_y), int(left + (j + .5) * step_x)])
                   for j in range(w)] for i in range(h)]
         center = (left + (xs.max() - xs.min()) / 2, top + (ys.max() - ys.min()) / 2)
         slots.append((shape, center))

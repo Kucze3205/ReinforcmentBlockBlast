@@ -1,9 +1,7 @@
 """
 Testy dla #305: `tools/porownanie_odczytu.py` na zrzutach s2 (skórka drewniana). Bez emulatora.
 
-Test dokumentuje zmierzoną usterkę, nie wymaganie: `bridge.read_tray` czyta kształty niebędące prostokątem jako
-pełne prostokąty (tło paska tacki (173,89,58) przechodzi `is_block` przy próbkowaniu komórek). Gdy usterka
-zostanie naprawiona w `bridge.py`, `test_most_czyta_z_jako_prostokat` ma zacząć padać — wtedy go usuń.
+Usterka z #305 (`bridge.read_tray` czytał S/Z/T/L jako prostokąty na skórce drewnianej) naprawiona w #307.
 """
 import os
 import sys
@@ -30,9 +28,10 @@ class PorownanieOdczytuTest(unittest.TestCase):
         self.assertEqual(self.cmp["tacka_obrazu"][1], [[1, 1, 0], [0, 1, 1]])
         self.assertEqual(self.cmp["tacka_obrazu"][2], [[0, 1, 1], [1, 1, 0]])
 
-    def test_most_czyta_z_jako_prostokat(self):
-        self.assertEqual(self.cmp["tacka_mostu"][1], [[1, 1, 1], [1, 1, 1]])
-        self.assertEqual(self.cmp["sloty_tacki_rozne"], [1, 2])
+    def test_most_czyta_z_i_s_poprawnie(self):
+        self.assertEqual(self.cmp["tacka_mostu"][1], [[1, 1, 0], [0, 1, 1]])
+        self.assertEqual(self.cmp["tacka_mostu"][2], [[0, 1, 1], [1, 1, 0]])
+        self.assertEqual(self.cmp["sloty_tacki_rozne"], [])
 
 
 if __name__ == "__main__":
