@@ -1,0 +1,187 @@
+{
+  "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+  "zakonczenie": "przerwanie",
+  "przyczyna": "petla_bez_postepu",
+  "okno": "nakladka_better_than",
+  "licznik_apki": {
+    "wartosc": 41889,
+    "odczyty": [
+      41825,
+      41841,
+      41853,
+      41865,
+      41875,
+      41889
+    ],
+    "stabilny": false,
+    "zrzut": "licznik_3.png"
+  },
+  "licznik_odrzucone": [],
+  "wynik_wzor": 68322,
+  "postawienia": 521,
+  "minuty": 25.487,
+  "postawien_na_minute": 21.47,
+  "decision_ms": {
+    "mediana": 2.56,
+    "p95": 21.1,
+    "max": 79.62
+  },
+  "okna": [
+    {
+      "kawalek": 1,
+      "n": 1,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790868004.901
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "nakladka_better_than",
+      "t": 1790869461.42
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "nakladka_better_than",
+      "t": 1790869463.517
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "nakladka_better_than",
+      "t": 1790869465.597
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "nakladka_better_than",
+      "t": 1790869467.68
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "nakladka_better_than",
+      "t": 1790869469.793
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "nakladka_better_than",
+      "t": 1790869471.885
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "nakladka_better_than",
+      "t": 1790869473.976
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "nakladka_better_than",
+      "t": 1790869476.089
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "nakladka_better_than",
+      "t": 1790869478.191
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "nakladka_better_than",
+      "t": 1790869480.312
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "nakladka_better_than",
+      "t": 1790869482.43
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "restart_twardy",
+      "t": 1790869507.586
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "nakladka_better_than",
+      "t": 1790869509.722
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "nakladka_better_than",
+      "t": 1790869511.826
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "nakladka_better_than",
+      "t": 1790869513.935
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "nakladka_better_than",
+      "t": 1790869516.079
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "nakladka_better_than",
+      "t": 1790869518.168
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "nakladka_better_than",
+      "t": 1790869520.277
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "nakladka_better_than",
+      "t": 1790869522.368
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "nakladka_better_than",
+      "t": 1790869524.498
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "nakladka_better_than",
+      "t": 1790869526.787
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "nakladka_better_than",
+      "t": 1790869528.98
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "nakladka_better_than",
+      "t": 1790869531.119
+    },
+    {
+      "kawalek": 4,
+      "n": 71,
+      "okno": "nakladka_better_than",
+      "t": 1790869533.259
+    }
+  ],
+  "kawalki": [
+    "chunk1_moves.jsonl",
+    "chunk2_moves.jsonl",
+    "chunk3_moves.jsonl",
+    "chunk4_moves.jsonl"
+  ]
+}

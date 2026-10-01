@@ -1,0 +1,659 @@
+{
+  "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+  "zakonczenie": "przerwanie",
+  "przyczyna": "limit_minut",
+  "okno": null,
+  "licznik_apki": {
+    "wartosc": 107069,
+    "odczyty": [
+      106728,
+      106801,
+      106862,
+      106935,
+      106997,
+      107069
+    ],
+    "stabilny": false,
+    "zrzut": "licznik_3.png"
+  },
+  "licznik_odrzucone": [
+    {
+      "kawalek": 4,
+      "wartosc": 204210,
+      "odczyty": [
+        204210,
+        204210
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 5,
+      "wartosc": 297321,
+      "odczyty": [
+        297280,
+        297287,
+        297297,
+        297305,
+        297313,
+        297321
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 6,
+      "wartosc": 324407,
+      "odczyty": [
+        324407,
+        324407
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 7,
+      "wartosc": 386749,
+      "odczyty": [
+        386749,
+        386749
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 8,
+      "wartosc": 491719,
+      "odczyty": [
+        491719,
+        491719
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 9,
+      "wartosc": 619122,
+      "odczyty": [
+        619122,
+        619122
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 10,
+      "wartosc": 798013,
+      "odczyty": [
+        797245,
+        797389,
+        797557,
+        797725,
+        797845,
+        798013
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 11,
+      "wartosc": 888091,
+      "odczyty": [
+        888091,
+        888091
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 12,
+      "wartosc": 904697,
+      "odczyty": [
+        904697,
+        904697
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 13,
+      "wartosc": 927415,
+      "odczyty": [
+        927415,
+        927415
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 14,
+      "wartosc": 945730,
+      "odczyty": [
+        945730,
+        945730
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 15,
+      "wartosc": 992572,
+      "odczyty": [
+        992572,
+        992572
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 16,
+      "wartosc": 1077946,
+      "odczyty": [
+        1077946,
+        1077946
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 17,
+      "wartosc": 1199276,
+      "odczyty": [
+        1199276,
+        1199276
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 18,
+      "wartosc": 1352726,
+      "odczyty": [
+        1352726,
+        1352726
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 19,
+      "wartosc": 1470011,
+      "odczyty": [
+        1470011,
+        1470011
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 20,
+      "wartosc": 1501730,
+      "odczyty": [
+        1501730,
+        1501730
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 21,
+      "wartosc": 1568928,
+      "odczyty": [
+        1568928,
+        1568928
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 22,
+      "wartosc": 1673450,
+      "odczyty": [
+        1673450,
+        1673450
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 23,
+      "wartosc": 1806410,
+      "odczyty": [
+        1805698,
+        1805836,
+        1805995,
+        1806113,
+        1806272,
+        1806410
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 24,
+      "wartosc": 1842524,
+      "odczyty": [
+        1842524,
+        1842524
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 25,
+      "wartosc": 1863474,
+      "odczyty": [
+        1863474,
+        1863474
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 26,
+      "wartosc": 1911877,
+      "odczyty": [
+        1911877,
+        1911877
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 27,
+      "wartosc": 1932578,
+      "odczyty": [
+        1932578,
+        1932578
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 28,
+      "wartosc": 1962636,
+      "odczyty": [
+        1962636,
+        1962636
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 29,
+      "wartosc": 1997742,
+      "odczyty": [
+        1997742,
+        1997742
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 30,
+      "wartosc": 2044265,
+      "odczyty": [
+        2044265,
+        2044265
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 31,
+      "wartosc": 2059081,
+      "odczyty": [
+        2058858,
+        2058903,
+        2058947,
+        2058992,
+        2059043,
+        2059081
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 32,
+      "wartosc": 2102553,
+      "odczyty": [
+        2102553,
+        2102553
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 33,
+      "wartosc": 2181259,
+      "odczyty": [
+        2180875,
+        2180947,
+        2181019,
+        2181103,
+        2181187,
+        2181259
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 34,
+      "wartosc": 2200162,
+      "odczyty": [
+        2200001,
+        2200042,
+        2200070,
+        2200098,
+        2200130,
+        2200162
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 35,
+      "wartosc": 2241255,
+      "odczyty": [
+        2241255,
+        2241255
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 36,
+      "wartosc": 2266161,
+      "odczyty": [
+        2266161,
+        2266161
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 37,
+      "wartosc": 2326171,
+      "odczyty": [
+        2326171,
+        2326171
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 38,
+      "wartosc": 2420005,
+      "odczyty": [
+        2420005,
+        2420005
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 39,
+      "wartosc": 2493460,
+      "odczyty": [
+        2493460,
+        2493460
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 40,
+      "wartosc": 2507137,
+      "odczyty": [
+        2507137,
+        2507137
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 41,
+      "wartosc": 2528892,
+      "odczyty": [
+        2528892,
+        2528892
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 42,
+      "wartosc": 2563180,
+      "odczyty": [
+        2563127,
+        2563137,
+        2563146,
+        2563157,
+        2563169,
+        2563180
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 43,
+      "wartosc": 2593216,
+      "odczyty": [
+        2593216,
+        2593216
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 44,
+      "wartosc": 2658571,
+      "odczyty": [
+        2658251,
+        2658315,
+        2658379,
+        2658443,
+        2658507,
+        2658571
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 45,
+      "wartosc": 2723481,
+      "odczyty": [
+        2723481,
+        2723481
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 46,
+      "wartosc": 2752127,
+      "odczyty": [
+        2751955,
+        2751983,
+        2752018,
+        2752052,
+        2752093,
+        2752127
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 47,
+      "wartosc": 2811150,
+      "odczyty": [
+        2811150,
+        2811150
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 48,
+      "wartosc": 2830940,
+      "odczyty": [
+        2830787,
+        2830816,
+        2830849,
+        2830873,
+        2830907,
+        2830940
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 49,
+      "wartosc": 2849651,
+      "odczyty": [
+        2849651,
+        2849651
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 50,
+      "wartosc": 2861447,
+      "odczyty": [
+        2861447,
+        2861447
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 51,
+      "wartosc": 2890520,
+      "odczyty": [
+        2890520,
+        2890520
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 52,
+      "wartosc": 2927725,
+      "odczyty": [
+        2927725,
+        2927725
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 53,
+      "wartosc": 2949334,
+      "odczyty": [
+        2949334,
+        2949334
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 54,
+      "wartosc": 2975900,
+      "odczyty": [
+        2975900,
+        2975900
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 55,
+      "wartosc": 3036581,
+      "odczyty": [
+        3036581,
+        3036581
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 56,
+      "wartosc": 3129901,
+      "odczyty": [
+        3129901,
+        3129901
+      ],
+      "poprzedni": 13212
+    },
+    {
+      "kawalek": 57,
+      "wartosc": 3172913,
+      "odczyty": [
+        3172913,
+        3172913
+      ],
+      "poprzedni": 13212
+    }
+  ],
+  "wynik_wzor": 4672984,
+  "postawienia": 8550,
+  "minuty": 341.038,
+  "postawien_na_minute": 25.07,
+  "decision_ms": {
+    "mediana": 1.99,
+    "p95": 12.6,
+    "max": 128.73
+  },
+  "okna": [
+    {
+      "kawalek": 1,
+      "n": 1,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790847102.444
+    },
+    {
+      "kawalek": 1,
+      "n": 4,
+      "okno": "tacka_pusta_przejsciowo",
+      "t": 1790847114.898
+    },
+    {
+      "kawalek": 1,
+      "n": 128,
+      "okno": "tacka_pusta_przejsciowo",
+      "t": 1790847441.578
+    },
+    {
+      "kawalek": 2,
+      "n": 142,
+      "okno": "nakladka_better_than",
+      "t": 1790847842.512
+    },
+    {
+      "kawalek": 3,
+      "n": 15,
+      "okno": "nakladka_better_than",
+      "t": 1790847903.268
+    },
+    {
+      "kawalek": 3,
+      "n": 46,
+      "okno": "nakladka_better_than",
+      "t": 1790847977.36
+    },
+    {
+      "kawalek": 3,
+      "n": 94,
+      "okno": "nakladka_better_than",
+      "t": 1790848093.098
+    }
+  ],
+  "kawalki": [
+    "chunk1_moves.jsonl",
+    "chunk2_moves.jsonl",
+    "chunk3_moves.jsonl",
+    "chunk4_moves.jsonl",
+    "chunk5_moves.jsonl",
+    "chunk6_moves.jsonl",
+    "chunk7_moves.jsonl",
+    "chunk8_moves.jsonl",
+    "chunk9_moves.jsonl",
+    "chunk10_moves.jsonl",
+    "chunk11_moves.jsonl",
+    "chunk12_moves.jsonl",
+    "chunk13_moves.jsonl",
+    "chunk14_moves.jsonl",
+    "chunk15_moves.jsonl",
+    "chunk16_moves.jsonl",
+    "chunk17_moves.jsonl",
+    "chunk18_moves.jsonl",
+    "chunk19_moves.jsonl",
+    "chunk20_moves.jsonl",
+    "chunk21_moves.jsonl",
+    "chunk22_moves.jsonl",
+    "chunk23_moves.jsonl",
+    "chunk24_moves.jsonl",
+    "chunk25_moves.jsonl",
+    "chunk26_moves.jsonl",
+    "chunk27_moves.jsonl",
+    "chunk28_moves.jsonl",
+    "chunk29_moves.jsonl",
+    "chunk30_moves.jsonl",
+    "chunk31_moves.jsonl",
+    "chunk32_moves.jsonl",
+    "chunk33_moves.jsonl",
+    "chunk34_moves.jsonl",
+    "chunk35_moves.jsonl",
+    "chunk36_moves.jsonl",
+    "chunk37_moves.jsonl",
+    "chunk38_moves.jsonl",
+    "chunk39_moves.jsonl",
+    "chunk40_moves.jsonl",
+    "chunk41_moves.jsonl",
+    "chunk42_moves.jsonl",
+    "chunk43_moves.jsonl",
+    "chunk44_moves.jsonl",
+    "chunk45_moves.jsonl",
+    "chunk46_moves.jsonl",
+    "chunk47_moves.jsonl",
+    "chunk48_moves.jsonl",
+    "chunk49_moves.jsonl",
+    "chunk50_moves.jsonl",
+    "chunk51_moves.jsonl",
+    "chunk52_moves.jsonl",
+    "chunk53_moves.jsonl",
+    "chunk54_moves.jsonl",
+    "chunk55_moves.jsonl",
+    "chunk56_moves.jsonl",
+    "chunk57_moves.jsonl"
+  ]
+}

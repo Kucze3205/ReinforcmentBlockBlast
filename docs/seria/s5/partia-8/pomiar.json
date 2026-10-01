@@ -1,0 +1,172 @@
+{
+  "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+  "zakonczenie": "przerwanie",
+  "przyczyna": "petla_bez_postepu",
+  "okno": "nakladka_better_than",
+  "licznik_apki": null,
+  "licznik_odrzucone": [],
+  "wynik_wzor": 10539,
+  "postawienia": 110,
+  "minuty": 6.972,
+  "postawien_na_minute": 19.24,
+  "decision_ms": {
+    "mediana": 4.39,
+    "p95": 36.31,
+    "max": 98.49
+  },
+  "okna": [
+    {
+      "kawalek": 1,
+      "n": 1,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790868037.184
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "nakladka_better_than",
+      "t": 1790868381.043
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "nakladka_better_than",
+      "t": 1790868383.234
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "nakladka_better_than",
+      "t": 1790868385.39
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "nakladka_better_than",
+      "t": 1790868387.556
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "nakladka_better_than",
+      "t": 1790868389.784
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "nakladka_better_than",
+      "t": 1790868391.976
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "nakladka_better_than",
+      "t": 1790868394.113
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "nakladka_better_than",
+      "t": 1790868396.245
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "nakladka_better_than",
+      "t": 1790868398.407
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "nakladka_better_than",
+      "t": 1790868400.568
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "nakladka_better_than",
+      "t": 1790868402.734
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "restart_twardy",
+      "t": 1790868427.924
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "nakladka_better_than",
+      "t": 1790868430.16
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "nakladka_better_than",
+      "t": 1790868432.391
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "nakladka_better_than",
+      "t": 1790868434.61
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "nakladka_better_than",
+      "t": 1790868436.793
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "nakladka_better_than",
+      "t": 1790868438.986
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "nakladka_better_than",
+      "t": 1790868441.222
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "nakladka_better_than",
+      "t": 1790868443.416
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "nakladka_better_than",
+      "t": 1790868445.61
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "nakladka_better_than",
+      "t": 1790868447.777
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "nakladka_better_than",
+      "t": 1790868450.135
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "nakladka_better_than",
+      "t": 1790868452.474
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "nakladka_better_than",
+      "t": 1790868454.724
+    }
+  ],
+  "kawalki": [
+    "chunk1_moves.jsonl"
+  ]
+}
