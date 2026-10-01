@@ -1,0 +1,161 @@
+{
+  "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+  "zakonczenie": "przerwanie",
+  "przyczyna": "petla_bez_postepu",
+  "okno": "ustawienia_wstecz",
+  "licznik_apki": {
+    "wartosc": 841802,
+    "odczyty": [
+      841802,
+      841802
+    ],
+    "stabilny": true,
+    "zrzut": "licznik_17.png"
+  },
+  "licznik_odrzucone": [],
+  "wynik_wzor": 1003156,
+  "postawienia": 2585,
+  "minuty": 121.813,
+  "postawien_na_minute": 21.42,
+  "decision_ms": {
+    "mediana": 2.48,
+    "p95": 15.64,
+    "max": 511.05
+  },
+  "okna": [
+    {
+      "kawalek": 1,
+      "n": 1,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790833025.652
+    },
+    {
+      "kawalek": 1,
+      "n": 4,
+      "okno": "tacka_pusta_przejsciowo",
+      "t": 1790833038.837
+    },
+    {
+      "kawalek": 1,
+      "n": 82,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790833282.469
+    },
+    {
+      "kawalek": 2,
+      "n": 19,
+      "okno": "nakladka_better_than",
+      "t": 1790833541.557
+    },
+    {
+      "kawalek": 2,
+      "n": 45,
+      "okno": "nakladka_better_than",
+      "t": 1790833615.968
+    },
+    {
+      "kawalek": 2,
+      "n": 63,
+      "okno": "nakladka_better_than",
+      "t": 1790833668.919
+    },
+    {
+      "kawalek": 18,
+      "n": 35,
+      "okno": "tacka_pusta_przejsciowo",
+      "t": 1790840266.144
+    },
+    {
+      "kawalek": 18,
+      "n": 35,
+      "okno": "reklama_wideo",
+      "t": 1790840269.947
+    },
+    {
+      "kawalek": 18,
+      "n": 35,
+      "okno": "restart",
+      "t": 1790840292.306
+    },
+    {
+      "kawalek": 18,
+      "n": 35,
+      "okno": "reklama_wideo",
+      "t": 1790840295.226
+    },
+    {
+      "kawalek": 18,
+      "n": 35,
+      "okno": "ustawienia_wstecz",
+      "t": 1790840299.565
+    },
+    {
+      "kawalek": 18,
+      "n": 35,
+      "okno": "ustawienia_wstecz",
+      "t": 1790840303.85
+    },
+    {
+      "kawalek": 18,
+      "n": 35,
+      "okno": "ustawienia_wstecz",
+      "t": 1790840308.133
+    },
+    {
+      "kawalek": 18,
+      "n": 35,
+      "okno": "ustawienia_wstecz",
+      "t": 1790840312.464
+    },
+    {
+      "kawalek": 18,
+      "n": 35,
+      "okno": "ustawienia_wstecz",
+      "t": 1790840316.735
+    },
+    {
+      "kawalek": 18,
+      "n": 35,
+      "okno": "ustawienia_wstecz",
+      "t": 1790840320.971
+    },
+    {
+      "kawalek": 18,
+      "n": 35,
+      "okno": "ustawienia_wstecz",
+      "t": 1790840325.197
+    },
+    {
+      "kawalek": 18,
+      "n": 35,
+      "okno": "ustawienia_wstecz",
+      "t": 1790840329.462
+    },
+    {
+      "kawalek": 18,
+      "n": 35,
+      "okno": "ustawienia_wstecz",
+      "t": 1790840333.726
+    }
+  ],
+  "kawalki": [
+    "chunk1_moves.jsonl",
+    "chunk2_moves.jsonl",
+    "chunk3_moves.jsonl",
+    "chunk4_moves.jsonl",
+    "chunk5_moves.jsonl",
+    "chunk6_moves.jsonl",
+    "chunk7_moves.jsonl",
+    "chunk8_moves.jsonl",
+    "chunk9_moves.jsonl",
+    "chunk10_moves.jsonl",
+    "chunk11_moves.jsonl",
+    "chunk12_moves.jsonl",
+    "chunk13_moves.jsonl",
+    "chunk14_moves.jsonl",
+    "chunk15_moves.jsonl",
+    "chunk16_moves.jsonl",
+    "chunk17_moves.jsonl",
+    "chunk18_moves.jsonl"
+  ]
+}
