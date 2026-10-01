@@ -535,5 +535,87 @@ class TestChunk10WindowSequenceIsNotALoop(unittest.TestCase):
         self.assertLess(len(entries), 30)
 
 
+S2 = os.path.join(ROOT, "docs", "seria", "s2")
+SPLASH_FRAMES = [("partia-1", "kawalek_2", "058_end.png"), ("partia-4", "kawalek_2", "046_end.png"),
+                 ("partia-9", "kawalek_2", "063_end.png"), ("partia-10", "kawalek_2", "060_end.png")]
+VIDEO_AD_FRAME = ("partia-2", "kawalek_4", "061_state.png")
+
+
+def _load_s2(*parts):
+    # jak `bridge.screenshot()`: int, nie uint8
+    return np.asarray(Image.open(os.path.join(S2, *parts)).convert("RGB")).astype(int)
+
+
+def _run_main_on(first_img, after_img, patches):
+    empty = [[0] * 8 for _ in range(8)]
+    board = Board()
+    board.grid = [row[:] for row in empty]
+    board.place_piece(BEAM2, 0, 0)
+    slots = [([[1, 1]], (20, 460)), None, None]
+    with mock.patch("bridge.settled_state", return_value=(first_img, empty, [None, None, None])), \
+         mock.patch("bridge.stable_state", return_value=(after_img, board.grid, slots)), \
+         mock.patch("bridge.in_game", return_value=True), \
+         mock.patch("bridge.read_score", return_value=None), \
+         mock.patch("bridge.drag", return_value=({"finger": [0, 0]}, after_img)), \
+         mock.patch("bridge.annotate"), mock.patch("PIL.Image.Image.save"), \
+         mock.patch("bridge.os.makedirs"), mock.patch("bridge.time.sleep"), \
+         mock.patch("builtins.open", mock.mock_open()) as m_open:
+        started = [mock.patch(*a, **k).start() for a, k in patches]
+        try:
+            bridge.main(1, policy_spec="greedy", seria=True)
+        finally:
+            mock.patch.stopall()
+    return [json.loads(c.args[0]) for c in m_open().write.call_args_list], started
+
+
+class TestSplashScreen(unittest.TestCase):
+    """#304: ekran startowy apki po restarcie nie jest końcem partii."""
+
+    def test_splash_is_not_game_over(self):
+        for parts in SPLASH_FRAMES:
+            with self.subTest(parts=parts):
+                img = _load_s2(*parts)
+                self.assertTrue(bridge.is_splash_screen(img))
+                self.assertFalse(bridge.is_game_over_screen(img))
+                self.assertFalse(bridge.is_settings_screen(img))
+                self.assertFalse(bridge.is_video_ad_screen(img))
+
+    def test_real_game_over_screens_stay_game_over(self):
+        for img in (_load_s2("partia-3", "kawalek_3", "092_end.png"), _load("c1819ed", "chunk15_after_back.png")):
+            self.assertTrue(bridge.is_game_over_screen(img))
+            self.assertFalse(bridge.is_splash_screen(img))
+
+    def test_main_waits_and_logs_ekran_startowy_not_koniec_partii(self):
+        splash = _load_s2(*SPLASH_FRAMES[0])
+        board_img = _load("0d96333", "120_state.png")
+        entries, _ = _run_main_on(splash, board_img, [])
+        self.assertEqual(entries[0]["okno"], "ekran_startowy")
+        self.assertFalse(any(e.get("koniec_partii") for e in entries))
+        self.assertNotIn("end", entries[0])
+
+
+class TestVideoAdScreen(unittest.TestCase):
+    """#304: reklama wideo z „Skip" nie jest modalem Ustawień."""
+
+    def test_video_ad_detected_and_not_settings(self):
+        img = _load_s2(*VIDEO_AD_FRAME)
+        self.assertTrue(bridge.is_video_ad_screen(img))
+
+    def test_real_screens_not_video_ad(self):
+        for img in (_load("44a8ea2", "p1a_settings.png"), _load("44a8ea2", "p2e_stuck_settings_before.png"),
+                    _load("0d96333", "120_state.png"), _load("0d96333", "121_end.png")):
+            self.assertFalse(bridge.is_video_ad_screen(img))
+        self.assertTrue(bridge.is_settings_screen(_load("44a8ea2", "p1a_settings.png")))
+
+    def test_main_taps_skip_and_logs_reklama_wideo(self):
+        ad = _load_s2(*VIDEO_AD_FRAME)
+        board_img = _load("0d96333", "120_state.png")
+        entries, started = _run_main_on(ad, board_img, [(("bridge.tap_skip",), {}), (("bridge.press_back",), {})])
+        tap_skip, press_back = started
+        tap_skip.assert_called_once()
+        press_back.assert_not_called()
+        self.assertEqual(entries[0]["okno"], "reklama_wideo")
+
+
 if __name__ == "__main__":
     unittest.main()

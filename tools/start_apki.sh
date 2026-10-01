@@ -20,6 +20,9 @@ for attempt in 1 2 3; do
   adb shell dumpsys window | grep -q "mCurrentFocus.*$PKG" && break
   echo "gra nie na pierwszym planie (próba $attempt)"
 done
+# #304: s2 stracił 4 partie, bo ~16 min po starcie Play (installPackageLI usług Google) zabił grę. Po udanym starcie
+# wyłączamy sklep dla użytkownika 0 — gra jest już zainstalowana i niczego z niego nie potrzebuje.
+adb shell pm disable-user --user 0 com.android.vending 2>&1 | tee -a "$OUT/install.txt" || true
 adb exec-out screencap -p > "$OUT/boot.png"
 
 adb shell dumpsys package "$PKG" | grep -m1 versionName | tee "$OUT/version.txt"

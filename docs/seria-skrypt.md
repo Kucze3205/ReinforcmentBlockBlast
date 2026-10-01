@@ -147,6 +147,8 @@ kończy się `koniec_partii`.
 | nakładka | okno w logu | działanie |
 |---|---|---|
 | „Better than N%!" z pucharem (`is_trophy_overlay_screen`) | `nakladka_better_than` | czeka 1 s, nie dotyka ekranu, czyta ponownie |
+| ekran startowy apki po restarcie (`is_splash_screen`: czerwone „O” i fioletowe „K” logo w `SPLASH_LOGO_BOX`) | `ekran_startowy` | czeka `SPLASH_WAIT` (3 s), nie dotyka ekranu; limit = `PROGRESS_SAFEGUARD_TRIES` wpisów (→ `przerwanie`). Nie jest końcem partii (#304: 4 fałszywe przegrane s2) |
+| reklama wideo z „Skip” (`is_video_ad_screen`: czarna góra, szara pigułka, film) | `reklama_wideo` | stuka „Skip” (257, 34); przed `is_settings_screen`, bo ciemność myliła ją z Ustawieniami |
 | pusta tacka przy niepustej planszy (`tray_awaiting_deal`) | `tacka_pusta_przejsciowo` | jw. — nowa trójka jeszcze nie dosypana, pusta tacka nie jest końcem gry |
 
 Oba okna liczą się do bezpiecznika `PROGRESS_SAFEGUARD_TRIES` (12 z rzędu → `petla_bez_postepu`). Pusta tacka przy pustej
@@ -157,3 +159,8 @@ daje odczytu — rozdzielenia tło/tusz (kolor cyfr = najczęstszy kolor odległ
 (`tools/wzorce_hud.py`). Nie umie: licznika pod przyciemnioną nakładką pucharu i klatek z animacją rombu — zwraca `None`. Złoty romb za cyframi na granatowej skórce (#297) czyta się: odczyt tło/tusz odcina wiersze z pojedynczymi pikselami rombu (`HUD_ROW_MIN_FRAC`); nieczytelne zostają klatki z nakładką „+N” na cyfrach.
 Ścieżka ciemna dostaje `uint8`: wzorce powstały z tej reprezentacji, a `int` ze `screenshot()` dawał `None` także na skórce
 oryginalnej (przed #294 licznik w serii nie czytał niczego).
+
+**Zabijanie gry przez Play (#304).** ~16 min po starcie emulatora `installPackageLI` usług Google zabijał grę (logcat
+`docs/seria/s2/partia-{1,4}/logcat_*.txt`). `tools/start_apki.sh` po udanym starcie robi `pm disable-user --user 0
+com.android.vending`: sklep nie aktualizuje już pakietów w trakcie partii, a gra niczego z niego nie potrzebuje. Wybór
+ponad `settings put global auto_update…`: te ustawienia nie obejmują aktualizacji usług Google. Skutek wyjdzie w następnym przebiegu.

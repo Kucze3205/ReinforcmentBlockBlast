@@ -78,6 +78,14 @@ GAME_OVER_BLUE_FRAC = 0.8  # próg wariantu niebieskiego is_game_over_screen: 0.
 # następny najwyższy zrzut z bridge/runs/* (klocek niebieski na zwykłej planszy) 0.662
 RESTART_TRIES = 3
 RESTART_WAIT = 20
+SPLASH_LOGO_BOX = (40, 110, 280, 200)  # x0, y0, x1, y1 — logo „Block Blast" na ekranie startowym apki (#304)
+SPLASH_RED_FRAC = 0.03  # czerwone „O" logo w SPLASH_LOGO_BOX: 0.071 na 4 klatkach s2; 0 na ekranach końca
+SPLASH_PURPLE_FRAC = 0.02  # fioletowe „K" logo: 0.057 na klatkach s2; 0 na ekranach końca
+SPLASH_WAIT = 3.0  # s czekania na przejście ekranu startowego (limit: PROGRESS_SAFEGUARD_TRIES wpisów okna)
+VIDEO_AD_TOP_DARK = 0.9  # reklama wideo (#304): górne 225 wierszy czarne (0.97 na `partia-2/kawalek_4/061_state.png`)
+VIDEO_AD_SKIP_BOX = (228, 22, 288, 46)  # pigułka „Skip" (x0, y0, x1, y1); środek stuka `VIDEO_AD_SKIP`
+VIDEO_AD_SKIP = (257, 34)
+VIDEO_AD_PILL_FRAC = 0.5  # odsetek pikseli pigułki o jasności 35-110 (0.85 na klatce 061; nie ma jej na innych zrzutach)
 PLAY_BUTTON = (160, 456)  # przycisk "Play" na obu wariantach ekranu końca partii, zmierzony przez verifiera (#173)
 MAIN_MENU_TEAL_FRAC = 0.03  # próg dla is_main_menu_screen, patrz docstring
 MAIN_MENU_TILE_BOX = (66, 463, 254, 506)  # kafelek „Classic" (x0, y0, x1, y1), patrz CLASSIC_BUTTON
@@ -276,6 +284,41 @@ def is_bright_ad_screen(img):
     return len(np.unique(flat, axis=0)) > BRIGHT_AD_MIN_COLORS
 
 
+def is_splash_screen(img):
+    """Ekran startowy apki po restarcie (#304): niebieski gradient jak „Your Best is Next", więc
+    `is_game_over_screen` brał go za koniec partii (menu główne ma to samo logo i jest sprawdzane wcześniej; 4 fałszywe przegrane w s2). Rozdziela logo
+    „Block Blast": czerwone „O" i fioletowe „K" w `SPLASH_LOGO_BOX` (0.071/0.057 na klatkach
+    `docs/seria/s2/partia-{1,4,9,10}/kawalek_2/*_end.png`; 0 na ekranach końca obu wariantów)."""
+    x0, y0, x1, y1 = SPLASH_LOGO_BOX
+    box = img[y0:y1, x0:x1]
+    r, g, b = box[..., 0], box[..., 1], box[..., 2]
+    red = (r > 200) & (g < 90) & (b < 90)
+    purple = (r > 130) & (r < 200) & (b > 200) & (g < 130)
+    return bool(red.mean() > SPLASH_RED_FRAC and purple.mean() > SPLASH_PURPLE_FRAC)
+
+
+def is_video_ad_screen(img):
+    """Reklama wideo z pigułką „Skip" (#304): czarne tło nad i pod filmem, ciemność 0.44-0.85 jak
+    modal Ustawień, więc była `ustawienia_wstecz` (`partia-2/kawalek_4/061_state.png`). Rozdziela
+    pigułka w prawym górnym rogu (szary prostokąt przy czarnym tle) i fotorealistyczny film
+    (liczba kolorów), zob. `is_bright_ad_screen`. Reklama w pełni czarna zostaje `is_ad_screen`."""
+    if is_ad_screen(img):
+        return False
+    if (img[:225].max(axis=-1) < 30).mean() < VIDEO_AD_TOP_DARK:
+        return False
+    x0, y0, x1, y1 = VIDEO_AD_SKIP_BOX
+    pill = img[y0:y1, x0:x1].max(axis=-1)
+    return bool(((pill >= 35) & (pill < 110)).mean() > VIDEO_AD_PILL_FRAC
+                and is_bright_ad_screen(img))
+
+
+def tap_skip():
+    x, y = VIDEO_AD_SKIP
+    touch("DOWN", x, y)
+    touch("UP", x, y)
+    time.sleep(2)
+
+
 def is_game_over_screen(img):
     """Natywny ekran końca partii z przyciskiem Play, dwa warianty (#169, #173): most
     rozpoznawał brak ruchu poprawnie ("brak legalnego ruchu wg odczytu"), ale przez
@@ -299,6 +342,8 @@ def is_game_over_screen(img):
     materiale z `bridge/runs/*` (klocki niebieskiej skórki na zwykłej planszy,
     `bridge/runs/1bd38fa/071_aim.png` i podobne) to 0,662 — próg 0,8 zostawia margines.
     """
+    if is_splash_screen(img):
+        return False
     r, g, b = img[..., 0], img[..., 1], img[..., 2]
     purple = (b > r) & (r > g) & (b - r >= 15) & (r - g >= 15)
     if purple.mean() > GAME_OVER_PURPLE_FRAC:
@@ -865,6 +910,13 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
                 break
             img, grid, slots = stable_state()
             continue
+        if is_video_ad_screen(img):
+            tap_skip()
+            entry = windowed_entry("reklama_wideo")
+            if "end" in entry:
+                break
+            img, grid, slots = stable_state()
+            continue
         if is_settings_screen(img):
             press_back()
             entry = windowed_entry("ustawienia_wstecz")
@@ -875,6 +927,13 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
         if is_main_menu_screen(img):
             tap_classic()
             entry = windowed_entry("menu_glowne")
+            if "end" in entry:
+                break
+            img, grid, slots = stable_state()
+            continue
+        if is_splash_screen(img):
+            time.sleep(SPLASH_WAIT)  # ekran startowy po restarcie mija sam (#304); nie dotykamy ekranu
+            entry = windowed_entry("ekran_startowy")
             if "end" in entry:
                 break
             img, grid, slots = stable_state()
