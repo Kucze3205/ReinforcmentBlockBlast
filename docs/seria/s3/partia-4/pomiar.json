@@ -1,0 +1,78 @@
+{
+  "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+  "zakonczenie": "cel",
+  "przyczyna": null,
+  "okno": null,
+  "licznik_apki": {
+    "wartosc": 1205091,
+    "odczyty": [
+      1205091,
+      1205091
+    ],
+    "stabilny": true,
+    "zrzut": "licznik_7.png"
+  },
+  "licznik_odrzucone": [],
+  "wynik_wzor": 377336,
+  "postawienia": 1050,
+  "minuty": 50.228,
+  "postawien_na_minute": 20.9,
+  "decision_ms": {
+    "mediana": 2.98,
+    "p95": 20.96,
+    "max": 83.16
+  },
+  "okna": [
+    {
+      "kawalek": 1,
+      "n": 1,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790833087.694
+    },
+    {
+      "kawalek": 1,
+      "n": 58,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790833267.702
+    },
+    {
+      "kawalek": 1,
+      "n": 67,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790833295.607
+    },
+    {
+      "kawalek": 2,
+      "n": 3,
+      "okno": "tacka_pusta_przejsciowo",
+      "t": 1790833551.658
+    },
+    {
+      "kawalek": 2,
+      "n": 16,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790833589.586
+    },
+    {
+      "kawalek": 2,
+      "n": 25,
+      "okno": "tacka_pusta_przejsciowo",
+      "t": 1790833617.35
+    },
+    {
+      "kawalek": 2,
+      "n": 68,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790833743.77
+    }
+  ],
+  "kawalki": [
+    "chunk1_moves.jsonl",
+    "chunk2_moves.jsonl",
+    "chunk3_moves.jsonl",
+    "chunk4_moves.jsonl",
+    "chunk5_moves.jsonl",
+    "chunk6_moves.jsonl",
+    "chunk7_moves.jsonl"
+  ]
+}
