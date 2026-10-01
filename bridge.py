@@ -70,7 +70,8 @@ AD_DARK_FRAC = 0.85  # 121_end.png: 0.95 czarnych pikseli; 120_state.png: 0.0; e
 SETTINGS_DARK_FRAC = (0.44, 0.85)  # przedział pikseli ciemniejszych niż 100 (patrz is_settings_screen)
 HOME_STATUS_BAR_ROWS = 24  # wysokość paska stanu Androida sprawdzana przez is_home_screen (#169)
 HOME_STATUS_BAR_WHITE = 200  # próg jasności kanału uznawanego za piksel paska stanu
-HOME_STATUS_BAR_FRAC = 0.02  # próg odsetka: ekran domowy ma 0.076-0.077, gra zawsze 0.0
+HOME_STATUS_BAR_MAX_FRAC = 0.5  # górny próg (#311): pas niemal cały biały (1.0 na jasnym niebie skórki) to plansza
+HOME_STATUS_BAR_FRAC = 0.02 # próg odsetka: ekran domowy ma 0.076-0.077, gra zawsze 0.0
 BRIGHT_AD_MIN_COLORS = 20000  # liczba unikalnych kolorów RGB, patrz is_bright_ad_screen
 STATIC_AD_GRAY_TOL = 10  # patrz is_static_ad_screen
 STATIC_AD_GRAY_FRAC = 0.98  # próg: reklama statyczna 1.0, następny najwyższy zrzut z bridge/runs/* 0.964
@@ -81,6 +82,8 @@ RESTART_WAIT = 20
 SPLASH_LOGO_BOX = (40, 110, 280, 200)  # x0, y0, x1, y1 — logo „Block Blast" na ekranie startowym apki (#304)
 SPLASH_RED_FRAC = 0.03  # czerwone „O" logo w SPLASH_LOGO_BOX: 0.071 na 4 klatkach s2; 0 na ekranach końca
 SPLASH_PURPLE_FRAC = 0.02  # fioletowe „K" logo: 0.057 na klatkach s2; 0 na ekranach końca
+SPLASH_FLAT_BOX = (10, 265, 310, 340)  # x0, y0, x1, y1 — pusty gradient pod logo, nad ikoną ładowania (#311)
+SPLASH_FLAT_MAX = 20  # max odchyłka piksela od lewego piksela swojego wiersza: 4 na 4 klatkach s2; najmniej 74 na planszy
 SPLASH_WAIT = 3.0  # s czekania na przejście ekranu startowego (limit: PROGRESS_SAFEGUARD_TRIES wpisów okna)
 VIDEO_AD_TOP_DARK = 0.9  # reklama wideo (#304): górne 225 wierszy czarne (0.97 na `partia-2/kawalek_4/061_state.png`)
 VIDEO_AD_SKIP_BOX = (228, 22, 288, 46)  # pigułka „Skip" (x0, y0, x1, y1); środek stuka `VIDEO_AD_SKIP`
@@ -194,7 +197,9 @@ def is_home_screen(img):
     495cd91,1402cff,1bd38fa}`) ten odsetek wynosi 0.
     """
     top = img[:HOME_STATUS_BAR_ROWS]
-    return bool((top >= HOME_STATUS_BAR_WHITE).all(axis=-1).mean() > HOME_STATUS_BAR_FRAC)
+    frac = (top >= HOME_STATUS_BAR_WHITE).all(axis=-1).mean()
+    # #311: jasne niebo skórki (s1/s2) daje w pasku ~1.0 — to nie ikony paska stanu
+    return bool(HOME_STATUS_BAR_FRAC < frac < HOME_STATUS_BAR_MAX_FRAC)
 
 
 def is_settings_screen(img):
@@ -294,7 +299,13 @@ def is_splash_screen(img):
     r, g, b = box[..., 0], box[..., 1], box[..., 2]
     red = (r > 200) & (g < 90) & (b < 90)
     purple = (r > 130) & (r < 200) & (b > 200) & (g < 130)
-    return bool(red.mean() > SPLASH_RED_FRAC and purple.mean() > SPLASH_PURPLE_FRAC)
+    if not (red.mean() > SPLASH_RED_FRAC and purple.mean() > SPLASH_PURPLE_FRAC):
+        return False
+    # #311: czerwone i fioletowe klocki w wierszach 0-1 planszy też przechodzą test logo (s3, 3 partie
+    # przerwane); pod logo ekran startowy to czysty gradient, plansza ma tam komórki i klocki.
+    fx0, fy0, fx1, fy1 = SPLASH_FLAT_BOX
+    flat = img[fy0:fy1, fx0:fx1]
+    return bool(np.abs(flat - flat[:, :1]).max() <= SPLASH_FLAT_MAX)
 
 
 def is_video_ad_screen(img):

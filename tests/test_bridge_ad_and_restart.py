@@ -585,6 +585,27 @@ class TestSplashScreen(unittest.TestCase):
             self.assertTrue(bridge.is_game_over_screen(img))
             self.assertFalse(bridge.is_splash_screen(img))
 
+    def test_live_board_s3_is_not_splash(self):
+        # #311: czerwone/fioletowe klocki w wierszach 0-1 nie sa logiem
+        s3 = os.path.join(ROOT, "docs", "seria", "s3")
+        for partia, ns in (("partia-1", ("134_state", "135_state", "final")),
+                           ("partia-2", ("090_state", "091_state", "final")),
+                           ("partia-10", ("027_state", "028_state", "final"))):
+            for n in ns:
+                with self.subTest(partia=partia, n=n):
+                    img = np.asarray(Image.open(os.path.join(s3, partia, "kawalek_1", n + ".png")).convert("RGB")).astype(int)
+                    self.assertFalse(bridge.is_splash_screen(img))
+
+    def test_light_sky_board_is_not_home_screen(self):
+        # #311: jasne niebo skorki w pasku stanu to nie launcher
+        img = _load_s2("partia-2", "kawalek_2", "100_state.png")
+        self.assertFalse(bridge.is_home_screen(img))
+
+    def test_no_window_detector_fires_on_live_boards(self):
+        sys.path.insert(0, os.path.join(ROOT, "tools"))
+        import detektory_na_planszy as d
+        self.assertEqual(d.main([]), 0)
+
     def test_main_waits_and_logs_ekran_startowy_not_koniec_partii(self):
         splash = _load_s2(*SPLASH_FRAMES[0])
         board_img = _load("0d96333", "120_state.png")
