@@ -186,3 +186,57 @@ class TestGameOverNeverRestarts(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+SERIA = os.path.join(ROOT, "docs", "seria", "s4", "partia-10", "kawalek_16")
+
+
+class TestBoardStuckHardRestart(unittest.TestCase):
+    """#323: `plansza_zawieszona` (reklama testowa AppLovin, s4 p.10) przechodzi przez jeden twardy restart."""
+    S = bridge.BOARD_STUCK_TRIES
+
+    def _frames(self):
+        ad = np.asarray(Image.open(os.path.join(SERIA, "031_stuck.png")).convert("RGB")).astype(int)
+        game = _load("0d96333", "120_state.png")
+        return ad, game
+
+    def test_stuck_one_hard_restart_then_game_goes_on(self):
+        ad, game = self._frames()
+        # klatka planszy zmienia się po restarcie: ruch zmienia planszę, więc ciąg zawieszeń się zeruje
+        moved = [row[:] for row in PLAYABLE]
+        moved[7][7] = 1
+        frames = [(game, PLAYABLE, SLOTS)] + [(ad, PLAYABLE, SLOTS)] * self.S + [(game.copy(), moved, SLOTS)]
+        entries, hard = Scenario(frames, {id(game): 1000}, after_restart_img=game).run(max_moves=self.S + 2)
+        hard.assert_called_once()
+        r = next(e for e in entries if e.get("okno") == "restart_twardy")
+        self.assertEqual(r["okno_przed_restartem"], "plansza_zawieszona")
+        self.assertEqual((r["licznik_przed"], r["licznik_po"]), (1000, 1000))
+        self.assertEqual(r["zrzut_zawieszenia"], f"{r['n']:03d}_stuck.png")
+        self.assertFalse(any("end" in e for e in entries))
+
+    def test_still_stuck_after_restart_ends_chunk(self):
+        ad, game = self._frames()
+        entries, hard = Scenario([(game, PLAYABLE, SLOTS), (ad, PLAYABLE, SLOTS)], {id(game): 1000},
+                                 after_restart_img=game).run()
+        hard.assert_called_once()
+        self.assertEqual(entries[-1]["okno"], "plansza_zawieszona")
+        self.assertEqual(entries[-1]["end"], "okno: plansza_zawieszona")
+        self.assertEqual(sum("end" in e for e in entries), 1)
+        self.assertEqual(sum(e.get("okno") == "restart_twardy" for e in entries), 1)
+
+    def test_app_not_coming_back(self):
+        ad, game = self._frames()
+        entries, hard = Scenario([(game, PLAYABLE, SLOTS), (ad, PLAYABLE, SLOTS)], {id(game): 1000},
+                                 restart_ok=False).run()
+        hard.assert_called_once()
+        self.assertEqual(entries[-1]["okno"], "restart_twardy")
+        self.assertEqual(entries[-1]["end"], "gra nie jest na pierwszym planie")
+
+    def test_game_lost_after_restart(self):
+        ad, game = self._frames()
+        low = game.copy()
+        entries, hard = Scenario([(game, PLAYABLE, SLOTS), (ad, PLAYABLE, SLOTS)], {id(game): 1000, id(low): 10},
+                                 after_restart_img=low).run()
+        hard.assert_called_once()
+        self.assertEqual(entries[-1]["okno"], "restart_utracil_partie")
+        self.assertEqual(entries[-1]["end"], "okno: restart_utracil_partie")
