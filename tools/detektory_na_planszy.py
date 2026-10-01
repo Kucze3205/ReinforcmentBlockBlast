@@ -16,7 +16,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 import bridge  # noqa: E402
 
-SERIE = ("s1", "s2", "s3", "s4")
+SERIE = ("s1", "s2", "s3", "s4", "s5")
 
 
 def detektory():
