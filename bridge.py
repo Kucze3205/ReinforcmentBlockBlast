@@ -813,6 +813,36 @@ def simulate(board, piece, x, y):
     return after.grid
 
 
+def cleared_cells(board, piece, x, y):
+    """Pola linii (wierszy i kolumn), które ruch czyści: po nim `expected` ma tam zera (#333)."""
+    after = board.copy()
+    after.place_piece(piece, x, y)
+    rows, cols = after.check_full_lines()
+    return {(r, c) for r in range(8) for c in range(8) if r in rows or c in cols}
+
+
+def tray_consumed(pieces, i, slots):
+    """Czy tacka po ruchu potwierdza, że gra przyjęła klocek ze slotu `i`: slot pusty albo nowa trójka po ostatnim."""
+    before = sum(p is not None for p in pieces)
+    after = sum(s is not None for s in slots)
+    return slots[i] is None or (before == 1 and after == 3)
+
+
+def drop_banner_ghosts(observed, expected, cleared, accepted):
+    """Duchy baneru „Combo N" (#333): glify mają kolor klocków (`is_block` czyta (153,175,63) i (161,198,25) jako
+    klocki), a baner wisi nad wierszem, który właśnie znika (`docs/seria/s5/przegrana-p7.md`). Gdy ruch przyjęła gra
+    (`accepted`) i odczyt różni się od `expected` WYŁĄCZNIE nadmiarem pól w liniach wyczyszczonych tym ruchem, te
+    pola są puste na pewno — gra czyści pełną linię zawsze. Każda inna różnica (klocek obok celu, brak pól, nadmiar
+    poza liniami, ruch nieprzyjęty) zostawia odczyt z ekranu: prawdą jest ekran, nie `expected`.
+    Zwraca (plansza, lista pól-duchów)."""
+    diff = [(r, c) for r in range(8) for c in range(8) if observed[r][c] != expected[r][c]]
+    if not accepted or not diff:
+        return observed, []
+    if any(not (observed[r][c] and not expected[r][c] and (r, c) in cleared) for r, c in diff):
+        return observed, []
+    return [row[:] for row in expected], diff
+
+
 def glide(frm, to, steps=10):
     for k in range(1, steps + 1):
         touch("MOVE", frm[0] + (to[0] - frm[0]) * k / steps, frm[1] + (to[1] - frm[1]) * k / steps)
@@ -1213,12 +1243,13 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
         t2 = time.perf_counter()
         img, observed, slots = stable_state()
         t3 = time.perf_counter()
-        ok = observed == expected
+        grid, duchy = drop_banner_ghosts(observed, expected, cleared_cells(board, pieces[i], x, y),
+                                         tray_consumed(pieces, i, slots))
+        ok = grid == expected
         frozen = observed == board.grid
         board_stuck_streak = board_stuck_streak + 1 if frozen else 0
         if not frozen:
             stuck_hard_done = False
-        grid = observed
         ok_streak = ok_streak + 1 if ok else 0
         best_streak = max(best_streak, ok_streak)
         last_ok = ok
@@ -1228,6 +1259,8 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
                          "przeciagniecie": round((t2 - t1) * 1000, 1), "stabilny_stan": round((t3 - t2) * 1000, 1)}
         entry.update(move={"slot": i, "x": x, "y": y}, drag=info, expected=expected, observed=observed, ok=ok,
                       decision_ms=round(decision_ms, 2))
+        if duchy:
+            entry["duchy"] = duchy
         if board_stuck_streak >= BOARD_STUCK_TRIES:
             stuck_path = os.path.join(OUT, f"{n:03d}_stuck.png")
             Image.fromarray(img.astype(np.uint8)).save(stuck_path)
