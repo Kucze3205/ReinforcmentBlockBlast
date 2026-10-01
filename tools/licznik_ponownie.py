@@ -3,7 +3,9 @@
 
 Dla każdej partii wypisuje maksimum pola `score` (HUD), pierwszy kawałek i `n`, w którym licznik >= PROG utrzymał
 się przez >= MIN_WPISOW kolejnych wpisów z odczytem, oraz czy przed tym wpisem był wiersz `koniec_partii`.
-Klasyfikacji z `pomiar.json` nie zmienia. Użycie: tools/licznik_ponownie.py KATALOG_PARTII [...]
+Klasyfikacji z `pomiar.json` nie zmienia. Użycie: tools/licznik_ponownie.py [--tabela] KATALOG_PARTII [...]
+`--tabela` wypisuje tabelę markdown z klasyfikacją z `pomiar.json` i kolumną „rozjazd”: tak, gdy ponowna ocena
+(>= PROG utrzymany, bez `koniec_partii` przed) i `zakonczenie == cel` się różnią.
 """
 import argparse
 import glob
@@ -77,12 +79,48 @@ def wypisz(katalog, a):
     print(f"  koniec_partii w materiale: {'tak' if a['koniec_partii'] else 'nie'}")
 
 
+def klasyfikacja(katalog):
+    """(zakonczenie, przyczyna) z `pomiar.json` partii; (None, None) bez pliku."""
+    sciezka = os.path.join(katalog, "pomiar.json")
+    if not os.path.exists(sciezka):
+        return None, None
+    with open(sciezka) as f:
+        p = json.load(f)
+    return p.get("zakonczenie"), p.get("przyczyna")
+
+
+def nazwa_partii(katalog):
+    czesci = os.path.normpath(katalog).split(os.sep)
+    return "/".join(c.replace("partia-", "") if c.startswith("partia-") else c for c in czesci[-2:])
+
+
+def wiersz_tabeli(katalog, a):
+    zak, przyczyna = klasyfikacja(katalog)
+    klas = (zak or "brak pomiar.json") + (f" ({przyczyna})" if przyczyna else "")
+    przek = a["przekroczenie"]
+    ponowna_cel = bool(przek) and not a["koniec_partii_przed"]
+    rozjazd = "tak" if ponowna_cel != (zak == "cel") else "nie"
+    maks = f"{a['maksimum']:,}".replace(",", " ") if a["maksimum"] is not None else "brak odczytów"
+    return (f"| {nazwa_partii(katalog)} | {klas} | {maks} | "
+            f"{f'kawałek {przek[0]}, n {przek[1]}' if przek else 'nie'} | "
+            f"{'tak' if a['koniec_partii'] else 'nie'}"
+            f"{' (przed)' if przek and a['koniec_partii_przed'] else ''} | {rozjazd} |")
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("katalogi", nargs="+", help="katalogi partii z chunk*_moves.jsonl")
+    p.add_argument("--tabela", action="store_true", help="tabela markdown z klasyfikacją i kolumną rozjazd")
     args = p.parse_args(argv)
+    if args.tabela:
+        print("| partia | klasyfikacja (pomiar.json) | maksimum licznika | >= 1 mln utrzymany od | koniec_partii w materiale | rozjazd |")
+        print("|---|---|---|---|---|---|")
     for k in args.katalogi:
-        wypisz(k, ocen(wczytaj(k)))
+        a = ocen(wczytaj(k))
+        if args.tabela:
+            print(wiersz_tabeli(k, a))
+        else:
+            wypisz(k, a)
     return 0
 
 
