@@ -13,3 +13,10 @@ Przyczyny:
 - `is_home_screen`: jasne niebo skórki daje w pasku stanu ~1.0 białych pikseli (prawdziwy launcher 0.076). Dodano górny próg 0.5.
 
 Uwaga: klatek s3 z ruchem jest tylko 12 (zrzuty zapisywane rzadko); trzy partie z kryteriów sprawdza test wprost.
+
+## Cykl 47 (#314)
+
+Klatek z ruchem: s1 512, s2 182, s3 61 (doszły partie 4, 6, 8). Trafienia wszystkich `is_*_screen`: 0/0/0.
+Partia 8 `kawalek_3` (fałszywy `ekran_startowy` od `n=9`, grała na `a5cd123`, bez #311): wszystkie klatki
+`000–009_state.png` dają `is_splash_screen` = `is_home_screen` = `False`, w tym 009. Klatka 009 nie ma ruchu, więc
+pilnuje jej test `test_live_board_s3_partia8_is_not_splash_nor_home`. `bridge.py` bez zmian.
