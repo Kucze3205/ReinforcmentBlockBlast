@@ -1,0 +1,268 @@
+{
+ "odczyt": {
+  "ok_false_n": [
+   38,
+   39
+  ],
+  "roznica_observed_expected": {
+   "38": [
+    [
+     1,
+     6
+    ],
+    [
+     1,
+     7
+    ]
+   ],
+   "39": [
+    [
+     1,
+     6
+    ],
+    [
+     1,
+     7
+    ]
+   ]
+  },
+  "roznica_board39_expected38": [
+   [
+    1,
+    6
+   ],
+   [
+    1,
+    7
+   ]
+  ],
+  "lata_039_state": {
+   "(1,5)": {
+    "rgb": [
+     152,
+     130,
+     62
+    ],
+    "is_block": false
+   },
+   "(1,6)": {
+    "rgb": [
+     153,
+     175,
+     63
+    ],
+    "is_block": true
+   },
+   "(1,7)": {
+    "rgb": [
+     161,
+     198,
+     25
+    ],
+    "is_block": true
+   }
+  },
+  "okno_po_ostatnim_ruchu_wiersz1": [
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0
+  ],
+  "polityka_na_odczycie_z_banerem": [
+   1,
+   5,
+   6
+  ],
+  "polityka_na_planszy_bez_pol": [
+   1,
+   6,
+   1
+  ],
+  "ruch_zalogowany_n39": {
+   "slot": 1,
+   "x": 5,
+   "y": 6
+  },
+  "S_po_ruchu_z_banerem_legalne": 0,
+  "S_po_ruchu_bez_pol_legalne": 9
+ },
+ "przeglad_n38": {
+  "ukladalna": true,
+  "liczba_ulozen": 9,
+  "liczba_pierwszych_ruchow": 1,
+  "wybrany_ruch_jest_w_ulozeniu": true,
+  "przyklad": [
+   [
+    0,
+    5,
+    1
+   ],
+   [
+    1,
+    6,
+    1
+   ],
+   [
+    2,
+    0,
+    0
+   ]
+  ],
+  "polityka_na_prawdziwej_planszy": {
+   "ruchy": [
+    [
+     0,
+     5,
+     1
+    ],
+    [
+     1,
+     6,
+     1
+    ],
+    [
+     2,
+     0,
+     0
+    ]
+   ],
+   "ulozona_w_calosci": true,
+   "plansza_po": [
+    ".#......",
+    "##....#.",
+    "#.......",
+    "....###.",
+    "#######.",
+    "##..###.",
+    "##.#..#.",
+    "##.....#"
+   ]
+  }
+ },
+ "wsteczny_n35_37": {
+  "35": {
+   "wybrany_ruch": [
+    0,
+    2,
+    3
+   ],
+   "stanow_koncowych": 7,
+   "z_ukladalna_tacka38": 7,
+   "ocena_wybranego_stanu": 2345.397308737338,
+   "plansza_wybranego_ma_ukladalna_tacke38": true,
+   "najlepszy_alternatywny": {
+    "score": 2345.397308737338,
+    "pierwszy_ruch": [
+     0,
+     2,
+     3
+    ],
+    "miejsce_w_rankingu": 1,
+    "plansza_po_tacce": [
+     "........",
+     "#####..#",
+     "#######.",
+     "....###.",
+     "#######.",
+     "##..###.",
+     "##.#..#.",
+     "##.....#"
+    ]
+   }
+  },
+  "36": {
+   "wybrany_ruch": [
+    1,
+    0,
+    3
+   ],
+   "stanow_koncowych": 2,
+   "z_ukladalna_tacka38": 2,
+   "ocena_wybranego_stanu": 1944.3973087373379,
+   "plansza_wybranego_ma_ukladalna_tacke38": true,
+   "najlepszy_alternatywny": {
+    "score": 1944.3973087373379,
+    "pierwszy_ruch": [
+     1,
+     0,
+     3
+    ],
+    "miejsce_w_rankingu": 1,
+    "plansza_po_tacce": [
+     "........",
+     "#####..#",
+     "#######.",
+     "....###.",
+     "#######.",
+     "##..###.",
+     "##.#..#.",
+     "##.....#"
+    ]
+   }
+  },
+  "37": {
+   "wybrany_ruch": [
+    2,
+    4,
+    2
+   ],
+   "stanow_koncowych": 2,
+   "z_ukladalna_tacka38": 2,
+   "ocena_wybranego_stanu": 743.3973087373379,
+   "plansza_wybranego_ma_ukladalna_tacke38": true,
+   "najlepszy_alternatywny": {
+    "score": 743.3973087373379,
+    "pierwszy_ruch": [
+     2,
+     4,
+     2
+    ],
+    "miejsce_w_rankingu": 1,
+    "plansza_po_tacce": [
+     "........",
+     "#####..#",
+     "#######.",
+     "....###.",
+     "#######.",
+     "##..###.",
+     "##.#..#.",
+     "##.....#"
+    ]
+   }
+  }
+ },
+ "czestosc": {
+  "35": {
+   "losowan": 300,
+   "nieukladalne_na_planszy": 72,
+   "nieulozone_po_pierwszym_ruchu": 72
+  },
+  "36": {
+   "losowan": 300,
+   "nieukladalne_na_planszy": 109,
+   "nieulozone_po_pierwszym_ruchu": 109
+  },
+  "37": {
+   "losowan": 300,
+   "nieukladalne_na_planszy": 19,
+   "nieulozone_po_pierwszym_ruchu": 19
+  },
+  "38": {
+   "losowan": 300,
+   "nieukladalne_na_planszy": 83,
+   "nieulozone_po_pierwszym_ruchu": 83
+  },
+  "razem": {
+   "losowan": 1200,
+   "nieukladalne_na_planszy": 283,
+   "nieulozone_po_pierwszym_ruchu": 283,
+   "odsetek_nieukladalnych": 0.23583333333333334,
+   "odsetek_nieulozonych_po_pierwszym_ruchu": 0.23583333333333334
+  }
+ },
+ "wynik_koncowy": 313809
+}
