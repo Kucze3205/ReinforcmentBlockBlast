@@ -5,7 +5,7 @@ Dostaje emulator z apką na planszy (start apki robi job, jak `tools/bridge.sh`)
 Zakończenie (pole `zakonczenie` w `pomiar.json`, kod wyjścia):
   cel        0  licznik apki >= progu na stabilnej klatce (dwa zgodne odczyty, spójne z poprzednimi)
   przegrana  1  ekran końca partii (nie stuka „Play”)
-  przerwanie 2  nieznane okno, petla_bez_postepu, plansza_zawieszona, apka nie wraca, limit minut, wyjątek
+  przerwanie 2  nieznane okno, petla_bez_postepu, plansza_zawieszona, restart_utracil_partie (#318), apka nie wraca, limit minut, wyjątek
   (błąd argumentów: 3)
 Opis interfejsu: docs/seria-skrypt.md.
 """
@@ -67,7 +67,7 @@ def classify_end(end, row):
         return "apka_nie_wraca", okno
     if end.startswith("okno: "):
         name = end[len("okno: "):]
-        if name in ("petla_bez_postepu", "plansza_zawieszona"):
+        if name in ("petla_bez_postepu", "plansza_zawieszona", "restart_utracil_partie"):
             return name, okno or name
         return "nieznane_okno", okno or name
     return end.replace(" ", "_"), okno

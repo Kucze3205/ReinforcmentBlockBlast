@@ -80,6 +80,8 @@ GAME_OVER_BLUE_FRAC = 0.8  # próg wariantu niebieskiego is_game_over_screen: 0.
 # następny najwyższy zrzut z bridge/runs/* (klocek niebieski na zwykłej planszy) 0.662
 RESTART_TRIES = 3
 RESTART_WAIT = 20
+HARD_RESTART_PAUSE = 2.0  # s między `am force-stop` a startem apki (#318)
+RESTART_CHECK_FRAMES = 3  # tyle klatek planszy po twardym restarcie sprawdzamy, czy partia przetrwała (#318)
 SPLASH_LOGO_BOX = (40, 110, 280, 200)  # x0, y0, x1, y1 — logo „Block Blast" na ekranie startowym apki (#304)
 SPLASH_RED_FRAC = 0.03  # czerwone „O" logo w SPLASH_LOGO_BOX: 0.071 na 4 klatkach s2; 0 na ekranach końca
 SPLASH_PURPLE_FRAC = 0.02  # fioletowe „K" logo: 0.057 na klatkach s2; 0 na ekranach końca
@@ -498,6 +500,16 @@ def restart_app(tries=RESTART_TRIES, wait=RESTART_WAIT):
                 tap_classic()
             return True
     return False
+
+
+def hard_restart_app(tries=RESTART_TRIES, wait=RESTART_WAIT):
+    """Twardy restart (#318): `am force-stop` zabija proces apki razem z oknem reklamy, a potem
+    zwykła ścieżka `restart_app`. Sam `restart_app` przy otwartym oknie w procesie apki jest no-opem
+    (`in_game()` jest prawdą od razu, bo reklama ma fokus w tym samym pakiecie). True, gdy apka wróciła."""
+    print(f"force-stop: {PACKAGE}", flush=True)
+    adb("shell", "am", "force-stop", PACKAGE)
+    time.sleep(HARD_RESTART_PAUSE)
+    return restart_app(tries, wait)
 
 
 def settled_state():
@@ -926,26 +938,44 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
     no_move_streak = 0
     no_move_stan = None
     game_number = 1
+    hard_done = False  # twardy restart (#318) najwyżej raz na ciąg wpisów okienkowych bez ruchu
+    hud_przed = None  # ostatni odczyt licznika HUD na klatce planszy (porównanie po twardym restarcie)
+    plansza_niepusta = False  # czy od ostatniego ruchu/początku widziano na planszy jakikolwiek klocek
+    restart_pending = None  # {"licznik", "plansza_niepusta", "ramki"} — do sprawdzenia na pierwszej klatce planszy
     po_ruchu = None  # plansza i reszta tacki po ostatnim ruchu — odczyt ekranu końca gry jest nakładką-śmieciem (#292)
 
     def write_row(entry):
         entry["t"] = round(time.time(), 3)
         log.write(json.dumps(entry) + "\n")
 
-    def windowed_entry(okno):
-        """Wpis okienkowy bez ruchu: liczy się do bezpiecznika postępu (#163), a po
-        osiągnięciu `PROGRESS_SAFEGUARD_TRIES` z rzędu kończy partię zamiast kręcić się
+    def windowed_entry(okno, twardy=False):
+        """Wpis okienkowy bez ruchu: liczy się do bezpiecznika postępu (#163). Gdy ciąg doszedłby do
+        `PROGRESS_SAFEGUARD_TRIES` (albo wywołujący żąda `twardy`), robimy jeden twardy restart apki
+        (#318) i liczymy ciąg od nowa; drugi taki ciąg bez ruchu kończy partię zamiast kręcić się
         bez końca (materiał #159: >130 wpisów `ustawienia_wstecz`/`reklama_interstitial`
         na stałym `n`, bo stary licznik zerował się na każdej nieokienkowej klatce)."""
-        nonlocal window_streak
+        nonlocal window_streak, hard_done, restart_pending
         window_streak += 1
         entry = {"n": n, "policy": policy.name, "board": grid,
                  "tray": [s[0] if s else None for s in slots], "score": score, "okno": okno}
-        if window_streak >= PROGRESS_SAFEGUARD_TRIES:
+        if not hard_done and (twardy or window_streak >= PROGRESS_SAFEGUARD_TRIES):
+            hard_done = True
+            window_streak = 0
+            entry.update(okno="restart_twardy", okno_przed_restartem=okno, licznik_przed=hud_przed)
+            if hard_restart_app():
+                po = read_score(screenshot())
+                entry["licznik_po"] = po
+                if hud_przed is not None and po is not None and po < hud_przed:
+                    entry.update(okno="restart_utracil_partie", end="okno: restart_utracil_partie")
+                else:
+                    restart_pending = {"licznik": hud_przed, "plansza_niepusta": plansza_niepusta, "ramki": 0}
+            else:
+                entry["end"] = "gra nie jest na pierwszym planie"
+        elif window_streak >= PROGRESS_SAFEGUARD_TRIES:
             entry["end"] = "okno: petla_bez_postepu"
         write_row(entry)
         log.flush()
-        print(f"okno: {okno}" + (f", {entry['end']}" if "end" in entry else ""), flush=True)
+        print(f"okno: {entry['okno']}" + (f", {entry['end']}" if "end" in entry else ""), flush=True)
         return entry
 
     last_ok = False
@@ -972,13 +1002,13 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
             continue
         if is_interactive_ad_screen(img):
             # #317: „wstecz" nie zamyka koła fortuny; stukamy „>>", a po K nieudanych próbach
-            # (wpisy okna z rzędu) restartujemy apkę zamiast kręcić się do bezpiecznika.
+            # (wpisy okna z rzędu) robimy twardy restart apki (#318; `restart_app` z otwartym oknem
+            # byłby no-opem) zamiast kręcić się do bezpiecznika.
             interactive_streak += 1
-            if interactive_streak > INTERACTIVE_AD_BACK_TRIES:
-                restart_app()
-            else:
+            twardy = interactive_streak > INTERACTIVE_AD_BACK_TRIES and not hard_done
+            if not twardy:
                 tap_interactive_close()
-            entry = windowed_entry("reklama_interaktywna")
+            entry = windowed_entry("reklama_interaktywna", twardy=twardy)
             if "end" in entry:
                 break
             img, grid, slots = stable_state()
@@ -1053,8 +1083,32 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
                 break
             tap_play()
             po_ruchu = None
+            plansza_niepusta = False
             img, grid, slots = stable_state()
             continue
+        if restart_pending is not None:
+            # #318: pierwsze klatki planszy po twardym restarcie — czy apka wróciła do tej samej partii.
+            # Pusta plansza z pustą tacką to klatka przejściowa (nie rozstrzygamy); pusta plansza z
+            # tacką to nowa partia.
+            nowa_plansza = not any(any(r) for r in grid) and any(slots)
+            maleje = (score is not None and restart_pending["licznik"] is not None
+                      and score < restart_pending["licznik"])
+            if maleje or (restart_pending["plansza_niepusta"] and nowa_plansza):
+                entry = {"n": n, "policy": policy.name, "board": grid,
+                         "tray": [s[0] if s else None for s in slots], "score": score,
+                         "okno": "restart_utracil_partie", "end": "okno: restart_utracil_partie",
+                         "licznik_przed": restart_pending["licznik"], "licznik_po": score}
+                write_row(entry)
+                log.flush()
+                print(entry["end"], flush=True)
+                break
+            restart_pending["ramki"] += 1
+            if score is not None or restart_pending["ramki"] >= RESTART_CHECK_FRAMES:
+                restart_pending = None
+        if restart_pending is None:
+            if score is not None:
+                hud_przed = score
+            plansza_niepusta = plansza_niepusta or any(any(r) for r in grid)
         board = Board()
         board.grid = [row[:] for row in grid]
         pieces = [Piece(s[0], f"slot{i}", -1) if s else None for i, s in enumerate(slots)]
@@ -1136,6 +1190,7 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
         no_move_streak = 0
         no_move_stan = None
         window_streak = 0
+        hard_done = False
         empty_streak = 0
         game = make_game_stub(board, pieces)
         t0 = time.perf_counter()

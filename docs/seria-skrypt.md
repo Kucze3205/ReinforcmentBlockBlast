@@ -32,11 +32,11 @@ z której pochodzi wartość.
 |---|---|---|
 | 0 | `cel` | licznik apki ≥ progu na stabilnej klatce (odczyty zgodne i spójne z poprzednim). Klatka niestabilna ≥ progu **nie** kończy — gra idzie dalej |
 | 1 | `przegrana` | ekran końca partii |
-| 2 | `przerwanie` | nieznane okno, `petla_bez_postepu`, `plansza_zawieszona`, apka nie wraca po restarcie, limit minut, wyjątek |
+| 2 | `przerwanie` | nieznane okno, `petla_bez_postepu`, `plansza_zawieszona`, `restart_utracil_partie`, apka nie wraca po restarcie, limit minut, wyjątek |
 | 3 | — | błąd argumentów |
 
 `przerwanie` nie liczy się do serii. `przyczyna` ∈ `nieznane_okno`, `petla_bez_postepu`, `plansza_zawieszona`,
-`apka_nie_wraca`, `limit_minut`, `brak_legalnego_ruchu_wg_odczytu` (most nie widzi legalnego ruchu), `brak_pliku_ruchow`,
+`restart_utracil_partie`, `apka_nie_wraca`, `limit_minut`, `brak_legalnego_ruchu_wg_odczytu` (most nie widzi legalnego ruchu), `brak_pliku_ruchow`,
 `pusty_plik_ruchow`, `wyjatek: ...`; pole `okno` niesie nazwę okna, jeśli było.
 
 ## `KATALOG/pomiar.json`
@@ -151,7 +151,13 @@ kończy się `koniec_partii`.
 | reklama wideo z „Skip” (`is_video_ad_screen`: czarna góra, szara pigułka, film) | `reklama_wideo` | stuka „Skip” (257, 34); przed `is_settings_screen`, bo ciemność myliła ją z Ustawieniami |
 | pusta tacka przy niepustej planszy (`tray_awaiting_deal`) | `tacka_pusta_przejsciowo` | jw. — nowa trójka jeszcze nie dosypana, pusta tacka nie jest końcem gry |
 
-Oba okna liczą się do bezpiecznika `PROGRESS_SAFEGUARD_TRIES` (12 z rzędu → `petla_bez_postepu`). Pusta tacka przy pustej
+Oba okna liczą się do bezpiecznika `PROGRESS_SAFEGUARD_TRIES` (12 z rzędu → `petla_bez_postepu`).
+
+**Twardy restart (#318).** Zanim bezpiecznik zakończy kawałek, most robi jeden `hard_restart_app` (`am force-stop` + `restart_app`; sam
+`restart_app` przy oknie w procesie apki jest no-opem) — też po `INTERACTIVE_AD_BACK_TRIES` nieudanych „>>” koła fortuny. Wpis ma
+`okno: restart_twardy`, `okno_przed_restartem`, `licznik_przed`, `licznik_po`; ciąg liczy od nowa, drugi ciąg bez ruchu → `petla_bez_postepu`.
+Licznik HUD po restarcie mniejszy niż przed, albo pusta plansza z tacką po niepustej → `okno: restart_utracil_partie` (`przerwanie`;
+nowa partia nie jest grana dalej, bo seria przyjęłaby jej licznik jako fałszywy cel). Ekran końca partii nie restartuje. Pusta tacka przy pustej
 planszy to nadal `plansza_pusta_przejsciowo`.
 
 **Licznik HUD.** `read_hud_score` najpierw próbuje maski ciemnych cyfr skórki oryginalnej (`bridge_digits.npz`), a gdy ta nie
