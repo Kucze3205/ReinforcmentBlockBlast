@@ -596,6 +596,15 @@ class TestSplashScreen(unittest.TestCase):
                     img = np.asarray(Image.open(os.path.join(s3, partia, "kawalek_1", n + ".png")).convert("RGB")).astype(int)
                     self.assertFalse(bridge.is_splash_screen(img))
 
+    def test_live_board_s3_partia8_is_not_splash_nor_home(self):
+        # #314: falszywy ekran_startowy na zywej planszy (granat, czerwone klocki w wierszach 0-1)
+        d = os.path.join(ROOT, "docs", "seria", "s3", "partia-8", "kawalek_3")
+        for n in ("007_state", "008_state", "009_state"):
+            with self.subTest(n=n):
+                img = np.asarray(Image.open(os.path.join(d, n + ".png")).convert("RGB")).astype(int)
+                self.assertFalse(bridge.is_splash_screen(img))
+                self.assertFalse(bridge.is_home_screen(img))
+
     def test_light_sky_board_is_not_home_screen(self):
         # #311: jasne niebo skorki w pasku stanu to nie launcher
         img = _load_s2("partia-2", "kawalek_2", "100_state.png")
