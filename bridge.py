@@ -103,6 +103,7 @@ MAIN_MENU_TILE_BOX = (66, 463, 254, 506)  # kafelek „Classic" (x0, y0, x1, y1)
 MAIN_MENU_TILE_FRAC = 0.5  # ile kafelka ma być teal: menu 0.85; klocki skórki teal na planszy najwyżej 0.02 (#294)
 TROPHY_GOLD_CENTER = 0.25  # is_trophy_overlay_screen: progi, patrz docstring
 TROPHY_GOLD_TEXT = 0.1
+TROPHY_GOLD_TEXT_MAX = 0.5
 TROPHY_GEM_PIXELS = 100
 CLASSIC_BUTTON = (160, 484)  # środek kafelka "Classic" na menu głównym, zmierzony na
 # bridge/runs/4a1796f/chunk4_003_menu_end.png (#204): maska koloru kafelka (teal, patrz
@@ -268,12 +269,14 @@ def is_trophy_overlay_screen(img):
 
     Trzy znaki naraz, bo każdy pojedynczo zdarza się w zwykłej grze (złoty klocek, napis pochwalny): złoto w środku
     planszy (`partia-10/kawalek_1/048_state.png`: 0.47; najwyżej 0.36 na innych zrzutach s1), złoto w pasie napisu
-    (0.19; inne najwyżej 0.34) i czerwony klejnot pod nim (ponad 100 px; klocki czerwone tam nie leżą razem ze złotem)."""
+    (0.19; inne najwyżej 0.34) i czerwony klejnot pod nim (ponad 100 px; klocki czerwone tam nie leżą razem ze złotem).
+    #328: skórka granatowa (s5) ma w pasie napisu żółte klocki żywej planszy (0.78 w `partia-2/kawalek_4/071_state.png`,
+    0.88 w `partia-8/kawalek_1/110_state.png`; napis to cienkie litery, 0.19), więc pas ma też górny próg."""
     r, g, b = img[..., 0], img[..., 1], img[..., 2]
     gold = (r > 200) & (g > 130) & (g < 225) & (b < 100) & (r - b > 120)
     gem = (r > 190) & (g < 90) & (b < 110) & (r - g > 100)
     return bool(gold[240:370, 100:220].mean() > TROPHY_GOLD_CENTER
-                and gold[168:198, 190:270].mean() > TROPHY_GOLD_TEXT
+                and TROPHY_GOLD_TEXT < gold[168:198, 190:270].mean() < TROPHY_GOLD_TEXT_MAX
                 and gem[262:300, 140:180].sum() > TROPHY_GEM_PIXELS)
 
 

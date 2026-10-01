@@ -84,6 +84,13 @@ class TestTrophyOverlay(unittest.TestCase):
                 img = np.asarray(Image.open(path).convert("RGB")).astype(int)
                 self.assertFalse(bridge.is_trophy_overlay_screen(img))
 
+    def test_negative_on_live_navy_skin_boards(self):
+        """#328: żywa plansza skórki granatowej (s5), przez reprezentację mostu: int, nie uint8."""
+        for rel in (("s5", "partia-2", "kawalek_4", "071_state.png"), ("s5", "partia-8", "kawalek_1", "110_state.png")):
+            with self.subTest(frame=rel):
+                img = np.asarray(Image.open(os.path.join(ROOT, "docs", "seria", *rel)).convert("RGB")).astype(int)
+                self.assertFalse(bridge.is_trophy_overlay_screen(img))
+
     def test_negative_on_menu_and_game_over(self):
         for frame in (MENU, ("1402cff", "chunk7_010_gameover_screen.png"), ("0d96333", "120_state.png")):
             with self.subTest(frame=frame):
