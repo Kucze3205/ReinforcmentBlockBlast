@@ -1,0 +1,115 @@
+{
+  "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+  "zakonczenie": "cel",
+  "przyczyna": null,
+  "okno": null,
+  "licznik_apki": {
+    "wartosc": 1002351,
+    "odczyty": [
+      1002351,
+      1002351
+    ],
+    "stabilny": true,
+    "zrzut": "licznik_32.png"
+  },
+  "licznik_odrzucone": [],
+  "wynik_wzor": 2606897,
+  "postawienia": 4800,
+  "minuty": 191.746,
+  "postawien_na_minute": 25.03,
+  "decision_ms": {
+    "mediana": 1.92,
+    "p95": 11.79,
+    "max": 92.82
+  },
+  "okna": [
+    {
+      "kawalek": 1,
+      "n": 6,
+      "okno": "restart",
+      "t": 1790833092.539
+    },
+    {
+      "kawalek": 1,
+      "n": 57,
+      "okno": "ustawienia_wstecz",
+      "t": 1790833224.866
+    },
+    {
+      "kawalek": 1,
+      "n": 83,
+      "okno": "tacka_pusta_przejsciowo",
+      "t": 1790833291.294
+    },
+    {
+      "kawalek": 2,
+      "n": 49,
+      "okno": "nakladka_better_than",
+      "t": 1790833577.889
+    },
+    {
+      "kawalek": 3,
+      "n": 22,
+      "okno": "nakladka_better_than",
+      "t": 1790833876.781
+    },
+    {
+      "kawalek": 3,
+      "n": 145,
+      "okno": "nakladka_better_than",
+      "t": 1790834165.866
+    },
+    {
+      "kawalek": 4,
+      "n": 102,
+      "okno": "nakladka_better_than",
+      "t": 1790834423.75
+    },
+    {
+      "kawalek": 5,
+      "n": 10,
+      "okno": "nakladka_better_than",
+      "t": 1790834567.039
+    },
+    {
+      "kawalek": 5,
+      "n": 85,
+      "okno": "nakladka_better_than",
+      "t": 1790834750.319
+    }
+  ],
+  "kawalki": [
+    "chunk1_moves.jsonl",
+    "chunk2_moves.jsonl",
+    "chunk3_moves.jsonl",
+    "chunk4_moves.jsonl",
+    "chunk5_moves.jsonl",
+    "chunk6_moves.jsonl",
+    "chunk7_moves.jsonl",
+    "chunk8_moves.jsonl",
+    "chunk9_moves.jsonl",
+    "chunk10_moves.jsonl",
+    "chunk11_moves.jsonl",
+    "chunk12_moves.jsonl",
+    "chunk13_moves.jsonl",
+    "chunk14_moves.jsonl",
+    "chunk15_moves.jsonl",
+    "chunk16_moves.jsonl",
+    "chunk17_moves.jsonl",
+    "chunk18_moves.jsonl",
+    "chunk19_moves.jsonl",
+    "chunk20_moves.jsonl",
+    "chunk21_moves.jsonl",
+    "chunk22_moves.jsonl",
+    "chunk23_moves.jsonl",
+    "chunk24_moves.jsonl",
+    "chunk25_moves.jsonl",
+    "chunk26_moves.jsonl",
+    "chunk27_moves.jsonl",
+    "chunk28_moves.jsonl",
+    "chunk29_moves.jsonl",
+    "chunk30_moves.jsonl",
+    "chunk31_moves.jsonl",
+    "chunk32_moves.jsonl"
+  ]
+}

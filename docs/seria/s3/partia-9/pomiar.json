@@ -1,0 +1,98 @@
+{
+  "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+  "zakonczenie": "cel",
+  "przyczyna": null,
+  "okno": null,
+  "licznik_apki": {
+    "wartosc": 1076151,
+    "odczyty": [
+      1076137,
+      1076144,
+      1076151,
+      1076151
+    ],
+    "stabilny": true,
+    "zrzut": "licznik_31.png"
+  },
+  "licznik_odrzucone": [],
+  "wynik_wzor": 1665292,
+  "postawienia": 4650,
+  "minuty": 227.707,
+  "postawien_na_minute": 20.42,
+  "decision_ms": {
+    "mediana": 2.5,
+    "p95": 15.72,
+    "max": 533.43
+  },
+  "okna": [
+    {
+      "kawalek": 1,
+      "n": 1,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790833093.787
+    },
+    {
+      "kawalek": 1,
+      "n": 59,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790833294.427
+    },
+    {
+      "kawalek": 2,
+      "n": 141,
+      "okno": "plansza_pusta_przejsciowo",
+      "t": 1790833978.905
+    },
+    {
+      "kawalek": 3,
+      "n": 37,
+      "okno": "nakladka_better_than",
+      "t": 1790834118.146
+    },
+    {
+      "kawalek": 3,
+      "n": 105,
+      "okno": "nakladka_better_than",
+      "t": 1790834320.951
+    },
+    {
+      "kawalek": 18,
+      "n": 37,
+      "okno": "brak_ruchu_ponowny_odczyt",
+      "t": 1790840679.321
+    }
+  ],
+  "kawalki": [
+    "chunk1_moves.jsonl",
+    "chunk2_moves.jsonl",
+    "chunk3_moves.jsonl",
+    "chunk4_moves.jsonl",
+    "chunk5_moves.jsonl",
+    "chunk6_moves.jsonl",
+    "chunk7_moves.jsonl",
+    "chunk8_moves.jsonl",
+    "chunk9_moves.jsonl",
+    "chunk10_moves.jsonl",
+    "chunk11_moves.jsonl",
+    "chunk12_moves.jsonl",
+    "chunk13_moves.jsonl",
+    "chunk14_moves.jsonl",
+    "chunk15_moves.jsonl",
+    "chunk16_moves.jsonl",
+    "chunk17_moves.jsonl",
+    "chunk18_moves.jsonl",
+    "chunk19_moves.jsonl",
+    "chunk20_moves.jsonl",
+    "chunk21_moves.jsonl",
+    "chunk22_moves.jsonl",
+    "chunk23_moves.jsonl",
+    "chunk24_moves.jsonl",
+    "chunk25_moves.jsonl",
+    "chunk26_moves.jsonl",
+    "chunk27_moves.jsonl",
+    "chunk28_moves.jsonl",
+    "chunk29_moves.jsonl",
+    "chunk30_moves.jsonl",
+    "chunk31_moves.jsonl"
+  ]
+}
