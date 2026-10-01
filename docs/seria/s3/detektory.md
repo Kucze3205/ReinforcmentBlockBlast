@@ -20,3 +20,11 @@ Klatek z ruchem: s1 512, s2 182, s3 61 (doszły partie 4, 6, 8). Trafienia wszys
 Partia 8 `kawalek_3` (fałszywy `ekran_startowy` od `n=9`, grała na `a5cd123`, bez #311): wszystkie klatki
 `000–009_state.png` dają `is_splash_screen` = `is_home_screen` = `False`, w tym 009. Klatka 009 nie ma ruchu, więc
 pilnuje jej test `test_live_board_s3_partia8_is_not_splash_nor_home`. `bridge.py` bez zmian.
+
+## Cykl 49 (#321)
+
+Klatek z ruchem: s1 512, s2 182, s3 258, s4 187 (`SERIE` w `tools/detektory_na_planszy.py` obejmuje teraz s4). Trafienia
+wszystkich `is_*_screen`: 0/0/0/0. Jedyne trafienie (`is_ad_screen` na s4 partia-4 `067_state.png`) to prawdziwa reklama
+wideo po ruchu (następny wpis `reklama_wideo`); narzędzie pomija klatki, po których następny wpis to `reklama_*`.
+Koło fortuny z X (s4 p.4 `068_state.png`, `final.png`; p.6 `final.png`): `is_interactive_ad_screen` = True, `bridge.py`
+bez zmian; `INTERACTIVE_AD_CLOSE` leży na kółku X (s4) i na >> (s3). Test: `tests/test_bridge_reklama_interaktywna.py`.

@@ -16,7 +16,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 import bridge  # noqa: E402
 
-SERIE = ("s1", "s2", "s3")
+SERIE = ("s1", "s2", "s3", "s4")
 
 
 def detektory():
@@ -30,13 +30,16 @@ def klatki_z_ruchem(seria_dir):
         partia = os.path.dirname(moves)
         k = re.search(r"chunk(\d+)_moves", moves).group(1)
         with open(moves) as f:
-            for line in f:
-                e = json.loads(line)
-                if e.get("move") is None or "n" not in e:
-                    continue
-                p = os.path.join(partia, "kawalek_" + k, "%03d_state.png" % e["n"])
-                if os.path.exists(p):
-                    yield p
+            wpisy = [json.loads(line) for line in f]
+        for i, e in enumerate(wpisy):
+            if e.get("move") is None or "n" not in e:
+                continue
+            # po ruchu mogla wejsc prawdziwa reklama (nastepny wpis `reklama_*`): ta klatka nie jest plansza
+            if i + 1 < len(wpisy) and str(wpisy[i + 1].get("okno", "")).startswith("reklama"):
+                continue
+            p = os.path.join(partia, "kawalek_" + k, "%03d_state.png" % e["n"])
+            if os.path.exists(p):
+                yield p
 
 
 def main(argv):

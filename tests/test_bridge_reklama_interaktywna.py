@@ -58,6 +58,35 @@ def _run(first_img, after_imgs, patches, max_moves=1):
     return [json.loads(c.args[0]) for c in m_open().write.call_args_list], started
 
 
+S4_FRAMES = [os.path.join(ROOT, "docs", "seria", "s4", *p.split("/")) for p in (
+    "partia-4/kawalek_7/068_state.png", "partia-4/kawalek_7/final.png", "partia-6/kawalek_4/final.png")]
+
+
+class TestInteractiveAdCloseVariantX(unittest.TestCase):
+    """#321: s4 p.4 i p.6 mają jasnoszare kółko z „X" zamiast ciemnego „>>"; detektor i punkt stuknięcia
+    muszą obejmować oba warianty."""
+
+    def _patch(self, img):
+        x, y = bridge.INTERACTIVE_AD_CLOSE
+        return img[y - 3:y + 4, x - 3:x + 4].reshape(-1, 3).mean(axis=0)
+
+    def test_s4_x_variant_detected_before_settings(self):
+        for p in S4_FRAMES:
+            with self.subTest(p=p):
+                img = _load(p)
+                self.assertTrue(bridge.is_interactive_ad_screen(img))
+                # pętla sprawdza reklamę interaktywną przed `is_settings_screen`, więc przejęcie jest wykluczone
+                self.assertFalse(bridge.is_settings_screen(img) and not bridge.is_interactive_ad_screen(img))
+
+    def test_close_point_on_x_and_on_double_arrow(self):
+        for p in S4_FRAMES + [os.path.join(K18, "035_state.png")]:
+            with self.subTest(p=p):
+                img = _load(p)
+                x, y = bridge.INTERACTIVE_AD_CLOSE
+                self.assertGreater(np.abs(img[y, x] - 51).max(), 3)
+                self.assertGreater(np.abs(self._patch(img) - 51).max(), 50)
+
+
 class TestInteractiveAdDetector(unittest.TestCase):
     def test_positive_and_not_settings(self):
         for name in ("035_state.png", "final.png"):
