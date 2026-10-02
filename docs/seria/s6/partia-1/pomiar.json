@@ -1,0 +1,221 @@
+{
+  "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+  "zakonczenie": "przerwanie",
+  "przyczyna": "petla_bez_postepu",
+  "okno": "nakladka_better_than",
+  "licznik_apki": {
+    "wartosc": 785683,
+    "odczyty": [
+      785683,
+      785683
+    ],
+    "stabilny": true,
+    "zrzut": "licznik_5.png"
+  },
+  "licznik_odrzucone": [],
+  "wynik_wzor": 377956,
+  "postawienia": 791,
+  "minuty": 33.443,
+  "postawien_na_minute": 24.47,
+  "decision_ms": {
+    "mediana": 2.06,
+    "p95": 15.32,
+    "max": 59.37
+  },
+  "okna": [
+    {
+      "kawalek": 1,
+      "n": 10,
+      "okno": "restart",
+      "t": 1790902147.533
+    },
+    {
+      "kawalek": 1,
+      "n": 97,
+      "okno": "tacka_pusta_przejsciowo",
+      "t": 1790902385.802
+    },
+    {
+      "kawalek": 2,
+      "n": 23,
+      "okno": "nakladka_better_than",
+      "t": 1790902579.149
+    },
+    {
+      "kawalek": 2,
+      "n": 47,
+      "okno": "nakladka_better_than",
+      "t": 1790902638.023
+    },
+    {
+      "kawalek": 2,
+      "n": 70,
+      "okno": "nakladka_better_than",
+      "t": 1790902692.741
+    },
+    {
+      "kawalek": 2,
+      "n": 86,
+      "okno": "nakladka_better_than",
+      "t": 1790902732.003
+    },
+    {
+      "kawalek": 2,
+      "n": 113,
+      "okno": "nakladka_better_than",
+      "t": 1790902801.71
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "nakladka_better_than",
+      "t": 1790904037.432
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "nakladka_better_than",
+      "t": 1790904039.279
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "nakladka_better_than",
+      "t": 1790904041.142
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "nakladka_better_than",
+      "t": 1790904042.97
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "nakladka_better_than",
+      "t": 1790904044.872
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "nakladka_better_than",
+      "t": 1790904046.728
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "nakladka_better_than",
+      "t": 1790904048.564
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "nakladka_better_than",
+      "t": 1790904050.426
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "nakladka_better_than",
+      "t": 1790904052.296
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "nakladka_better_than",
+      "t": 1790904054.137
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "nakladka_better_than",
+      "t": 1790904055.991
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "restart_twardy",
+      "t": 1790904080.722
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "nakladka_better_than",
+      "t": 1790904082.573
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "nakladka_better_than",
+      "t": 1790904084.449
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "nakladka_better_than",
+      "t": 1790904086.353
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "nakladka_better_than",
+      "t": 1790904088.236
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "nakladka_better_than",
+      "t": 1790904090.144
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "nakladka_better_than",
+      "t": 1790904092.028
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "nakladka_better_than",
+      "t": 1790904093.923
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "nakladka_better_than",
+      "t": 1790904095.793
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "nakladka_better_than",
+      "t": 1790904097.707
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "nakladka_better_than",
+      "t": 1790904099.676
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "nakladka_better_than",
+      "t": 1790904101.587
+    },
+    {
+      "kawalek": 6,
+      "n": 41,
+      "okno": "nakladka_better_than",
+      "t": 1790904103.471
+    }
+  ],
+  "kawalki": [
+    "chunk1_moves.jsonl",
+    "chunk2_moves.jsonl",
+    "chunk3_moves.jsonl",
+    "chunk4_moves.jsonl",
+    "chunk5_moves.jsonl",
+    "chunk6_moves.jsonl"
+  ]
+}
