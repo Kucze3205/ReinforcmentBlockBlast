@@ -1,0 +1,81 @@
+{
+  "polityka": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000",
+  "zakonczenie": "cel",
+  "przyczyna": null,
+  "okno": null,
+  "licznik_apki": {
+    "wartosc": 1453192,
+    "odczyty": [
+      1453192,
+      1453192
+    ],
+    "stabilny": true,
+    "zrzut": "licznik_16.png"
+  },
+  "licznik_odrzucone": [],
+  "wynik_wzor": 697147,
+  "postawienia": 2400,
+  "minuty": 94.638,
+  "postawien_na_minute": 25.38,
+  "decision_ms": {
+    "mediana": 1.97,
+    "p95": 12.52,
+    "max": 63.99
+  },
+  "okna": [
+    {
+      "kawalek": 1,
+      "n": 0,
+      "okno": "brak_ruchu_ponowny_odczyt",
+      "t": 1790902145.625
+    },
+    {
+      "kawalek": 1,
+      "n": 110,
+      "okno": "ustawienia_wstecz",
+      "t": 1790902426.507
+    },
+    {
+      "kawalek": 2,
+      "n": 44,
+      "okno": "nakladka_better_than",
+      "t": 1790902637.7
+    },
+    {
+      "kawalek": 2,
+      "n": 68,
+      "okno": "nakladka_better_than",
+      "t": 1790902699.737
+    },
+    {
+      "kawalek": 2,
+      "n": 93,
+      "okno": "nakladka_better_than",
+      "t": 1790902759.519
+    },
+    {
+      "kawalek": 2,
+      "n": 129,
+      "okno": "nakladka_better_than",
+      "t": 1790902844.909
+    }
+  ],
+  "kawalki": [
+    "chunk1_moves.jsonl",
+    "chunk2_moves.jsonl",
+    "chunk3_moves.jsonl",
+    "chunk4_moves.jsonl",
+    "chunk5_moves.jsonl",
+    "chunk6_moves.jsonl",
+    "chunk7_moves.jsonl",
+    "chunk8_moves.jsonl",
+    "chunk9_moves.jsonl",
+    "chunk10_moves.jsonl",
+    "chunk11_moves.jsonl",
+    "chunk12_moves.jsonl",
+    "chunk13_moves.jsonl",
+    "chunk14_moves.jsonl",
+    "chunk15_moves.jsonl",
+    "chunk16_moves.jsonl"
+  ]
+}
