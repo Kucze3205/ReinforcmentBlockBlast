@@ -322,8 +322,8 @@ regresji: `docs/seria/s6/przegrane.md`, sekcja „Po #339 i naprawie”; `bridge
 ## Ponowny odczyt przy `ok: false` (#351)
 
 Most po ruchu z `ok: false` czyta planszę ponownie co 0,2 s (zrzut → `read_board`/`read_tray` → `drop_banner_ghosts` →
-`drop_banner_text` → porównanie z `expected`), aż zgodność albo `PONOWNY_ODCZYT_LIMIT` (5 s, **tymczasowy**, górna granica
-z #345; do potwierdzenia pomiarem `bridge/runs/*/napis-czas.md`). Po limicie decyduje ostatni odczyt (ekran wygrywa).
+`drop_banner_text` → porównanie z `expected`), aż zgodność albo `PONOWNY_ODCZYT_LIMIT` (5 s; pomiar #350, `bridge/runs/a9fdeb1/napis-czas.md`:
+napis wisi najdłużej 2,0 s, 2,64 s do stabilnego odczytu, po 3 s w żadnej z 80 serii; zapas ok. 2x). Po limicie decyduje ostatni odczyt (ekran wygrywa).
 `plansza_bez_zmian`, `board_stuck_streak` i `ok_streak` liczą się z ostatniego odczytu.
 
 Pola wpisu (tylko przy `ok: false` na pierwszym odczycie): `ponowny_odczyt: {"proby": N, "czekanie_ms": T, "zgodny": bool}`
