@@ -14,7 +14,7 @@ python3 tools/partia_serii.py POLITYKA KATALOG [--limit-minut 300] [--prog 10000
 | `POLITYKA` | napis specyfikacji jak `argv[2]` mostu (np. `greedy`) |
 | `KATALOG` | katalog wyjściowy (tworzony) |
 | `--limit-minut` | limit czasu partii (zegar ścienny od startu skryptu; sprawdzany między kawałkami) |
-| `--prog` | próg licznika apki, domyślnie 1 000 000 |
+| `--prog` | próg licznika apki, domyślnie 1 000 000; most dostaje go jako `bridge.main(..., prog=)` (#347) |
 | `--kawalek` | ruchów w jednym wywołaniu mostu, domyślnie 150 |
 
 Gra kawałkami przez `bridge.main(..., seria=True)` (ścieżka ruchu z `docs/most-tempo.md`, ta sama obsługa znanych
@@ -44,18 +44,41 @@ Kotwica nadal przesuwa się tylko na odczycie stabilnym (dwa zgodne odczyty).
 z `chunk*_moves.jsonl` i podaje maksimum licznika oraz pierwszy kawałek i `n`, od których licznik ≥ 1 mln utrzymał się przez ≥ 3
 kolejne wpisy, i czy wcześniej był `koniec_partii`. Nie zmienia `pomiar.json`.
 
+**Koniec kawałka tuż po 1 mln (#347).** Od s7 seria zalicza się tylko przy 10/10 partii do 1 mln w jednej serii, a przegrana po
+niezauważonym 1 mln skreśla serię (#345), więc partia nie może grać dalej po przekroczeniu progu. Most w trybie serii (`prog` ≠ `None`) czyta
+licznik HUD przed każdym ruchem (`score` we wpisie) i, gdy `PROG_ODCZYTY` = 3 kolejne odczyty są ≥ progu (`bridge.ProgLicznika`;
+odczyt `None` nie liczy się ani nie przerywa, odczyt < progu zeruje ciąg — wzór `tools/licznik_ponownie.py`, `MIN_WPISOW` = 3), kończy kawałek wpisem
+`{"n", "score", "stop_prog": PROG}` bez `end`. Trzy odczyty, bo jedna zła klatka ≥ progu (np. dopisana cyfra) nie może przerwać kawałka, a
+przekroczenie progu wykryje się najpóźniej po dwóch ruchach od pierwszego odczytu ≥ progu. `partia_serii` robi wtedy zwykłe potwierdzenie
+(`read_stable_counter` + `counter_consistent`): udane → `cel`; nieudane → partia gra dalej, a **następny** kawałek idzie bez progu w moście
+(pełne 150 ruchów, jak przed #347), po nim próg wraca. Każdy taki stop jest w `pomiar.json` w `stop_prog`.
+
+*Dlaczego s6 p.4 nie skończyła się po kawałku 15:* `score` w logu przekroczył 1 mln przy n=63, ale kawałek trwał do n=149, a odczyt po kawałku
+(`licznik_15.png`, 1 131 547) różni się od ostatniego wpisu logu (1 130 636) — licznik jeszcze się animował. `licznik_odrzucone` jest puste, więc odczyt nie
+został odrzucony jako niespójny; skoro `licznik_15.png` istnieje (zapisywany tylko dla odczytu ≠ `None`), a `cel` nie padł, odczyt był **niestabilny**
+(dwa ostatnie z ≤ 6 odczytów nie zgodziły się), a stabilny dopiero po kawałku 16 (1 453 192). Wniosek wynika z artefaktów; odczytów kawałka 15
+`pomiar.json` nie przechowuje. Stop w moście usuwa tę lukę o ok. 85 ruchów (przy n=65 zamiast po n=149).
+*s4 p.1 i p.8:* tam kotwica `counter_consistent` utknęła (25 662 i 107 069), więc każdy odczyt trafiał do `licznik_odrzucone` — to przypadek naprawiony regułą
+#324/#336 (granica przyrostu rośnie z liczbą postawień), nie lukę tego zadania; reguła je pokrywa (`docs/seria/licznik-ponownie.md`).
+
 ## Kody wyjścia i `zakonczenie`
 
 | kod | `zakonczenie` | kiedy |
 |---|---|---|
 | 0 | `cel` | licznik apki ≥ progu na stabilnej klatce (odczyty zgodne i spójne z poprzednim). Klatka niestabilna ≥ progu **nie** kończy — gra idzie dalej |
-| 1 | `przegrana` | ekran końca partii |
+| 1 | `przegrana` | ekran końca partii; albo `petla_bez_postepu`/`plansza_zawieszona` po oknach po grze (`przyczyna: koniec_po_oknach`, niżej) |
 | 2 | `przerwanie` | nieznane okno, `petla_bez_postepu`, `plansza_zawieszona`, `restart_utracil_partie`, apka nie wraca po restarcie, limit minut, wyjątek |
 | 3 | — | błąd argumentów |
 
 `przerwanie` nie liczy się do serii. `przyczyna` ∈ `nieznane_okno`, `petla_bez_postepu`, `plansza_zawieszona`,
 `restart_utracil_partie`, `apka_nie_wraca`, `limit_minut`, `brak_legalnego_ruchu_wg_odczytu` (most nie widzi legalnego ruchu), `brak_pliku_ruchow`,
 `pusty_plik_ruchow`, `wyjatek: ...`; pole `okno` niesie nazwę okna, jeśli było.
+
+**Koniec po oknach po grze (#347).** Gdy most kończy `petla_bez_postepu` albo `plansza_zawieszona`, `partia_serii.koniec_po_oknach(rows)` ogląda ogon logu
+(wiersze od końca do ostatniego ruchu `ok` ze zmienioną planszą, najwyżej `OGON_MAX` = 60). Jeśli w ogonie jest okno `reklama_*` albo
+`brak_ruchu_ponowny_odczyt`, partia jest `przegrana` z `przyczyna: koniec_po_oknach`, kodem 1, `okno` z mostu i `przyczyna_mostu` (`petla_bez_postepu`/`plansza_zawieszona`);
+inaczej zostaje `przerwanie`. Sama `tacka_pusta_przejsciowo` nie wystarcza (s6 p.5: żywa plansza z pustą tacką). Podstawa: `docs/seria/s4/konce.md`.
+Test na logach ostatnich kawałków: przegrane s4 p.1, p.4, p.6, p.10, s3 p.3; przerwania s3 p.1, s5 p.2, s6 p.1, s6 p.5 (`tests/test_partia_serii.py`).
 
 ## `KATALOG/pomiar.json`
 
@@ -75,7 +98,8 @@ Zapisywany atomowo (plik `.tmp` + `os.replace`) po każdym kawałku i na końcu.
 | `decision_ms` | `{mediana, p95, max}` |
 | `okna` | lista zatrzymań: `{kawalek, n, okno, t}` (`okno: "restart"` dla restartu apki) |
 | `kawalki` | pliki ruchów `chunkN_moves.jsonl` w `KATALOG` (format `docs/most-zapis-ruchow.md`) |
-| `ostatnie_ruchy`, `wynik_koncowy`, `zrzut_konca` | tylko `przegrana`: plansza i tacki z ostatnich 5 ruchów, wynik z ekranu końca, zrzut (ścieżka względem `KATALOG`) |
+| `ostatnie_ruchy`, `wynik_koncowy`, `zrzut_konca` | tylko `przegrana`: plansza i tacki z ostatnich 5 ruchów, wynik z ekranu końca, zrzut (ścieżka względem `KATALOG`); przy `koniec_po_oknach` są `ostatnie_ruchy` i `przyczyna_mostu`, bez ekranu końca |
+| `stop_prog` | stopy mostu po przekroczeniu progu (#347): `{kawalek, n, licznik, potwierdzony}` |
 
 Reszta artefaktów: `kawalek_K/` (zrzuty mostu: `NNN_state.png`, `NNN_aim.png`, `NNN_end.png`, `final.png`).
 

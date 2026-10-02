@@ -79,3 +79,7 @@ git checkout origin/task/340 -- docs/seria/s6      # tylko do odczytu (niecommit
 python3 tools/duchy_serii.py
 python3 tools/licznik_ponownie.py --tabela docs/seria/s6/partia-4 docs/seria/s6/partia-6 docs/seria/s6/partia-7 docs/seria/s6/partia-9
 ```
+
+## Wdrożone w #347
+Propozycje 1–2 weszły do `tools/partia_serii.py` (`koniec_po_oknach`, `przyczyna: koniec_po_oknach`, kod 1); opis i test na logach: `docs/seria-skrypt.md`. Wyjątek: sama
+`tacka_pusta_przejsciowo` nie wystarcza (s6/5), potrzebna `reklama_*` albo `brak_ruchu_ponowny_odczyt`. Propozycje 3–5 (most, przeliczenie serii) bez zmian.
