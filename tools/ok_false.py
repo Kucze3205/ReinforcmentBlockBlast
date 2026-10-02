@@ -13,6 +13,11 @@ Przechodzi po `docs/seria/s*/partia-*/chunk*_moves.jsonl` i każdy wpis z ruchem
 Osobna kolumna `ruch_nieprzyjety` liczy wpisy, w których `observed` == `board` (plansza się nie ruszyła).
 Dla pierwszej grupy liczy, w ilu przypadkach duch dotrwał do decyzji następnego ruchu (kolejny wpis z ruchem w tym samym
 pliku ma te pola w `board`) i w ilu przypadkach ruch potwierdza tacka tego następnego wpisu (`tray_consumed`).
+
+    python3 tools/ok_false.py --podgrupy [--decyzje | --przyklady]   (#335)
+
+Trzy pozostałe grupy dzieli na podgrupy mechanizmu (nazwa wpisu albo etykiety pól; patrz niżej i `docs/seria/ok-false.md`),
+z `--decyzje` liczy, czy polityka rekordu zmienia ruch na planszy z odczytu vs z `expected`, z `--przyklady` wypisuje zrzuty.
 """
 import argparse
 import glob
