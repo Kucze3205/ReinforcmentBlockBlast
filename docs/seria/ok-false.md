@@ -249,3 +249,65 @@ Zbiorczo:
   naprawić ją tym samym narzędziem co #333: przy ruchu potwierdzonym przez tackę brać `expected` w polach różnicy leżących w wierszach 3–5 (i w środku planszy dla `serce`), a osobno
   `plansza_bez_zmian` (169 wpisów, 35 ruchów nielegalnych): gdy tacka potwierdza ruch, a `observed == board`, brać `expected`. Każdą regułę najpierw zmierzyć na zrzutach
   (`tools/porownanie_odczytu.py`) i na echu z tej tabeli, bo `klocek_obok_celu` i `inny_klocek` pokazują, że `expected` bywa błędne.
+
+## Napis „Perfect!" / „Combo N" na środku planszy (#339)
+
+`python3 tools/ok_false.py --napis` (s1–s5; testy w `tests/test_bridge_banner.py`). Poprawka: `bridge.drop_banner_text`.
+
+### Reguła
+
+Napis wisi na wierszach 3–5, nie w linii wyczyszczonej, więc `drop_banner_ghosts` go nie łapie. Glify mają kolory klocków
+(białe i różowe wypełnienie, czerwony i pomarańczowy obrys, żółte cyfry), więc **po kolorze pojedynczego piksela nie da się ich
+odróżnić** od klocków skórki (droga (a) odpadła). Dowodem z ekranu jest rozrzut koloru w oknie 21x21 px wokół środka komórki
+(`bridge.cell_flatness`: największa po kanałach różnica 95. i 5. percentyla): ściana klocka i puste pole mają tam stały kolor,
+napis, serce Combo i ikony nagrody nie.
+
+- Zmierzone na 24 zrzutach z podgrupą `napis` w s1–s6 (komórki różnicy): napis, serce i ikony **162–255**, a komórki różnicy bez nakładki
+  (echo, zrzuty bez napisu) **0–9**. Próg `NAPIS_ROZRZUT = 100` leży w środku tej przerwy. Wśród komórek wpisów `ok: true` 99% ma rozrzut <= 44.
+- Gdy tacka potwierdza przyjęcie ruchu (`tray_consumed`), w pola różnicy `observed` vs `expected`, które leżą w wierszach 3–5 **i** mają rozrzut
+  >= `NAPIS_ROZRZUT`, wchodzi `expected`. Pole różnicy bez nakładki zostaje takie, jak je widać (echo: `dawny_duch`, `zakryte_wraca`).
+- Wpis logu ma surowe `observed`, `ok` liczone po poprawce i nowe pole `napis` (lista poprawionych pól), tak jak `duchy` z #333.
+- Reguła idzie po `drop_banner_ghosts` i nie zmienia przypadku duchów w liniach wyczyszczonych (tam różnica znika już w pierwszym kroku).
+- Odrzucone: (b) ponowny odczyt po czekaniu (nie do sprawdzenia bez emulatora; `stable_state` pokazuje, że napis stoi dłużej niż dwa odczyty);
+  (c) `expected` według samej geometrii (wiersze 3–5 + tacka) — wstawiłoby z powrotem echo.
+
+### Pomiar na s1–s5
+
+Wpisy `ok: false` według klas: `napis` = podgrupa z etykietą `napis` (640 wpisów w trzech grupach, jak w #335), `echo` = `odczyt_bledny=nie`
+(1425), `inne`, `duchy` (#333). Reguła wymaga zrzutu, a ten jest tylko dla małej części wpisów; **pozostałe nie są zmierzone**
+(nie ma tam obrazu, więc nie wiadomo, czy napis jest).
+
+| klasa wpisu | wpisy ok:false | ze zrzutem | zmienione przez regułę | po zmianie plansza == expected | zmienione pola |
+|---|---|---|---|---|---|
+| napis | 640 | 29 | 19 | 16 | 45 |
+| echo | 1425 | 43 | 1 | 1 | 2 |
+| inne | 594 | 45 | 8 | 1 | 29 |
+| duchy | 871 | 30 | 0 | 0 | 0 |
+
+- **`napis`: 19 ze 29 wpisów ze zrzutem reguła zmienia, w 16 plansza zgadza się po tym z `expected`** (tabela pól w `--napis`). Pozostałe 10 wpisów
+  ze zrzutem: 9 nie ma nakładki na ekranie (rozrzut pól różnicy 0–4): etykieta `napis` jest tam z geometrii (wiersze 3–5), a przyczyną jest echo albo ekran
+  spoza planszy (np. `s1/partia-5/kawalek_2/115`, `s3/partia-3/kawalek_18/034`) — reguła ich nie rusza, i słusznie. Dziesiąty (`s4/partia-6/kawalek_4/090` n = 89,
+  rozrzut 204) ma nakładkę, ale tacka ze zrzutu nie potwierdza przyjęcia ruchu, więc zostaje odczyt z ekranu. Trzy z 19 zmienionych dalej mają `ok: false`
+  (`s1/partia-10/kawalek_1/048`, `s3/partia-3/kawalek_18/033`, `s5/partia-8/kawalek_1/069`): reszta różnicy leży poza wierszami 3–5 (serce, echo).
+- **`echo`: 1 wpis ze zrzutem z 43 zmienia reguła** (cel: 0): `s5/partia-9/kawalek_7/050` n = 49 (`zakryte_wraca`, pola (4,3),(4,5)). Obejrzany: na zrzucie wisi „Combo 17"
+  na wierszach 3–4, a (4,3) i (4,5) są pod nim, więc to wpis z prawdziwym napisem i etykieta echa pochodzi z historii wpisów, nie z ekranu; po zmianie plansza == `expected`.
+  Test negatywny z kryteriów (`s5/partia-5/kawalek_7/050` n = 49, `dawny_duch+zakryte_wraca`) zostaje bez zmian, tak samo cała reszta wpisów `klocek_obok_celu` i `dawny_duch`.
+- **`inne`: 8 wpisów ze zrzutem zmienia reguła, bo nakładka jest nie tylko napisem.** Cztery to `plansza_bez_zmian` i jeden `inny_klocek` — ikony kciuka (efekt nagrody) na świeżo
+  postawionym klocku w wierszach 3–5; wstawiony `expected` jest tam zgodny z ekranem i z tacką (jeden wpis dochodzi do `ok`), ale to **efekt uboczny**, nie cel zadania
+  (`plansza_bez_zmian` dalej nie ma własnej reguły: ikony poza wierszami 3–5 nie są ruszone). Dwa to `serce` animacji „Combo N" (poprawione tylko pola w wierszach 3–5, reszta serca
+  zostaje, bo leży w wierszach 1–2 i 6), jeden to ekran koła fortuny (`s4/partia-4/kawalek_7/068`, nie plansza: pętla mostu rozpoznaje go jako okno przy następnym wpisie).
+- **`duchy`: 0 zmian**, jak trzeba.
+
+### Przypadki utraty ułożenia tacki
+
+Z 8 przypadków `odczyt_bez_ulozenia_a_expected_ma` z #335: wpis 38 s5 p.7 usuwa już #333. Z 6 `napis` mają zrzut stanu 2:
+`s4/partia-1/chunk22` n = 54 — **znika** (plansza po poprawce ma ułożenie tacki); `s3/partia-3/chunk18` n = 33 — **zostaje**: zrzut (`034_state.png`) nie ma napisu (rozrzut 0–9), to echo
+pod etykietą `napis`. Cztery pozostałe (`s4/partia-10/chunk8` n = 45, `s4/partia-8/chunk7` n = 123, `s5/partia-9/chunk10` n = 65, `s5/partia-9/chunk13` n = 44) nie mają zrzutu w materiale,
+więc nie da się ich zmierzyć. Przypadek echa (`s4/partia-10/chunk16` n = 27) zostaje bez zmian, jak ma być (reguła go nie rusza). **Zmierzone: znika 1 z 2 mierzalnych `napis`;
+4 niemierzalne; do następnej serii** (w logu pole `napis` pokaże, kiedy reguła zadziałała).
+
+### Regresja odczytu (pułapka 28)
+
+`read_board`, `read_tray` i `is_block` nie zostały zmienione. `tools/porownanie_odczytu.py` (`compare_state`) na 2405 stanach `*_state.png` z `docs/seria` (w tym 2090 z s1–s5, z 279 stanami z różnicą,
+tyle samo co w #333) przed zmianą (HEAD~1) i po niej daje **te same** listy pól i slotów (porównanie plik do pliku): nowych różnic nie ma.
+`tools/detektory_na_planszy.py` zielony.
