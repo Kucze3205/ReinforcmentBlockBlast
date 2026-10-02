@@ -34,6 +34,13 @@ def _load(*parts):
     return np.asarray(Image.open(os.path.join(RUNS, *parts)).convert("RGB")).astype(int)
 
 
+
+def setUpModule():
+    # #351: atrapy mostu nie mają zrzutów do ponownego odczytu po `ok: false` — pętlę wyłączamy limitem 0
+    p = mock.patch("bridge.PONOWNY_ODCZYT_LIMIT", 0)
+    p.start()
+    unittest.addModuleCleanup(p.stop)
+
 class TestIsBlockDarkGreen(unittest.TestCase):
     """#169 punkt 1: `chunk9_stuck_low_saturation_green.png` — plansza naprawdę pusta, tacka
     z 3 ciemnozielonymi klockami (RGB (74,142,66), (74,146,66), (41,97,41): rozpiętość

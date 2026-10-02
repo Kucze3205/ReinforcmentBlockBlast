@@ -256,6 +256,8 @@ class TestBridgePrzedKoncem(unittest.TestCase):
         with mock.patch("bridge.OUT", tmp), \
              mock.patch("bridge.settled_state", return_value=(img, EMPTY, slots)), \
              mock.patch("bridge.stable_state", return_value=(img, EMPTY, slots)), \
+             mock.patch("bridge.PONOWNY_ODCZYT_LIMIT", 0), mock.patch("bridge.screenshot", return_value=img), \
+             mock.patch("bridge.read_board", return_value=EMPTY), mock.patch("bridge.read_tray", return_value=slots), \
              mock.patch("bridge.read_score", return_value=100), \
              mock.patch("bridge.in_game", return_value=True), \
              mock.patch("bridge.drag", return_value=({"finger": [0, 0]}, img)), \

@@ -52,6 +52,13 @@ TROPHY = ("partia-10", "kawalek_1", "048_state.png")
 MENU = ("4a1796f", "chunk4_003_menu_end.png")
 
 
+
+def setUpModule():
+    # #351: atrapy mostu nie mają zrzutów do ponownego odczytu po `ok: false` — pętlę wyłączamy limitem 0
+    p = mock.patch("bridge.PONOWNY_ODCZYT_LIMIT", 0)
+    p.start()
+    unittest.addModuleCleanup(p.stop)
+
 class TestMainMenuVsTealSkin(unittest.TestCase):
     def test_teal_skin_boards_are_not_the_main_menu(self):
         for frame in (TEAL, TEAL_6, ("partia-4", "kawalek_1", "final.png"), ("partia-6", "kawalek_1", "final.png"),

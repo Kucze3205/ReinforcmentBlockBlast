@@ -44,7 +44,7 @@ def _run(first_img, after_imgs, patches, max_moves=1):
 
     with mock.patch("bridge.settled_state", return_value=(first_img, empty, [None, None, None])), \
          mock.patch("bridge.stable_state", side_effect=stable), \
-         mock.patch("bridge.in_game", return_value=True), \
+         mock.patch("bridge.PONOWNY_ODCZYT_LIMIT", 0), mock.patch("bridge.in_game", return_value=True), \
          mock.patch("bridge.read_score", return_value=None), \
          mock.patch("bridge.drag", return_value=({"finger": [0, 0]}, after_imgs[-1])), \
          mock.patch("bridge.annotate"), mock.patch("PIL.Image.Image.save"), \
@@ -60,6 +60,7 @@ def _run(first_img, after_imgs, patches, max_moves=1):
 
 S4_FRAMES = [os.path.join(ROOT, "docs", "seria", "s4", *p.split("/")) for p in (
     "partia-4/kawalek_7/068_state.png", "partia-4/kawalek_7/final.png", "partia-6/kawalek_4/final.png")]
+
 
 
 class TestInteractiveAdCloseVariantX(unittest.TestCase):

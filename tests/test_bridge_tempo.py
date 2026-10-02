@@ -56,6 +56,13 @@ def _is_screencap(c):
     return c[:2] == ("exec-out", "screencap")
 
 
+
+def setUpModule():
+    # #351: atrapy mostu nie mają zrzutów do ponownego odczytu po `ok: false` — pętlę wyłączamy limitem 0
+    p = mock.patch("bridge.PONOWNY_ODCZYT_LIMIT", 0)
+    p.start()
+    unittest.addModuleCleanup(p.stop)
+
 class TestTempoSwitch(unittest.TestCase):
     def setUp(self):
         self._saved = os.environ.pop("BRIDGE_TEMPO", None)

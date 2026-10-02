@@ -32,6 +32,13 @@ def _load(*parts):
     return np.asarray(Image.open(os.path.join(RUNS, *parts)).convert("RGB")).astype(int)
 
 
+
+def setUpModule():
+    # #351: atrapy mostu nie mają zrzutów do ponownego odczytu po `ok: false` — pętlę wyłączamy limitem 0
+    p = mock.patch("bridge.PONOWNY_ODCZYT_LIMIT", 0)
+    p.start()
+    unittest.addModuleCleanup(p.stop)
+
 class TestIsAdScreen(unittest.TestCase):
     def test_positive_on_ad_screenshot(self):
         self.assertTrue(bridge.is_ad_screen(_load("0d96333", "121_end.png")))
@@ -568,11 +575,13 @@ def _run_main_on(first_img, after_img, patches):
          mock.patch("bridge.annotate"), mock.patch("PIL.Image.Image.save"), \
          mock.patch("bridge.os.makedirs"), mock.patch("bridge.time.sleep"), \
          mock.patch("builtins.open", mock.mock_open()) as m_open:
-        started = [mock.patch(*a, **k).start() for a, k in patches]
+        patchers = [mock.patch(*a, **k) for a, k in patches]
+        started = [pt.start() for pt in patchers]
         try:
             bridge.main(1, policy_spec="greedy", seria=True)
         finally:
-            mock.patch.stopall()
+            for pt in patchers:
+                pt.stop()
     return [json.loads(c.args[0]) for c in m_open().write.call_args_list], started
 
 
