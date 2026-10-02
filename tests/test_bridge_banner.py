@@ -13,6 +13,7 @@ import json
 import os
 import sys
 import unittest
+from unittest import mock
 
 import numpy as np
 from PIL import Image
@@ -288,3 +289,59 @@ class TestOkFalseTool(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPonownyOdczyt(unittest.TestCase):
+    """#351: pętla ponownego odczytu po `ok: false` (atrapy klatek, bez emulatora)."""
+
+    def setUp(self):
+        self.board = Board()
+        self.pieces = [Piece([[1]], "a", -1), None, None]
+        self.expected = [[0] * 8 for _ in range(8)]
+        self.expected[0][0] = 1
+        self.czysta = [row[:] for row in self.expected]
+        self.duch = [row[:] for row in self.expected]
+        self.duch[4][4] = 1
+
+    def run_reread(self, klatki, limit=5.0):
+        it = iter(klatki)
+        with mock.patch("bridge.screenshot", side_effect=lambda: next(it)) as shot, \
+             mock.patch("bridge.read_board", side_effect=lambda f: f), \
+             mock.patch("bridge.read_tray", return_value=[None, None, None]), \
+             mock.patch("bridge.drop_banner_text", side_effect=lambda img, g, e, a: (g, [])), \
+             mock.patch("bridge.time.sleep"):
+            return bridge.reread_until_match(self.board, self.pieces, 0, 0, 0, self.expected, limit=limit,
+                                             pause=0.0), shot
+
+    def test_napis_znika_po_k_klatkach(self):
+        w, shot = self.run_reread([self.duch, self.duch, self.czysta])
+        self.assertEqual(w[3], self.expected)
+        self.assertEqual(w[6]["proby"], 3)
+        self.assertTrue(w[6]["zgodny"])
+        self.assertEqual(shot.call_count, 3)
+
+    def test_napis_nie_znika_decyzja_na_ostatnim_odczycie(self):
+        klatki = iter(lambda: self.duch, None)
+        with mock.patch("bridge.screenshot", side_effect=lambda: next(klatki)), \
+             mock.patch("bridge.read_board", side_effect=lambda f: f), \
+             mock.patch("bridge.read_tray", return_value=[None, None, None]), \
+             mock.patch("bridge.drop_banner_text", side_effect=lambda img, g, e, a: (g, [])), \
+             mock.patch("bridge.time.sleep", side_effect=lambda s: None), \
+             mock.patch("bridge.time.monotonic", side_effect=[0.0, 1.0, 3.0, 5.0, 5.5]):
+            w = bridge.reread_until_match(self.board, self.pieces, 0, 0, 0, self.expected)
+        self.assertEqual(w[3], self.duch)
+        self.assertEqual(w[1], self.duch)
+        self.assertFalse(w[6]["zgodny"])
+        self.assertEqual(w[6]["proby"], 3)
+        self.assertEqual(w[6]["czekanie_ms"], 5000)
+
+    def test_limit_to_stala_5_s(self):
+        self.assertEqual(bridge.PONOWNY_ODCZYT_LIMIT, 5.0)
+
+    def test_wiersz_logu_main_ma_pole_tylko_przy_ok_false(self):
+        # pole `ponowny_odczyt` powstaje wyłącznie w gałęzi `not ok` (brak dodatkowych zrzutów przy ok: true)
+        with open(os.path.join(ROOT, "bridge.py"), encoding="utf-8") as f:
+            src = f.read()
+        i = src.index("        if not ok:\n            img, observed, slots, grid, duchy, napis, ponowny")
+        self.assertIn("reread_until_match", src[i:i + 200])
+        self.assertEqual(src.count("reread_until_match("), 2)  # definicja + jedno wywołanie

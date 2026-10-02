@@ -212,3 +212,8 @@ oryginalnej (przed #294 licznik w serii nie czytał niczego).
 `docs/seria/s2/partia-{1,4}/logcat_*.txt`). `tools/start_apki.sh` po udanym starcie robi `pm disable-user --user 0
 com.android.vending`: sklep nie aktualizuje już pakietów w trakcie partii, a gra niczego z niego nie potrzebuje. Wybór
 ponad `settings put global auto_update…`: te ustawienia nie obejmują aktualizacji usług Google. Skutek wyjdzie w następnym przebiegu.
+
+## Ponowny odczyt (#351)
+
+Wpis ruchu z `ok: false` na pierwszym odczycie ma `ponowny_odczyt: {"proby", "czekanie_ms", "zgodny"}` i `observed_ponowny`;
+`ok` jest po ponownym odczycie. Szczegóły i koszt: `docs/seria/ok-false.md`.

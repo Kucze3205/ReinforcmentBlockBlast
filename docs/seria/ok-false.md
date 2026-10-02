@@ -318,3 +318,19 @@ tyle samo co w #333) przed zmianą (HEAD~1) i po niej daje **te same** listy pó
 --po-korekcie`, zrzuty jako `int`) most z `drop_banner_ghosts` + `drop_banner_text` daje planszę równą prawdzie, a polityka gra
 ruch z układem: siedem razy działa `drop_banner_text`, dwa razy (s4 p.6, s5 p.7) `drop_banner_ghosts`. Tabela i test
 regresji: `docs/seria/s6/przegrane.md`, sekcja „Po #339 i naprawie”; `bridge.py` bez zmian.
+
+## Ponowny odczyt przy `ok: false` (#351)
+
+Most po ruchu z `ok: false` czyta planszę ponownie co 0,2 s (zrzut → `read_board`/`read_tray` → `drop_banner_ghosts` →
+`drop_banner_text` → porównanie z `expected`), aż zgodność albo `PONOWNY_ODCZYT_LIMIT` (5 s, **tymczasowy**, górna granica
+z #345; do potwierdzenia pomiarem `bridge/runs/*/napis-czas.md`). Po limicie decyduje ostatni odczyt (ekran wygrywa).
+`plansza_bez_zmian`, `board_stuck_streak` i `ok_streak` liczą się z ostatniego odczytu.
+
+Pola wpisu (tylko przy `ok: false` na pierwszym odczycie): `ponowny_odczyt: {"proby": N, "czekanie_ms": T, "zgodny": bool}`
+i `observed_ponowny` (ostatni surowy odczyt). `observed` zostaje pierwszym surowym odczytem; `ok` to wynik po ponownym odczycie,
+więc `tools/ok_false.py` i `tools/duchy_serii.py` czytają stary i nowy log tak samo (wpis z `ponowny_odczyt.zgodny: true` ma
+`ok: true`, a `observed` ≠ `expected`).
+
+Koszt czasu (logi s6, 14 509 ruchów, 449 z `ok: false` = 3,09%): najgorzej (każdy odczeka pełny limit, jak przy echu #335)
+3,09% × 5 s = +0,155 s/ruch na średnie 2,57 s, czyli +6,0%. Cel 3450 postawień: 157 min → ok. 166 min, wobec `limit_minut` 340
+(zapas ponad 2×).
