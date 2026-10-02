@@ -180,6 +180,72 @@ class TestDropBannerText(unittest.TestCase):
         self.assertIsNot(grid, r["observed"])  # `observed` z logu zostaje surowy
 
 
+# #342: cztery przegrane s6 (`docs/seria/s6/przegrane.md`) — decyzja n zapadła na planszy z duchem baneru, bo s6 grała bez
+# `drop_banner_text` (#339). Dziś most z `main` ma podać polityce prawdziwą planszę. Prawda = `expected` poprzedniego ruchu
+# (jego plansza była odczytana dobrze: `ok: true` przed nim), zgodna z łańcuchem symulacji `tools/przeglad_s6.py`.
+# (partia, kawałek logu, n ruchu poprzedzającego decyzję, pola różnicy odczytu wobec prawdy, ruch polityki na prawdzie)
+S6_PRZEGRANE = (
+    ("s6/partia-2", 8, 14, [(4, 4)], (0, 4, 0)),
+    ("s6/partia-3", 6, 13, [(3, 2), (4, 3), (4, 4), (4, 5)], (2, 3, 4)),
+    ("s6/partia-8", 6, 31, [(4, 5)], (0, 5, 2)),
+    ("s6/partia-10", 2, 43, [(4, 2), (4, 3)], (0, 3, 6)),
+)
+
+
+class TestS6Przegrane(unittest.TestCase):
+    def test_zrzut_to_stan_po_ruchu_z_logu(self):
+        # zrzut `NNN_state.png` z `kawalek_K` ma numer n+1 ruchu poprzedzającego decyzję (te same pliki co w #342)
+        for partia, k, n, _, _ in S6_PRZEGRANE:
+            with self.subTest(partia=partia):
+                self.assertTrue(os.path.exists(os.path.join(SERIA, partia, f"kawalek_{k}", f"{n + 1:03d}_state.png")))
+
+    def test_most_podaje_polityce_prawdziwa_plansze(self):
+        for partia, k, n, roznica, _ in S6_PRZEGRANE:
+            with self.subTest(partia=partia, n=n):
+                r, img = wpis_i_zrzut(partia, k, n)
+                self.assertTrue(np.issubdtype(img.dtype, np.signedinteger) and img.dtype != np.uint8)  # jak po `screenshot()`
+                prawda = r["expected"]
+                odczyt = bridge.read_board(img)
+                self.assertEqual(odczyt, r["observed"])
+                self.assertEqual([(y, x) for y in range(8) for x in range(8) if odczyt[y][x] != prawda[y][x]], roznica,
+                                 "read_board czyta baner jako klocki (to jest przyczyna)")
+                grid, napis, accepted = plansza_decyzji(r, img)
+                self.assertTrue(accepted)
+                self.assertEqual(napis, roznica)  # wszystkie pola różnicy poprawia napis (#339), nie duchy (#333)
+                self.assertEqual(grid, prawda)
+
+    def test_plansza_z_logu_s6_miala_ducha(self):
+        # decyzja zapadła w s6 na `board` z duchem: bez korekty #339 różnica trwała do ruchu polityki
+        for partia, k, n, roznica, _ in S6_PRZEGRANE:
+            with self.subTest(partia=partia, n=n):
+                d = os.path.join(SERIA, partia)
+                with open(os.path.join(d, f"chunk{k}_moves.jsonl"), encoding="utf-8") as f:
+                    nast = next(r for r in (json.loads(line) for line in f if line.strip()) if r.get("n") == n + 1 and "move" in r)
+                prev, _ = wpis_i_zrzut(partia, k, n)
+                self.assertEqual([(y, x) for y in range(8) for x in range(8) if nast["board"][y][x] != prev["expected"][y][x]], roznica)
+
+    def test_polityka_na_planszy_po_korekcie_gra_ruch_z_ukladem(self):
+        import duchy_serii as ds
+        import przeglad_s6 as p6
+        import przegrana_serii as ps
+        with open(os.path.join(SERIA, "s6", "partia-1", "pomiar.json"), encoding="utf-8") as f:
+            policy, err = ps.build_policy(json.load(f)["polityka"])
+        self.assertIsNotNone(policy, err)
+        for partia, k, n, _, ruch in S6_PRZEGRANE:
+            with self.subTest(partia=partia, n=n):
+                d = os.path.join(SERIA, partia)
+                moves = [r for r in ps.load_rows(os.path.join(d, f"chunk{k}_moves.jsonl")) if "move" in r and "expected" in r]
+                for r in moves:
+                    r["_kawalek"] = k
+                j = next(i for i, r in enumerate(moves) if r["n"] == n + 1 and moves[i - 1]["n"] == n)
+                w = ds.po_korekcie(policy, d, moves, j)
+                self.assertEqual(w["po_korekcie"], [])
+                self.assertEqual(w["ruch"], ruch)
+                self.assertTrue(w["legalny_na_prawdzie"])
+                self.assertTrue(w["ma_uklad"])
+                self.assertEqual(p6.accepted(moves[j - 1], moves[j]), w["accepted"])
+
+
 class TestTrayConsumed(unittest.TestCase):
     PIECES = [Piece([[1]], "a", -1), Piece([[1, 1]], "b", -1), None]
 
