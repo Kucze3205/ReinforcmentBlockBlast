@@ -130,6 +130,7 @@ BOARD_STUCK_TRIES = 3  # K ruchów z rzędu, po których plansza wcale się nie 
 # slot1->(3,5)); w całym pozostałym materiale `bridge/runs/*` taka zbieżność zdarzyła się
 # co najwyżej raz pod rząd (OCR, nie zawieszenie) i nigdy się nie powtórzyła — próg 3
 # odróżnia realne zawieszenie od pojedynczego szumu, tracąc najwyżej 2 ruchy nawigacji.
+PROG_ODCZYTY = 3  # kolejne odczyty HUD >= progu, nim most w serii przerwie kawałek (#347; jak MIN_WPISOW w tools/licznik_ponownie.py)
 NO_MOVE_REREAD_TRIES = 4  # ponowne odczyty przy „braku ruchu" bez ekranu końca w serii, nim to uznamy za koniec (#295)
 NAPIS_WIERSZE = (3, 4, 5)  # napis „Perfect!" / „+N Combo N" wisi na środku planszy (#339, `docs/seria/ok-false.md`)
 NAPIS_POLOWA = 10  # `cell_flatness`: połowa boku okna wokół środka komórki (21x21 px, wnętrze ściany klocka)
@@ -991,9 +992,27 @@ def make_game_stub(board, pieces, combo=0):
     return SimpleNamespace(board=board, pieces=pieces, combo=combo, combo_counter=COMBO_COUNTER_BASE)
 
 
-def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False):
+class ProgLicznika:
+    """Czy odczyty licznika HUD są >= progu przez `PROG_ODCZYTY` kolejnych odczytów (#347).
+
+    Odczyt `None` (nieczytelny HUD) nie przerywa ani nie liczy się; odczyt < progu zeruje ciąg, więc jedna
+    błędna klatka >= progu nie wystarcza (wzór: `tools/licznik_ponownie.ocen`)."""
+
+    def __init__(self, prog, odczyty=PROG_ODCZYTY):
+        self.prog, self.odczyty, self.ciag = prog, odczyty, 0
+
+    def feed(self, score):
+        if score is None:
+            return False
+        self.ciag = self.ciag + 1 if score >= self.prog else 0
+        return self.ciag >= self.odczyty
+
+
+def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False, prog=None):
     """`seria=True` (#283, `tools/partia_serii.py`): ekran końca partii kończy kawałek wpisem
-    `end: koniec_partii` i nie stuka „Play” — dla serii to koniec partii."""
+    `end: koniec_partii` i nie stuka „Play” — dla serii to koniec partii. `prog` (#347): gdy odczyt HUD
+    jest >= progu przez `PROG_ODCZYTY` kolejnych odczytów, kawałek kończy się wpisem `stop_prog` (bez `end`);
+    potwierdza go wywołujący."""
     os.makedirs(OUT, exist_ok=True)
     policy = build_policy(policy_spec, {"torch_seed": 0})
     print(f"polityka: {policy.name} (źródło: {policy_source})", flush=True)
@@ -1063,9 +1082,15 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
 
     last_ok = False
     moves_since_in_game = IN_GAME_EVERY
+    prog_licznika = ProgLicznika(prog) if prog else None
     while n < max_moves:
         t_start = time.perf_counter()
         score = read_score(img)
+        if prog_licznika is not None and prog_licznika.feed(score):
+            write_row({"n": n, "policy": policy.name, "score": score, "stop_prog": prog})
+            log.flush()
+            print(f"stop_prog: licznik {score} >= {prog} przez {PROG_ODCZYTY} odczyty", flush=True)
+            break
         Image.fromarray(img.astype(np.uint8)).save(os.path.join(OUT, f"{n:03d}_state.png"))
         if tempo_stare():
             annotate(img, grid, os.path.join(OUT, f"{n:03d}_read.png"))
