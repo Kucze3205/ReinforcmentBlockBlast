@@ -136,6 +136,9 @@ NAPIS_WIERSZE = (3, 4, 5)  # napis „Perfect!" / „+N Combo N" wisi na środku
 NAPIS_POLOWA = 10  # `cell_flatness`: połowa boku okna wokół środka komórki (21x21 px, wnętrze ściany klocka)
 NAPIS_ROZRZUT = 100  # `cell_flatness`: od tego rozrzutu koloru okno nie jest ścianą klocka ani pustym polem (zmierzone:
 # napis 162-255 na 24 zrzutach z napisem; wpisy z echem i bez nakładki 0-9; patrz `docs/seria/ok-false.md`)
+# #351: tymczasowy, górna granica z #345; do potwierdzenia pomiarem `bridge/runs/*/napis-czas.md`
+PONOWNY_ODCZYT_LIMIT = 5.0  # s: po ruchu z `ok: false` czytamy planszę ponownie do zgodności z `expected` albo do limitu
+PONOWNY_ODCZYT_PAUZA = 0.2  # s między kolejnymi odczytami w tej pętli
 TRAY_DEAL_WAIT = 1.0  # s przerwy przed ponownym odczytem, gdy tacka jest pusta albo widać nakładkę pucharu (#294)
 GAME_OVER_SCORE_TRIES = 12  # limit prób `stable_score` na ekranie końca partii (#218): wariant
 # fioletowo-złoty z koroną i confetti (`chunk6_025_end.png`, #212) miał serię rosnącą
@@ -576,6 +579,31 @@ def stable_state(tries=6):
             break
         prev = key
     return img, grid, tray
+
+
+def reread_until_match(board, pieces, i, x, y, expected, limit=None, pause=None):
+    """#351: ponowny odczyt po ruchu z `ok: false` (napis/duch baneru wisi dłużej niż stabilny stan).
+
+    Co `pause` s: zrzut -> read_board/read_tray -> drop_banner_ghosts -> drop_banner_text -> porównanie z `expected`.
+    Kończy przy zgodności albo po `limit` s; wtedy decyduje ostatni odczyt (ekran wygrywa, `docs/seria/ok-false.md`).
+    -> (img, observed, slots, grid, duchy, napis, {"proby", "czekanie_ms", "zgodny"})."""
+    limit = PONOWNY_ODCZYT_LIMIT if limit is None else limit
+    pause = PONOWNY_ODCZYT_PAUZA if pause is None else pause
+    start = time.monotonic()
+    proby = 0
+    while True:
+        time.sleep(pause)
+        img = screenshot()
+        observed, slots = read_board(img), read_tray(img)
+        proby += 1
+        accepted = tray_consumed(pieces, i, slots)
+        grid, duchy = drop_banner_ghosts(observed, expected, cleared_cells(board, pieces[i], x, y), accepted)
+        grid, napis = drop_banner_text(img, grid, expected, accepted)
+        zgodny = grid == expected
+        waited = time.monotonic() - start
+        if zgodny or waited >= limit:
+            return img, observed, slots, grid, duchy, napis, {
+                "proby": proby, "czekanie_ms": round(waited * 1000), "zgodny": zgodny}
 
 
 def is_block(img):
@@ -1315,6 +1343,11 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
         grid, duchy = drop_banner_ghosts(observed, expected, cleared_cells(board, pieces[i], x, y), accepted)
         grid, napis = drop_banner_text(img, grid, expected, accepted)
         ok = grid == expected
+        ponowny = None
+        observed_pierwszy = observed
+        if not ok:
+            img, observed, slots, grid, duchy, napis, ponowny = reread_until_match(board, pieces, i, x, y, expected)
+            ok = grid == expected
         frozen = observed == board.grid
         board_stuck_streak = board_stuck_streak + 1 if frozen else 0
         if not frozen:
@@ -1326,8 +1359,11 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
                                                 for j, p in enumerate(pieces)]}
         entry["t_ms"] = {"odczyt": round((t0 - t_start) * 1000, 1), "decyzja": round(decision_ms, 1),
                          "przeciagniecie": round((t2 - t1) * 1000, 1), "stabilny_stan": round((t3 - t2) * 1000, 1)}
-        entry.update(move={"slot": i, "x": x, "y": y}, drag=info, expected=expected, observed=observed, ok=ok,
+        entry.update(move={"slot": i, "x": x, "y": y}, drag=info, expected=expected, observed=observed_pierwszy, ok=ok,
                       decision_ms=round(decision_ms, 2))
+        if ponowny:
+            entry["ponowny_odczyt"] = ponowny
+            entry["observed_ponowny"] = observed
         if duchy:
             entry["duchy"] = duchy
         if napis:
