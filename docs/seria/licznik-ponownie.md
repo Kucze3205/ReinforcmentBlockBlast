@@ -57,3 +57,17 @@ utknęła na 25 662 (#324); poprawka reguły: `docs/seria-skrypt.md`. Pozostałe
 4–57 z tym samym `poprzedni` 13 212. Ponowna ocena znajduje ≥ 1 mln od kawałka 16, `n` 17 (HUD na `kawalek_16/final.png`: 1 077 946; na
 `kawalek_57/final.png`: 3 172 913), bez `koniec_partii` — partia przekroczyła 1 mln, czyli to cel. Narzędzie rozpoznawało to już bez zmian
 (czyta `score` z `chunk*_moves.jsonl`, nie `pomiar.json`); dodano tylko test regresji i wiersz tabeli.
+
+## s6 p.4, p.6, p.7, p.9 (#344)
+
+Cztery partie s6 z `zakonczenie: cel`; polecenie: `python3 tools/licznik_ponownie.py --tabela docs/seria/s6/partia-4 docs/seria/s6/partia-6 docs/seria/s6/partia-7 docs/seria/s6/partia-9`
+(materiał: `git checkout origin/task/340 -- docs/seria/s6`, nie commitowany). Wszystkie cztery zgadzają się z klasyfikacją, bez rozjazdu. Maksimum z `score` w logu jest
+o ok. 1,5–5 tys. niższe niż `licznik_apki` z `pomiar.json` (1 453 192 / 1 056 339 / 1 064 313 / 1 009 285), bo odczyt apki pochodzi z
+ostatniego `licznik_*.png` (s6/4: `licznik_16.png`, s6/6: `licznik_17.png`, s6/7: `licznik_14.png`, s6/9: `licznik_23.png`), a log kończy się na ostatnim ruchu.
+
+| partia | klasyfikacja (pomiar.json) | maksimum licznika | >= 1 mln utrzymany od | koniec_partii w materiale | rozjazd |
+|---|---|---|---|---|---|
+| s6/4 | cel | 1 448 308 | kawałek 15, n 63 | nie | nie |
+| s6/6 | cel | 1 054 867 | kawałek 17, n 72 | nie | nie |
+| s6/7 | cel | 1 064 309 | kawałek 14, n 94 | nie | nie |
+| s6/9 | cel | 1 009 281 | kawałek 23, n 64 | nie | nie |
