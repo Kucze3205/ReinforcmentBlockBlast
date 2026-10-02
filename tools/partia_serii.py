@@ -4,7 +4,8 @@
 Dostaje emulator z apką na planszy (start apki robi job, jak `tools/bridge.sh`); nie woła `git`.
 Zakończenie (pole `zakonczenie` w `pomiar.json`, kod wyjścia):
   cel        0  licznik apki >= progu na stabilnej klatce (dwa zgodne odczyty, spójne z poprzednimi)
-  przegrana  1  ekran końca partii (nie stuka „Play”)
+  przegrana  1  ekran końca partii (nie stuka „Play”); albo petla_bez_postepu/plansza_zawieszona po oknach po grze
+                (przyczyna `koniec_po_oknach`, #347)
   przerwanie 2  nieznane okno, petla_bez_postepu, plansza_zawieszona, restart_utracil_partie (#318), apka nie wraca, limit minut, wyjątek
   (błąd argumentów: 3)
 Opis interfejsu: docs/seria-skrypt.md.
@@ -30,6 +31,8 @@ STABLE_TRIES = 6
 # >= 150 postawień to ok. 3 050 (s2/5); 6 000 to dwukrotny zapas. Uzasadnienie: docs/seria-skrypt.md.
 MAX_PRZYROST_NA_POSTAWIENIE = 6000
 LAST_MOVES = 5
+# Koniec po oknach po grze (#347): ogon logu to wiersze od końca do ostatniego ruchu zgodnego i niezamrożonego, najwyżej tyle.
+OGON_MAX = 60
 
 
 class _Parser(argparse.ArgumentParser):
@@ -74,6 +77,21 @@ def classify_end(end, row):
             return name, okno or name
         return "nieznane_okno", okno or name
     return end.replace(" ", "_"), okno
+
+
+def koniec_po_oknach(rows):
+    """Czy ogon logu pokazuje okna po grze (#347, docs/seria/s4/konce.md): w ogonie jest okno `reklama_*` albo
+    `brak_ruchu_ponowny_odczyt`. Ogon liczy się od końca do ostatniego ruchu `ok` z zmienioną planszą (postępu gry).
+    Sama `tacka_pusta_przejsciowo` nie wystarcza: s6 p.5 to żywa plansza z pustą tacką (przerwanie)."""
+    ogon = []
+    for r in reversed(rows):
+        if "move" in r and r.get("ok") and r.get("observed") != r.get("board"):
+            break
+        ogon.append(r)
+        if len(ogon) >= OGON_MAX:
+            break
+    okna = [r.get("okno") or "" for r in ogon]
+    return any(o.startswith("reklama_") or o == "brak_ruchu_ponowny_odczyt" for o in okna)
 
 
 def percentile(values, q):
@@ -127,7 +145,7 @@ def run(args, now=time.time):
     start = now()
     pomiar = {"polityka": args.polityka, "zakonczenie": "w_toku", "przyczyna": None, "okno": None,
               "licznik_apki": None, "licznik_odrzucone": [], "wynik_wzor": None, "postawienia": 0, "minuty": 0.0,
-              "postawien_na_minute": None, "decision_ms": None, "okna": [], "kawalki": []}
+              "postawien_na_minute": None, "decision_ms": None, "okna": [], "kawalki": [], "stop_prog": []}
     files, rows = [], []
 
     def refresh():
@@ -165,6 +183,7 @@ def run(args, now=time.time):
 
     accepted = None  # ostatni stabilny i spójny odczyt licznika
     accepted_k = 0   # kawałek, po którym go odczytano
+    stop_prog = args.prog  # próg dla mostu (#347); po niepotwierdzonym stopie kawałek gra do końca
     moves_in = {}    # kawałek -> postawienia (do granicy przyrostu od kotwicy)
     k = 0
     while True:
@@ -174,7 +193,7 @@ def run(args, now=time.time):
         chunk_dir = os.path.join(out, f"kawalek_{k}")
         os.makedirs(chunk_dir, exist_ok=True)
         bridge.OUT = chunk_dir
-        bridge.main(args.kawalek, args.polityka, "argv", seria=True)
+        bridge.main(args.kawalek, args.polityka, "argv", seria=True, prog=stop_prog)
         src = os.path.join(chunk_dir, "moves.jsonl")
         dst = os.path.join(out, f"chunk{k}_moves.jsonl")
         if not os.path.exists(src):
@@ -188,18 +207,30 @@ def run(args, now=time.time):
         moves_in[k] = len({r["n"] for r in new if "move" in r})
         last = new[-1] if new else {}
         end = last.get("end")
-        if end == "koniec_partii":
+        def ostatnie_ruchy():
             moves = [r for r in rows if "move" in r][-LAST_MOVES:]
             pomiar["ostatnie_ruchy"] = [{"n": r.get("n"), "board": r["board"], "tray": r["tray"]} for r in moves]
+
+        if end == "koniec_partii":
+            ostatnie_ruchy()
             pomiar["wynik_koncowy"] = last.get("wynik_koncowy")
             pomiar["zrzut_konca"] = os.path.join(f"kawalek_{k}", last.get("zrzut_konca", ""))
             return finish("przegrana")
         if end:
             przyczyna, okno = classify_end(end, last)
             pomiar["okno"] = okno
+            if przyczyna in ("petla_bez_postepu", "plansza_zawieszona") and koniec_po_oknach(rows):
+                ostatnie_ruchy()
+                pomiar["przyczyna_mostu"] = przyczyna
+                return finish("przegrana", "koniec_po_oknach")
             return finish("przerwanie", przyczyna)
         if not new:
             return finish("przerwanie", "pusty_plik_ruchow")
+        stop = last.get("stop_prog") is not None
+        if stop:
+            pomiar["stop_prog"].append({"kawalek": k, "n": last.get("n"), "licznik": last.get("score"),
+                                        "potwierdzony": False})
+        stop_prog = args.prog
         value, reads, stable, img = read_stable_counter()
         moves_since = sum(moves_in[j] for j in range(accepted_k + 1, k + 1))
         if value is not None and not counter_consistent(accepted, value, moves_since):
@@ -212,7 +243,11 @@ def run(args, now=time.time):
             if stable:
                 accepted, accepted_k = value, k
                 if value >= args.prog:
+                    if stop:
+                        pomiar["stop_prog"][-1]["potwierdzony"] = True
                     return finish("cel")
+        if stop:
+            stop_prog = None  # niepotwierdzony stop: następny kawałek gra do końca, jak przed #347
         checkpoint()
 
 

@@ -44,11 +44,13 @@ class Harness:
     def __init__(self, test, chunks, counter_reads=()):
         self.test, self.chunks, self.counter_reads = test, list(chunks), list(counter_reads)
         self.calls = []
+        self.progs = []
         self.snapshots = []  # zawartość pomiar.json widziana na starcie kolejnego kawałka
         self.tmp = tempfile.mkdtemp()
         self.out = os.path.join(self.tmp, "out")
 
-    def fake_main(self, max_moves, spec, source, seria=False):
+    def fake_main(self, max_moves, spec, source, seria=False, prog=None):
+        self.progs.append(prog)
         self.calls.append((max_moves, spec, seria, bridge.OUT))
         pomiar = os.path.join(self.out, "pomiar.json")
         self.snapshots.append(json.load(open(pomiar)) if os.path.exists(pomiar) else None)
@@ -281,6 +283,113 @@ class TestBridgeSeria(unittest.TestCase):
         rows = [json.loads(line) for line in open(os.path.join(tmp, "moves.jsonl"))]
         self.assertEqual(rows[-1]["end"], "koniec_partii")
         self.assertEqual(rows[-1]["wynik_koncowy"], 777)
+
+
+SERIA = os.path.join(ROOT, "docs", "seria")
+
+
+def log_kawalka(partia, k=None):
+    """Wiersze ostatniego (albo k-tego) kawałka partii z docs/seria."""
+    import glob
+    import re
+    pliki = glob.glob(os.path.join(SERIA, partia, "chunk*_moves.jsonl"))
+    num = lambda p: int(re.search(r"chunk(\d+)_moves", p).group(1))
+    plik = max(pliki, key=num) if k is None else os.path.join(SERIA, partia, f"chunk{k}_moves.jsonl")
+    return partia_serii.load_rows(plik)
+
+
+class TestStopProgu(unittest.TestCase):
+    """#347: koniec kawałka tuż po 1 mln wg odczytu HUD po ruchu."""
+
+    def test_s6_p4_kawalek_15_konczy_kilka_ruchow_po_n63(self):
+        rows = log_kawalka("s6/partia-4", 15)
+        t = bridge.ProgLicznika(1_000_000)
+        stop = next(r["n"] for r in rows if t.feed(r["score"]))
+        self.assertGreaterEqual(stop, 63)
+        self.assertLessEqual(stop, 63 + 5)
+
+    def test_pojedynczy_blad_odczytu_nie_konczy(self):
+        rows = log_kawalka("s6/partia-4", 15)
+        scores = [r["score"] for r in rows if r["n"] < 40]
+        scores[10] = 1_453_192  # jedna zła klatka >= progu
+        t = bridge.ProgLicznika(1_000_000)
+        self.assertFalse(any(t.feed(x) for x in scores))
+        self.assertFalse(any(t.feed(x) for x in (None, 1_000_001, None, 5, 1_000_001, 1_000_002)))
+
+    def test_bridge_main_przerywa_kawalek_wpisem_stop_prog(self):
+        tmp = tempfile.mkdtemp()
+        img = np.zeros((640, 320, 3), dtype=int)
+        slots = [([[1, 1]], (20, 460)), None, None]
+        with mock.patch("bridge.OUT", tmp), \
+             mock.patch("bridge.settled_state", return_value=(img, EMPTY, slots)), \
+             mock.patch("bridge.stable_state", return_value=(img, EMPTY, slots)), \
+             mock.patch("bridge.read_score", return_value=1_200_000), \
+             mock.patch("bridge.is_splash_screen", return_value=True), \
+             mock.patch("bridge.time.sleep"), mock.patch("bridge.annotate"), redirect_stdout(io.StringIO()):
+            bridge.main(50, "greedy", seria=True, prog=1_000_000)
+        rows = [json.loads(line) for line in open(os.path.join(tmp, "moves.jsonl"))]
+        self.assertEqual(len(rows), bridge.PROG_ODCZYTY)
+        self.assertEqual(rows[-1]["stop_prog"], 1_000_000)
+        self.assertNotIn("end", rows[-1])
+
+    def stop_chunk(self):
+        rows = chunk(0, 5)
+        rows.append({"n": 5, "t": T0 + 20.0, "policy": "greedy", "score": 1_002_000, "stop_prog": 1_000_000})
+        return rows
+
+    def test_potwierdzony_stop_to_cel(self):
+        h = Harness(self, [self.stop_chunk()], counter_reads=[[1_003_000, 1_003_000]])
+        code, pomiar = h.run()
+        self.assertEqual((code, pomiar["zakonczenie"]), (0, "cel"))
+        self.assertEqual(len(h.calls), 1)
+        self.assertEqual(h.progs, [1_000_000])
+        self.assertEqual(pomiar["stop_prog"], [{"kawalek": 1, "n": 5, "licznik": 1_002_000, "potwierdzony": True}])
+
+    def test_niepotwierdzony_stop_gra_dalej_bez_progu_w_moscie(self):
+        h = Harness(self, [self.stop_chunk(), chunk(5, 5), chunk(10, 5, {"end": "koniec_partii"})],
+                    counter_reads=[[40_000, 41_000], [50_000, 50_000]])
+        code, pomiar = h.run()
+        self.assertEqual(len(h.calls), 3)
+        self.assertEqual(h.progs, [1_000_000, None, 1_000_000])
+        self.assertEqual(pomiar["stop_prog"][0]["potwierdzony"], False)
+        self.assertEqual(pomiar["zakonczenie"], "przegrana")
+
+    def test_prog_z_argumentu_idzie_do_mostu(self):
+        h = Harness(self, [chunk(0, 3, {"end": "koniec_partii"})])
+        h.run("--prog", "500")
+        self.assertEqual(h.progs, [500])
+
+
+class TestKoniecPoOknach(unittest.TestCase):
+    """#347: petla_bez_postepu/plansza_zawieszona po oknach po grze to przegrana (docs/seria/s4/konce.md)."""
+
+    PRZEGRANE = ["s4/partia-1", "s4/partia-4", "s4/partia-6", "s4/partia-10", "s3/partia-3"]
+    PRZERWANIA = ["s3/partia-1", "s5/partia-2", "s6/partia-1", "s6/partia-5"]
+
+    def test_logi_z_materialu(self):
+        for p in self.PRZEGRANE:
+            with self.subTest(p):
+                self.assertTrue(partia_serii.koniec_po_oknach(log_kawalka(p)))
+        for p in self.PRZERWANIA:
+            with self.subTest(p):
+                self.assertFalse(partia_serii.koniec_po_oknach(log_kawalka(p)))
+
+    def test_przegrana_z_przyczyna_i_kodem_1(self):
+        win = lambda n, okno, **kw: {"n": n, "t": T0 + n, "board": EMPTY, "tray": [None] * 3, "score": 0,
+                                     "okno": okno, **kw}
+        tail = [win(5, "brak_ruchu_ponowny_odczyt"), win(5, "reklama_wideo"),
+                win(5, "ustawienia_wstecz", end="okno: petla_bez_postepu")]
+        h = Harness(self, [chunk(0, 5) + tail])
+        code, pomiar = h.run()
+        self.assertEqual((code, pomiar["zakonczenie"], pomiar["przyczyna"]), (1, "przegrana", "koniec_po_oknach"))
+        self.assertEqual(pomiar["przyczyna_mostu"], "petla_bez_postepu")
+
+    def test_sama_tacka_pusta_zostaje_przerwaniem(self):
+        win = lambda n, okno, **kw: {"n": n, "t": T0 + n, "board": EMPTY, "tray": [None] * 3, "score": 0,
+                                     "okno": okno, **kw}
+        tail = [win(5, "tacka_pusta_przejsciowo"), win(5, "tacka_pusta_przejsciowo", end="okno: petla_bez_postepu")]
+        code, pomiar = Harness(self, [chunk(0, 5) + tail]).run()
+        self.assertEqual((code, pomiar["zakonczenie"], pomiar["przyczyna"]), (2, "przerwanie", "petla_bez_postepu"))
 
 
 if __name__ == "__main__":
