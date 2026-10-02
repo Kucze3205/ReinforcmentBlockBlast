@@ -311,3 +311,10 @@ więc nie da się ich zmierzyć. Przypadek echa (`s4/partia-10/chunk16` n = 27) 
 `read_board`, `read_tray` i `is_block` nie zostały zmienione. `tools/porownanie_odczytu.py` (`compare_state`) na 2405 stanach `*_state.png` z `docs/seria` (w tym 2090 z s1–s5, z 279 stanami z różnicą,
 tyle samo co w #333) przed zmianą (HEAD~1) i po niej daje **te same** listy pól i slotów (porównanie plik do pliku): nowych różnic nie ma.
 `tools/detektory_na_planszy.py` zielony.
+
+### Sprawdzenie na przegranych s6 i szkodliwych decyzjach (#342)
+
+#339 był mierzony na s1–s5; s6 grała bez niego. Na dziewięciu szkodliwych decyzjach z s4–s6 (`tools/duchy_serii.py
+--po-korekcie`, zrzuty jako `int`) most z `drop_banner_ghosts` + `drop_banner_text` daje planszę równą prawdzie, a polityka gra
+ruch z układem: siedem razy działa `drop_banner_text`, dwa razy (s4 p.6, s5 p.7) `drop_banner_ghosts`. Tabela i test
+regresji: `docs/seria/s6/przegrane.md`, sekcja „Po #339 i naprawie”; `bridge.py` bez zmian.

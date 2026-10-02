@@ -39,3 +39,9 @@ w całości na prawdziwej planszy** — przegrała, bo most podał jej planszę 
 
 `read_board` nie może czytać baneru „Combo N” jako klocków (albo odczyt przed ruchem musi poczekać, aż baner zniknie);
 `ok = false` przy dwóch kolejnych ruchach z tą samą różnicą pól to ten sam sygnał.
+
+## Po #342
+
+Ten przypadek (n = 39, duchy (1,6),(1,7) w linii wyczyszczonej) pokrywa `drop_banner_ghosts` z #333: plansza po korekcie jest
+równa prawdzie, polityka gra ruch z układem. Pomiar na wszystkich dziewięciu szkodliwych decyzjach z s4–s6:
+`docs/seria/s6/przegrane.md`, „Po #339 i naprawie”.
