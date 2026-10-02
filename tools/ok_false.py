@@ -18,6 +18,12 @@ pliku ma te pola w `board`) i w ilu przypadkach ruch potwierdza tacka tego nast�
 
 Trzy pozostałe grupy dzieli na podgrupy mechanizmu (nazwa wpisu albo etykiety pól; patrz niżej i `docs/seria/ok-false.md`),
 z `--decyzje` liczy, czy polityka rekordu zmienia ruch na planszy z odczytu vs z `expected`, z `--przyklady` wypisuje zrzuty.
+
+    python3 tools/ok_false.py --napis [--out PLIK.md]   (#339)
+
+Mierzy regułę `bridge.drop_banner_text` (napis „Perfect!" / „Combo N" na środku planszy) na wpisach s1-s5, które mają zrzut stanu:
+ile wpisów każdej klasy (napis, echo, inne) reguła zmienia, ile z nich daje planszę równą `expected`, i które z przypadków
+`odczyt_bez_ulozenia_a_expected_ma` znikają.
 """
 import argparse
 import glob
@@ -336,6 +342,108 @@ def tabela_podgrup(wpisy):
     return "\n".join(linie), licz
 
 
+# --- napis animacji na środku planszy (#339) -----------------------------------------------------------------------
+# Reguła `bridge.drop_banner_text` wymaga zrzutu (rozrzut koloru komórki), więc da się ją zmierzyć tylko na wpisach, dla których
+# w materiale jest `NNN_state.png`. Reszta wpisów (większość) jest poza pomiarem i tak jest zapisana w tabeli.
+
+SERIE_POMIARU = ("s1", "s2", "s3", "s4", "s5")  # materiał z #333/#335; nowsze serie (s6) nie wchodzą do liczb w dokumentacji
+
+
+def _obraz(w):
+    """Zrzut stanu wpisu jako `int` (tak jak po `bridge.screenshot()`), albo None."""
+    import numpy as np
+    from PIL import Image
+    z = zrzut_stanu(w)
+    return np.asarray(Image.open(z).convert("RGB")).astype(int) if z else None
+
+
+def po_zmianie(w, img):
+    """Plansza do decyzji przed #339 (po #333) i po #339, oraz poprawione pola; ten sam przebieg co pętla ruchu mostu:
+    `accepted` z tacki odczytanej ze zrzutu, `observed` z logu (suma dwóch klatek), nakładka z ostatniej klatki."""
+    r = w["wpis"]
+    m = r["move"]
+    pieces = [Piece(s, "slot", -1) if s else None for s in r["tray"]]
+    accepted = bridge.tray_consumed(pieces, m["slot"], bridge.read_tray(img))
+    cleared = bridge.cleared_cells(_plansza(r["board"]), pieces[m["slot"]], m["x"], m["y"])
+    przed, _ = bridge.drop_banner_ghosts(r["observed"], r["expected"], cleared, accepted)
+    po, pola = bridge.drop_banner_text(img, przed, r["expected"], accepted)
+    return przed, po, pola
+
+
+def klasa_napisu(w):
+    """`napis` (podgrupa ma etykietę napis), `echo` (odczyt trafny: dawny_duch, zakryte_wraca, klocek_obok_celu),
+    `duchy` (#333), `inne`."""
+    if w["grupa"] == "duchy_w_czyszczonych":
+        return "duchy"
+    if "napis" in w["podgrupa"].split("+"):
+        return "napis"
+    return "echo" if odczyt_bledny(w["podgrupa"]) == "nie" else "inne"
+
+
+def pomiar_napisu(wpisy):
+    """-> (liczniki per klasa, lista zmienionych wpisów, lista przypadków `odczyt_bez_ulozenia_a_expected_ma`).
+    Wpisy z `ok: false` z serii `SERIE_POMIARU`; zmiana liczona tylko na tych, które mają zrzut."""
+    klasy = {}
+    zmienione, przypadki = [], []
+    for seria, ws in wpisy.items():
+        if seria not in SERIE_POMIARU:
+            continue
+        for w in ws:
+            k = klasy.setdefault(klasa_napisu(w), dict.fromkeys(("wpisy", "zrzut", "zmienione", "ok_po", "pola"), 0))
+            k["wpisy"] += 1
+            img = _obraz(w)
+            nast, r = w["nastepny"], w["wpis"]
+            if w["grupa"] != "duchy_w_czyszczonych" and w["dotrwal"]:
+                exp = [row[:] for row in nast["board"]]
+                for y, x in w["pola"]:
+                    exp[y][x] = r["expected"][y][x]
+                if not _ulozenie(nast["board"], nast["tray"]) and _ulozenie(exp, nast["tray"]):
+                    przypadki.append({"w": w, "klasa": klasa_napisu(w), "zrzut": img is not None})
+            if img is None:
+                continue
+            k["zrzut"] += 1
+            przed, po, pola = po_zmianie(w, img)
+            if not pola:
+                continue
+            k["zmienione"] += 1
+            k["ok_po"] += po == r["expected"]
+            k["pola"] += len(pola)
+            zmienione.append({"w": w, "klasa": klasa_napisu(w), "pola": pola, "ok_po": po == r["expected"],
+                              "po": po, "przed": przed})
+    for p in przypadki:
+        p["znika"] = None
+        z = next((m for m in zmienione if m["w"] is p["w"]), None)
+        if z is not None:
+            nast = p["w"]["nastepny"]
+            nowa = [row[:] for row in nast["board"]]
+            for y, x in z["pola"]:
+                nowa[y][x] = z["po"][y][x]
+            p["znika"] = "tak" if _ulozenie(nowa, nast["tray"]) else "nie"
+        elif p["zrzut"]:
+            p["znika"] = "nie"
+    return klasy, zmienione, przypadki
+
+
+def tabela_napisu(wpisy):
+    klasy, zmienione, przypadki = pomiar_napisu(wpisy)
+    linie = ["| klasa wpisu | wpisy ok:false | ze zrzutem | zmienione przez regułę | po zmianie plansza == expected | zmienione pola |",
+             "|---|---|---|---|---|---|"]
+    for nazwa in ("napis", "echo", "inne", "duchy"):
+        k = klasy.get(nazwa)
+        if k:
+            linie.append(f"| {nazwa} | {k['wpisy']} | {k['zrzut']} | {k['zmienione']} | {k['ok_po']} | {k['pola']} |")
+    linie += ["", "Zmienione wpisy (zrzut, n, klasa, pola, plansza == expected):", ""]
+    for m in sorted(zmienione, key=lambda m: (m["klasa"], zrzut_stanu(m["w"]))):
+        linie.append(f"- {m['klasa']}: `{os.path.relpath(zrzut_stanu(m['w']), REPO_ROOT)}` n={m['w']['n']} "
+                     f"{m['w']['podgrupa']} pola={sorted(m['pola'])} ok={m['ok_po']}")
+    linie += ["", "Przypadki `odczyt_bez_ulozenia_a_expected_ma` (klasa, plik, n, zrzut, znika):", ""]
+    for p in przypadki:
+        w = p["w"]
+        linie.append(f"- {p['klasa']}: `{os.path.relpath(w['plik'], REPO_ROOT)}` n={w['n']} zrzut={'tak' if p['zrzut'] else 'brak'} "
+                     f"znika={p['znika'] or 'nie do zmierzenia (brak zrzutu)'}")
+    return "\n".join(linie), (klasy, zmienione, przypadki)
+
+
 # --- wpływ na decyzję -----------------------------------------------------------------------------------------------
 
 
@@ -345,18 +453,19 @@ def _plansza(grid):
     return b
 
 
+def _ulozenie(grid, tray):
+    """Czy tackę da się ułożyć na planszy w całości (w którejkolwiek kolejności)."""
+    shapes = [s for s in tray if s]
+    return any(tray_dfs_playable(grid, [shapes[i] for i in perm], 0, TRAY_BUDZET)[0]
+               for perm in permutations(range(len(shapes))))
+
+
 def _gra(grid, tray, polityka):
     """-> (wybór (slot, x, y) albo None, czy tacka jest do ułożenia w całości, lista legalnych ruchów)."""
     board = _plansza(grid)
     pieces = [Piece(s, f"slot{i}", -1) if s else None for i, s in enumerate(tray)]
     ruchy = bridge.legal_moves(board, pieces)
-    shapes = [s for s in tray if s]
-    ulozenie = False
-    for perm in permutations(range(len(shapes))):
-        wynik, _ = tray_dfs_playable(board.grid, [shapes[i] for i in perm], 0, TRAY_BUDZET)
-        if wynik:
-            ulozenie = True
-            break
+    ulozenie = _ulozenie(board.grid, tray)
     if not ruchy:
         return None, ulozenie, ruchy
     return tuple(polityka.act(bridge.make_game_stub(board, pieces), ruchy)), ulozenie, ruchy
@@ -420,7 +529,15 @@ def main(argv=None):
     ap.add_argument("--podgrupy", action="store_true", help="tabele podgrup mechanizmu (#335) zamiast tabeli grup")
     ap.add_argument("--przyklady", action="store_true", help="z --podgrupy: wypisz zrzuty stanu dla podgrup")
     ap.add_argument("--decyzje", action="store_true", help="z --podgrupy: dolicz wpływ na decyzję polityki rekordu")
+    ap.add_argument("--napis", action="store_true", help="pomiar reguły napisu z #339 na zrzutach (s1-s5)")
     args = ap.parse_args(argv)
+    if args.napis:
+        tekst = tabela_napisu(wszystkie_wpisy(args.katalog))[0]
+        if args.out:
+            with open(args.out, "w", encoding="utf-8") as f:
+                f.write(tekst + "\n")
+        print(tekst)
+        return 0
     if args.podgrupy:
         wpisy = wszystkie_wpisy(args.katalog)
         if args.przyklady:
