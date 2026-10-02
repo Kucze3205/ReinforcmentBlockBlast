@@ -19,6 +19,11 @@ pliku ma te pola w `board`) i w ilu przypadkach ruch potwierdza tacka tego nast�
 Trzy pozostałe grupy dzieli na podgrupy mechanizmu (nazwa wpisu albo etykiety pól; patrz niżej i `docs/seria/ok-false.md`),
 z `--decyzje` liczy, czy polityka rekordu zmienia ruch na planszy z odczytu vs z `expected`, z `--przyklady` wypisuje zrzuty.
 
+    python3 tools/ok_false.py --ponowny [KATALOG] [--out PLIK.md]   (#355)
+
+Mierzy ponowny odczyt planszy (#351): wpisy z `ponowny_odczyt` w trzech tabelach (serie; grupa pierwszego odczytu x `zgodny`;
+grupa ostatniego odczytu przy `zgodny: false`). Tabela domyślna ma kolumnę `naprawione_ponownym`.
+
     python3 tools/ok_false.py --napis [--out PLIK.md]   (#339)
 
 Mierzy regułę `bridge.drop_banner_text` (napis „Perfect!" / „Combo N" na środku planszy) na wpisach s1-s5, które mają zrzut stanu:
@@ -70,8 +75,10 @@ def przejdz(plik):
         rows = [json.loads(line) for line in f if line.strip()]
     ruchy = [r for r in rows if "move" in r and "observed" in r]
     cnt = dict.fromkeys(GRUPY, 0)
-    cnt.update(ok_false=0, ruchow=len(ruchy), ruch_nieprzyjety=0, duch_dotrwal=0, tacka_potwierdza=0, bez_nastepnego=0)
+    cnt.update(ok_false=0, ruchow=len(ruchy), ruch_nieprzyjety=0, duch_dotrwal=0, tacka_potwierdza=0, bez_nastepnego=0, naprawione_ponownym=0)
     for k, r in enumerate(ruchy):
+        if r.get("ok") is True and r.get("ponowny_odczyt"):
+            cnt["naprawione_ponownym"] += 1  # #355: pierwszy odczyt zły, ponowny odczyt zgodny
         if r.get("ok") is not False:
             continue
         cnt["ok_false"] += 1
@@ -106,12 +113,89 @@ def zbierz(katalog):
 
 
 def tabela(wyniki):
-    kol = ("ruchow", "ok_false") + GRUPY + ("ruch_nieprzyjety",) + ("duch_dotrwal", "tacka_potwierdza", "bez_nastepnego")
+    kol = ("ruchow", "ok_false") + GRUPY + ("ruch_nieprzyjety",) + ("duch_dotrwal", "tacka_potwierdza", "bez_nastepnego", "naprawione_ponownym")
     suma = {k: sum(w[k] for w in wyniki.values()) for k in kol}
     linie = ["| seria | " + " | ".join(kol) + " |", "|---|" + "---|" * len(kol)]
     for seria, w in list(wyniki.items()) + [("**suma**", suma)]:
         linie.append(f"| {seria} | " + " | ".join(str(w[k]) for k in kol) + " |")
     return "\n".join(linie), suma
+
+
+# --- ponowny odczyt (#355) -------------------------------------------------------------------------------------------
+
+def _mediana(w):
+    w = sorted(w)
+    n = len(w)
+    if not n:
+        return "-"
+    m = w[n // 2] if n % 2 else (w[n // 2 - 1] + w[n // 2]) / 2
+    return f"{m:g}"
+
+
+def _p95(w):
+    w = sorted(w)
+    return f"{w[min(len(w) - 1, -(-95 * len(w) // 100) - 1)]:g}" if w else "-"
+
+
+def _maks(w):
+    return f"{max(w):g}" if w else "-"
+
+
+def wpisy_ponowne(plik):
+    """-> (liczba ruchów, lista wpisów z `ponowny_odczyt`) jednego pliku."""
+    with open(plik, encoding="utf-8") as f:
+        rows = [json.loads(line) for line in f if line.strip()]
+    ruchy = [r for r in rows if "move" in r and "observed" in r]
+    return len(ruchy), [r for r in ruchy if r.get("ponowny_odczyt")]
+
+
+def zbierz_ponowne(katalog):
+    """-> {seria: (ruchów, wpisy z ponownym odczytem)}; tylko serie, które mają choć jeden taki wpis."""
+    out = {}
+    for seria in sorted(d for d in os.listdir(katalog) if d.startswith("s") and d[1:].isdigit()):
+        ruchow, wpisy = 0, []
+        for plik in sorted(glob.glob(os.path.join(katalog, seria, "partia-*", "chunk*_moves.jsonl"))):
+            n, w = wpisy_ponowne(plik)
+            ruchow += n
+            wpisy += w
+        if wpisy:
+            out[seria] = (ruchow, wpisy)
+    return out
+
+
+def _grupa_ostatniego(r):
+    return klasyfikuj(dict(r, observed=r["observed_ponowny"]))[0]
+
+
+def tabele_ponowne(wyniki):
+    """-> tekst trzech tabel markdown (serie, grupa pierwszego odczytu, grupa ostatniego odczytu przy `zgodny: false`)."""
+    kol = ("ruchow", "ponowny_odczyt", "zgodny_true", "zgodny_false", "proby_mediana", "proby_max",
+           "czekanie_ms_mediana", "czekanie_ms_p95", "czekanie_ms_max")
+    linie = ["| seria | " + " | ".join(kol) + " |", "|---|" + "---|" * len(kol)]
+    razem = (0, [])
+    for seria, dane in list(wyniki.items()) + [("**suma**", None)]:
+        if dane is None:
+            ruchow, wpisy = razem
+        else:
+            ruchow, wpisy = dane
+            razem = (razem[0] + ruchow, razem[1] + wpisy)
+        po = [r["ponowny_odczyt"] for r in wpisy]
+        pr, cz = [p["proby"] for p in po], [p["czekanie_ms"] for p in po]
+        wart = (ruchow, len(po), sum(p["zgodny"] is True for p in po), sum(p["zgodny"] is False for p in po),
+                _mediana(pr), _maks(pr), _mediana(cz), _p95(cz), _maks(cz))
+        linie.append(f"| {seria} | " + " | ".join(str(v) for v in wart) + " |")
+    wszystkie = razem[1]
+    t2 = ["| grupa pierwszego odczytu | zgodny_true | zgodny_false |", "|---|---|---|"]
+    for g in GRUPY:
+        t2.append(f"| {g} | " + " | ".join(
+            str(sum(r["ponowny_odczyt"]["zgodny"] is z and klasyfikuj(r)[0] == g for r in wszystkie))
+            for z in (True, False)) + " |")
+    niezgodne = [r for r in wszystkie if r["ponowny_odczyt"]["zgodny"] is False]
+    t3 = ["| grupa ostatniego odczytu (zgodny: false) | wpisy | ruch_nieprzyjety |", "|---|---|---|"]
+    for g in GRUPY:
+        ws = [r for r in niezgodne if _grupa_ostatniego(r) == g]
+        t3.append(f"| {g} | {len(ws)} | {sum(r['observed_ponowny'] == r['board'] for r in ws)} |")
+    return "\n".join(linie) + "\n\n" + "\n".join(t2) + "\n\n" + "\n".join(t3)
 
 
 # --- podgrupy mechanizmu (#335) -------------------------------------------------------------------------------------
@@ -530,7 +614,15 @@ def main(argv=None):
     ap.add_argument("--przyklady", action="store_true", help="z --podgrupy: wypisz zrzuty stanu dla podgrup")
     ap.add_argument("--decyzje", action="store_true", help="z --podgrupy: dolicz wpływ na decyzję polityki rekordu")
     ap.add_argument("--napis", action="store_true", help="pomiar reguły napisu z #339 na zrzutach (s1-s5)")
+    ap.add_argument("--ponowny", action="store_true", help="pomiar ponownego odczytu z #351 (tabele serii, grup, ostatniego odczytu)")
     args = ap.parse_args(argv)
+    if args.ponowny:
+        tekst = tabele_ponowne(zbierz_ponowne(args.katalog))
+        if args.out:
+            with open(args.out, "w", encoding="utf-8") as f:
+                f.write(tekst + "\n")
+        print(tekst)
+        return 0
     if args.napis:
         tekst = tabela_napisu(wszystkie_wpisy(args.katalog))[0]
         if args.out:

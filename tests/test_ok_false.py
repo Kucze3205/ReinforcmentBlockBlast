@@ -3,8 +3,10 @@ Testy dla #335: podgrupy mechanizmu wpisów `"ok": false` w `tools/ok_false.py` 
 z prawdziwego materiału `docs/seria/s*/partia-*/chunk*_moves.jsonl`. Zrzuty `*_state.png` opisane w dokumencie
 potwierdzają mechanizm; testy trzymają tylko to, co da się policzyć z logu.
 """
+import json
 import os
 import sys
+import tempfile
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -142,6 +144,71 @@ class TestDecyzja(unittest.TestCase):
         w = wpis("s1/partia-1", 12, 59)
         self.assertEqual(w["podgrupa"], "plansza_bez_zmian")
         self.assertTrue(ok_false.decyzja(w, self.polityka)["nielegalny_na_expected"])
+
+def _plansza(*pola):
+    g = [[0] * 8 for _ in range(8)]
+    for y, x in pola:
+        g[y][x] = 1
+    return g
+
+
+def _ruch(observed, ok, ponowny=None, observed_ponowny=None):
+    """Ruch klocka 1x1 na (0, 0) pustej planszy; expected ma pole (0, 0)."""
+    r = {"board": _plansza(), "tray": [[[1]], None, None], "move": {"slot": 0, "x": 0, "y": 0},
+         "expected": _plansza((0, 0)), "observed": observed, "ok": ok}
+    if ponowny:
+        r["ponowny_odczyt"] = ponowny
+        r["observed_ponowny"] = observed_ponowny
+    return r
+
+
+class TestPonowny(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        d = os.path.join(self.tmp.name, "s7", "partia-1")
+        os.makedirs(d)
+        naprawiony = _ruch(_plansza((5, 5)), True, {"proby": 2, "czekanie_ms": 400, "zgodny": True}, _plansza((0, 0)))
+        # pierwszy odczyt: brak pola (0, 0) i duch (5, 5) -> mieszane; ostatni: pusta plansza = ruch nieprzyjęty, brak_pol
+        nienaprawiony = _ruch(_plansza((5, 5)), False, {"proby": 25, "czekanie_ms": 5000, "zgodny": False}, _plansza())
+        zwykly = _ruch(_plansza((0, 0)), True)
+        with open(os.path.join(d, "chunk1_moves.jsonl"), "w", encoding="utf-8") as f:
+            for r in (naprawiony, nienaprawiony, zwykly, {"note": "bez ruchu"}):
+                f.write(json.dumps(r) + "\n")
+        d6 = os.path.join(self.tmp.name, "s6", "partia-1")  # seria bez ponownego odczytu
+        os.makedirs(d6)
+        with open(os.path.join(d6, "chunk1_moves.jsonl"), "w", encoding="utf-8") as f:
+            f.write(json.dumps(_ruch(_plansza(), False)) + "\n" + json.dumps(zwykly) + "\n")
+
+    def test_tabela_serii(self):
+        wyniki = ok_false.zbierz_ponowne(self.tmp.name)
+        self.assertEqual(list(wyniki), ["s7"])  # s6 nie ma wpisów z ponownym odczytem
+        tekst = ok_false.tabele_ponowne(wyniki).split("\n\n")[0].splitlines()
+        self.assertEqual(tekst[2], "| s7 | 3 | 2 | 1 | 1 | 13.5 | 25 | 2700 | 5000 | 5000 |")
+        self.assertEqual(tekst[3], "| **suma** | 3 | 2 | 1 | 1 | 13.5 | 25 | 2700 | 5000 | 5000 |")
+
+    def test_tabela_grup_pierwszego_odczytu(self):
+        t2 = ok_false.tabele_ponowne(ok_false.zbierz_ponowne(self.tmp.name)).split("\n\n")[1].splitlines()
+        self.assertEqual(t2[2:], ["| duchy_w_czyszczonych | 0 | 0 |", "| nadmiar_gdzie_indziej | 0 | 0 |",
+                                  "| brak_pol | 0 | 0 |", "| mieszane | 1 | 1 |"])
+
+    def test_tabela_ostatniego_odczytu(self):
+        t3 = ok_false.tabele_ponowne(ok_false.zbierz_ponowne(self.tmp.name)).split("\n\n")[2].splitlines()
+        self.assertEqual(t3[2:], ["| duchy_w_czyszczonych | 0 | 0 |", "| nadmiar_gdzie_indziej | 0 | 0 |",
+                                  "| brak_pol | 1 | 1 |", "| mieszane | 0 | 0 |"])
+
+    def test_kolumna_naprawione_w_trybie_domyslnym(self):
+        wyniki = ok_false.zbierz(self.tmp.name)
+        self.assertEqual(wyniki["s7"]["naprawione_ponownym"], 1)
+        self.assertEqual(wyniki["s7"]["ok_false"], 1)  # liczby dla ok: false się nie zmieniają
+        self.assertEqual(wyniki["s6"]["naprawione_ponownym"], 0)
+        self.assertIn("naprawione_ponownym", ok_false.tabela(wyniki)[0])
+
+    def test_main_ponowny(self):
+        out = os.path.join(self.tmp.name, "out.md")
+        self.assertEqual(ok_false.main(["--ponowny", self.tmp.name, "--out", out]), 0)
+        with open(out, encoding="utf-8") as f:
+            self.assertIn("| s7 |", f.read())
 
 
 if __name__ == "__main__":
