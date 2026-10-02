@@ -334,3 +334,6 @@ więc `tools/ok_false.py` i `tools/duchy_serii.py` czytają stary i nowy log tak
 Koszt czasu (logi s6, 14 509 ruchów, 449 z `ok: false` = 3,09%): najgorzej (każdy odczeka pełny limit, jak przy echu #335)
 3,09% × 5 s = +0,155 s/ruch na średnie 2,57 s, czyli +6,0%. Cel 3450 postawień: 157 min → ok. 166 min, wobec `limit_minut` 340
 (zapas ponad 2×).
+
+Czas testów (#353): pełny `discover` na `task/351` + #353 trwa ok. 1800 s (736 testów, zielony); suma czasów plików testów
+gałąź 1786 s vs `origin/main` 1787 s, żaden plik nie urósł o więcej niż 3 s — #351 nie wydłużył zestawu (atrapy mostu mają limit 0).
