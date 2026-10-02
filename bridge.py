@@ -130,6 +130,10 @@ BOARD_STUCK_TRIES = 3  # K ruchów z rzędu, po których plansza wcale się nie 
 # co najwyżej raz pod rząd (OCR, nie zawieszenie) i nigdy się nie powtórzyła — próg 3
 # odróżnia realne zawieszenie od pojedynczego szumu, tracąc najwyżej 2 ruchy nawigacji.
 NO_MOVE_REREAD_TRIES = 4  # ponowne odczyty przy „braku ruchu" bez ekranu końca w serii, nim to uznamy za koniec (#295)
+NAPIS_WIERSZE = (3, 4, 5)  # napis „Perfect!" / „+N Combo N" wisi na środku planszy (#339, `docs/seria/ok-false.md`)
+NAPIS_POLOWA = 10  # `cell_flatness`: połowa boku okna wokół środka komórki (21x21 px, wnętrze ściany klocka)
+NAPIS_ROZRZUT = 100  # `cell_flatness`: od tego rozrzutu koloru okno nie jest ścianą klocka ani pustym polem (zmierzone:
+# napis 162-255 na 24 zrzutach z napisem; wpisy z echem i bez nakładki 0-9; patrz `docs/seria/ok-false.md`)
 TRAY_DEAL_WAIT = 1.0  # s przerwy przed ponownym odczytem, gdy tacka jest pusta albo widać nakładkę pucharu (#294)
 GAME_OVER_SCORE_TRIES = 12  # limit prób `stable_score` na ekranie końca partii (#218): wariant
 # fioletowo-złoty z koroną i confetti (`chunk6_025_end.png`, #212) miał serię rosnącą
@@ -843,6 +847,34 @@ def drop_banner_ghosts(observed, expected, cleared, accepted):
     return [row[:] for row in expected], diff
 
 
+def cell_flatness(img, r, c):
+    """Rozrzut koloru w oknie 21x21 px wokół środka komórki (r, c): największa po kanałach różnica 95. i 5. percentyla.
+    Ściana klocka i puste pole mają tu stały kolor (0-9), napis animacji (białe, różowe, czerwone i pomarańczowe
+    glify z obrysem), serce Combo albo ikony nagrody — 160-255 (#339). To dowód z ekranu, że pole jest zasłonięte."""
+    x, y = cell_center(c, r)
+    p = img[int(y) - NAPIS_POLOWA:int(y) + NAPIS_POLOWA + 1, int(x) - NAPIS_POLOWA:int(x) + NAPIS_POLOWA + 1]
+    p = p.reshape(-1, 3)
+    return int((np.percentile(p, 95, axis=0) - np.percentile(p, 5, axis=0)).max())
+
+
+def drop_banner_text(img, observed, expected, accepted):
+    """Napis „Perfect!" / „Combo N" na środku planszy (#339): jego glify mają kolory klocków, więc `read_board` dodaje
+    pola, których nie ma, albo gubi klocki, które napis zakrywa. Gdy ruch przyjęła gra (`accepted`), w pola różnicy
+    z `expected`, które leżą w wierszach `NAPIS_WIERSZE` i są zasłonięte na ekranie (`cell_flatness` >= `NAPIS_ROZRZUT`),
+    wchodzi `expected`. Samo położenie nie wystarcza: pole różnicy bez nakładki to echo wcześniejszego błędu `expected`
+    (54% różnic w #335) i zostaje takie, jak je widać. Zwraca (plansza, lista poprawionych pól)."""
+    if not accepted:
+        return observed, []
+    pola = [(r, c) for r in NAPIS_WIERSZE for c in range(8)
+            if observed[r][c] != expected[r][c] and cell_flatness(img, r, c) >= NAPIS_ROZRZUT]
+    if not pola:
+        return observed, []
+    grid = [row[:] for row in observed]
+    for r, c in pola:
+        grid[r][c] = expected[r][c]
+    return grid, pola
+
+
 def glide(frm, to, steps=10):
     for k in range(1, steps + 1):
         touch("MOVE", frm[0] + (to[0] - frm[0]) * k / steps, frm[1] + (to[1] - frm[1]) * k / steps)
@@ -1243,8 +1275,9 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
         t2 = time.perf_counter()
         img, observed, slots = stable_state()
         t3 = time.perf_counter()
-        grid, duchy = drop_banner_ghosts(observed, expected, cleared_cells(board, pieces[i], x, y),
-                                         tray_consumed(pieces, i, slots))
+        accepted = tray_consumed(pieces, i, slots)
+        grid, duchy = drop_banner_ghosts(observed, expected, cleared_cells(board, pieces[i], x, y), accepted)
+        grid, napis = drop_banner_text(img, grid, expected, accepted)
         ok = grid == expected
         frozen = observed == board.grid
         board_stuck_streak = board_stuck_streak + 1 if frozen else 0
@@ -1261,6 +1294,8 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
                       decision_ms=round(decision_ms, 2))
         if duchy:
             entry["duchy"] = duchy
+        if napis:
+            entry["napis"] = napis
         if board_stuck_streak >= BOARD_STUCK_TRIES:
             stuck_path = os.path.join(OUT, f"{n:03d}_stuck.png")
             Image.fromarray(img.astype(np.uint8)).save(stuck_path)
