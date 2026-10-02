@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Decyzje zapadłe na odczycie z duchem (#341). Nic nie naprawia, niczego nie gra na emulatorze.
 
-    python3 tools/duchy_serii.py [KATALOG_DOCS_SERII] [--serie s3,s4,s5,s6] [--polityka SPEC] [--out PLIK.md]
+    python3 tools/duchy_serii.py [KATALOG_DOCS_SERII] [--serie s3,s4,s5,s6] [--polityka SPEC] [--out PLIK.md] [--po-korekcie]
 
 Dla każdego wpisu z ruchem, którego poprzednik miał `"ok": false`, a przed nim stał wpis z `ok: true` (baza
 czysta: plansza sprzed poprzednika była odczytana dobrze) i który gra przyjęła (`przeglad_s6.accepted`), bierzemy
@@ -20,7 +20,11 @@ import argparse
 import glob
 import json
 import os
+import re
 import sys
+
+import numpy as np
+from PIL import Image
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 for p in (REPO_ROOT, os.path.join(REPO_ROOT, "tools")):
@@ -91,9 +95,50 @@ def partie_serii(katalog_serii):
     for d in sorted(glob.glob(os.path.join(katalog_serii, "partia-*")), key=p6.natural_key):
         rows = []
         for f in sorted(glob.glob(os.path.join(d, "chunk*_moves.jsonl")), key=p6.natural_key):
-            rows.extend(ps.load_rows(f))
+            kawalek = int(re.search(r"chunk(\d+)_", os.path.basename(f)).group(1))
+            for r in ps.load_rows(f):
+                r["_kawalek"] = kawalek
+                rows.append(r)
         out.append((os.path.basename(d), d, [r for r in rows if "move" in r and "expected" in r]))
     return out
+
+
+def koryguj_main(img, prev, accepted):
+    """Plansza, którą most z `main` (#333 + #339) podaje polityce po ruchu `prev`, i reguła, która zadziałała
+    (`duchy` = `drop_banner_ghosts`, `napis` = `drop_banner_text`, `-` = żadna): ten sam przebieg co w pętli ruchu."""
+    pieces = ps.to_pieces(prev["tray"])
+    m = prev["move"]
+    cleared = bridge.cleared_cells(ps.to_board(prev["board"]), pieces[m["slot"]], m["x"], m["y"])
+    grid, duchy = bridge.drop_banner_ghosts(prev["observed"], prev["expected"], cleared, accepted)
+    grid, napis = bridge.drop_banner_text(img, grid, prev["expected"], accepted)
+    return grid, ("duchy" if duchy else "") + ("napis" if napis else "") or "-"
+
+
+def zrzut_po_ruchu(katalog_partii, prev):
+    """Zrzut stanu po ruchu `prev` jako `int` (jak po `bridge.screenshot()`), albo None, gdy go nie ma w materiale."""
+    path = os.path.join(katalog_partii, "kawalek_%d" % prev["_kawalek"], "%03d_state.png" % (prev["n"] + 1))
+    if not os.path.exists(path):
+        return None
+    return np.asarray(Image.open(path).convert("RGB")).astype(int)
+
+
+def po_korekcie(policy, katalog_partii, moves, j, koryguj=koryguj_main):
+    """Decyzja `moves[j]` na planszy, którą podałby most po korekcie `koryguj(img, prev, accepted) -> (plansza, reguła)`.
+    Prawdą jest `expected` poprzednika (baza czysta, jak w `decyzje`). -> słownik albo {"niemierzalne": powód}."""
+    prev, cur = moves[j - 1], moves[j]
+    img = zrzut_po_ruchu(katalog_partii, prev)
+    if img is None:
+        return {"niemierzalne": "brak zrzutu %03d_state.png w kawalek_%d" % (prev["n"] + 1, prev["_kawalek"])}
+    truth = prev["expected"]
+    accepted = bridge.tray_consumed(ps.to_pieces(prev["tray"]), prev["move"]["slot"], bridge.read_tray(img))
+    grid, regula = koryguj(img, prev, accepted)
+    pieces = ps.to_pieces(cur["tray"])
+    legal = bridge.legal_moves(ps.to_board(grid), pieces)
+    mv = tuple(policy.act(bridge.make_game_stub(ps.to_board(grid), pieces), legal)) if legal else None
+    acts = p6.actions_review(truth, cur, [])
+    roznica = lambda g: [(y, x) for y in range(8) for x in range(8) if g[y][x] != truth[y][x]]
+    return {"n": cur["n"], "accepted": accepted, "odczyt": roznica(prev["observed"]), "regula": regula, "po_korekcie": roznica(grid),
+            "ruch": mv, "legalny_na_prawdzie": mv in acts, "ma_uklad": acts.get(mv)}
 
 
 def main(argv=None):
@@ -102,6 +147,8 @@ def main(argv=None):
     ap.add_argument("--serie", default="s3,s4,s5,s6")
     ap.add_argument("--polityka", default=None)
     ap.add_argument("--out", default=None)
+    ap.add_argument("--po-korekcie", action="store_true",
+                    help="dla szkodliwych decyzji: plansza po korekcie mostu z `main` wobec prawdy (wymaga zrzutów)")
     args = ap.parse_args(argv)
 
     serie = args.serie.split(",")
@@ -132,6 +179,20 @@ def main(argv=None):
             lines.append(f"| {s} | {tot['ruchow']} | {tot['ok_false']} | {tot['pas_3_4']} | {tot['baza_czysta']} | "
                          f"{tot['inaczej']} | {tot['szkodliwe']} | {tot['nieoceniane']} | "
                          f"{1000 * tot['szkodliwe'] / tot['ruchow']:.2f} |")
+    if args.po_korekcie:
+        lines = ["| partia | n | odczyt≠prawda | reguła | po korekcie≠prawda | ruch polityki | ruch ma układ |", "|---|---|---|---|---|---|---|"]
+        for s in serie:
+            for nazwa, d, moves in partie_serii(os.path.join(args.katalog, s)):
+                for j, n in decyzje(policy, moves)[1]:
+                    w = po_korekcie(policy, d, moves, j)
+                    if "niemierzalne" in w:
+                        lines.append(f"| {s} {nazwa} | {n} | niemierzalne: {w['niemierzalne']} | | | | |")
+                        continue
+                    lines.append(f"| {s} {nazwa} | {n} | {w['odczyt']} | {w['regula']} | {w['po_korekcie'] or 'równa prawdzie'} | "
+                                 f"{w['ruch']} | {w['ma_uklad']} |")
+        text = "\n".join(lines)
+        print(text)
+        return 0
     text = "\n".join(lines) + "\n\nSzkodliwe decyzje:\n" + "\n".join("- " + d for d in details)
     if args.out:
         with open(args.out, "w", encoding="utf-8") as f:
