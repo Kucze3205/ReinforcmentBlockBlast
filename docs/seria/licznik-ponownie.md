@@ -71,3 +71,7 @@ ostatniego `licznik_*.png` (s6/4: `licznik_16.png`, s6/6: `licznik_17.png`, s6/7
 | s6/6 | cel | 1 054 867 | kawałek 17, n 72 | nie | nie |
 | s6/7 | cel | 1 064 309 | kawałek 14, n 94 | nie | nie |
 | s6/9 | cel | 1 009 281 | kawałek 23, n 64 | nie | nie |
+
+## Reguła po #347
+s4/1 i s4/8: reguła #324/#336 (granica przyrostu od kotwicy rośnie z postawieniami) już je pokrywa. s6/4 pokazała inną lukę: odczyt po kawałku 15 był niestabilny,
+a kawałek grał do n=149 po przekroczeniu progu w n=63; most przerywa teraz kawałek po 3 odczytach HUD ≥ progu (`docs/seria-skrypt.md`).
