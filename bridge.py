@@ -105,6 +105,7 @@ TROPHY_GOLD_CENTER = 0.25  # is_trophy_overlay_screen: progi, patrz docstring
 TROPHY_GOLD_TEXT = 0.1
 TROPHY_GOLD_TEXT_MAX = 0.5
 TROPHY_GEM_PIXELS = 100
+TROPHY_GEM_MAX_SPAN = 32  # is_trophy_overlay_screen: klejnot ma 25x22 px, czerwony klocek planszy wypełnia pole 40x30 (#343)
 CLASSIC_BUTTON = (160, 484)  # środek kafelka "Classic" na menu głównym, zmierzony na
 # bridge/runs/4a1796f/chunk4_003_menu_end.png (#204): maska koloru kafelka (teal, patrz
 # is_main_menu_screen) daje x 66-253, y 463-505 bez plakietki "Continue!"; bliskie ręcznemu
@@ -274,14 +275,20 @@ def is_trophy_overlay_screen(img):
     Trzy znaki naraz, bo każdy pojedynczo zdarza się w zwykłej grze (złoty klocek, napis pochwalny): złoto w środku
     planszy (`partia-10/kawalek_1/048_state.png`: 0.47; najwyżej 0.36 na innych zrzutach s1), złoto w pasie napisu
     (0.19; inne najwyżej 0.34) i czerwony klejnot pod nim (ponad 100 px; klocki czerwone tam nie leżą razem ze złotem).
+    #343: żółte i czerwone klocki zwykłej planszy (s6 `partia-1/kawalek_6/final.png`: złoto 0.29/0.38, czerwień 512 px)
+    spełniały trzy progi; czerwony klocek wypełnia pole klejnotu (40x30 px, klejnot: 25x22), więc obwiednia czerwieni
+    ma górny limit.
     #328: skórka granatowa (s5) ma w pasie napisu żółte klocki żywej planszy (0.78 w `partia-2/kawalek_4/071_state.png`,
     0.88 w `partia-8/kawalek_1/110_state.png`; napis to cienkie litery, 0.19), więc pas ma też górny próg."""
     r, g, b = img[..., 0], img[..., 1], img[..., 2]
     gold = (r > 200) & (g > 130) & (g < 225) & (b < 100) & (r - b > 120)
     gem = (r > 190) & (g < 90) & (b < 110) & (r - g > 100)
-    return bool(gold[240:370, 100:220].mean() > TROPHY_GOLD_CENTER
-                and TROPHY_GOLD_TEXT < gold[168:198, 190:270].mean() < TROPHY_GOLD_TEXT_MAX
-                and gem[262:300, 140:180].sum() > TROPHY_GEM_PIXELS)
+    if not (gold[240:370, 100:220].mean() > TROPHY_GOLD_CENTER
+            and TROPHY_GOLD_TEXT < gold[168:198, 190:270].mean() < TROPHY_GOLD_TEXT_MAX
+            and gem[262:300, 140:180].sum() > TROPHY_GEM_PIXELS):
+        return False
+    ys, xs = np.nonzero(gem[262:300, 140:180])
+    return bool(max(ys.max() - ys.min(), xs.max() - xs.min()) + 1 <= TROPHY_GEM_MAX_SPAN)
 
 
 def is_bright_ad_screen(img):
@@ -596,11 +603,15 @@ def is_block(img):
     z zachowanym poprzednim odczytem `read_board`/`read_tray` (zweryfikowane 1:1 z zapisanym
     stanem `bridge/runs/0d96333/moves.jsonl` na 25 klatkach).
     """
+    # #343: fioletowy klocek drewnianej skórki (181,121,206)/(189,130,214) ma rozpiętość 84-89 (poniżej 100), więc
+    # `read_tray` czytał pełną tackę jako pustą (`docs/seria/s6/partia-5/kawalek_3/final.png`); tło drewna, różowe
+    # i błękitne tło tacki mają R lub G dominujące nad B.
     mx, mn = img.max(axis=-1), img.min(axis=-1)
     saturated_bright = (mx - mn >= 100) & (mx >= 150)
     r, g, b = img[..., 0], img[..., 1], img[..., 2]
     dark_green = (g > r) & (g > b) & (g - r >= 40) & (g - b >= 40) & (g >= 90)
-    return saturated_bright | dark_green
+    purple_wood = (b > r) & (r > g) & (b - g >= 70) & (r - g >= 40) & (b >= 190)
+    return saturated_bright | dark_green | purple_wood
 
 
 def read_board(img):
