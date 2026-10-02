@@ -94,16 +94,32 @@ _Avoid_: 1 mln jako wynik do pobicia, „nasz wzór" jako licznik celu
 
 **Seria weryfikacyjna**:
 10 partii na oryginale granych równolegle, każda na osobnym emulatorze. Zaliczona,
-gdy każda z 10 dochodzi do 1 mln licznika apki bez przegranej. W danej chwili
-trwa co najwyżej jedna seria.
-_Avoid_: łańcuch weryfikacji, partia do celu (w liczbie pojedynczej)
+gdy wszystkie 10 partii tej jednej serii dochodzą do 1 mln licznika apki — żadna
+nie kończy się przegraną, przerwaniem z winy mostu ani limitem czasu poniżej
+1 mln. Cele z różnych serii się nie sumują. Partię z awarią infrastruktury
+gra się od nowa w tej samej serii (ponowienie joba). W danej chwili trwa co
+najwyżej jedna seria.
+_Avoid_: łańcuch weryfikacji, partia do celu (w liczbie pojedynczej), licznik
+celów przez kilka serii
 
 **Przegrana**:
 Koniec partii, bo żaden klocek z tacki nie mieści się na planszy — wina
-algorytmu. Liczy się do serii i blokuje cel.
+algorytmu albo mostu. Niezaliczona także wtedy, gdy licznik apki przekroczył
+już 1 mln, a most tego nie zauważył i grał dalej.
 _Avoid_: śmierć (poza symulatorem), porażka, przerwanie
 
 **Przerwanie**:
-Koniec partii z winy infrastruktury: most stanął na nieznanym oknie, skończył
-się czas joba, zginął runner. Nie wlicza się do serii; partię gra się od nowa.
-_Avoid_: przegrana, awaria
+Koniec partii przed 1 mln licznika apki z innego powodu niż przegrana: most
+stanął na nieznanym oknie, pętla bez postępu, skończył się czas, zginął runner.
+Po pierwszym ruchu partia jest niezaliczona, chyba że log joba dowodzi awarii
+infrastruktury (runner zginął, GitHub przerwał job, `adb` stracił urządzenie
+przy działającym moście) — ciężar dowodu leży po stronie infrastruktury. Awaria
+infrastruktury i każda awaria przed pierwszym ruchem (pobranie APK, start
+emulatora) → partię gra się od nowa.
+_Avoid_: awaria (bez dookreślenia)
+
+**Awaria infrastruktury**:
+Przerwanie z dowodem w logu joba, że zawiódł runner, GitHub albo emulator, nie
+most. Nie zalicza ani nie skreśla partii; partię gra się od nowa w tej samej
+serii, bez limitu powtórek. Dwie z tej samej przyczyny → issue do właściciela.
+_Avoid_: przerwanie (gdy wina nieustalona)

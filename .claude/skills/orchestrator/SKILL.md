@@ -196,7 +196,8 @@ limit długości partii, nie miara poziomu. Dwa warunki, oba potwierdzone raport
    ≥ 10× liczby postawień potrzebnych do 1 mln licznika apki. Średnia punktów idzie do każdego raportu
    i dziennika jako informacja, nie próg.
 2. **Oryginał:** zaliczona **seria weryfikacyjna** — 10 partii równolegle, każda do 1 mln **licznika
-   apki** bez przegranej.
+   apki**, wszystkie 10 w **jednej** serii (cele z różnych serii się nie sumują). Definicje
+   przegranej, przerwania i awarii infrastruktury: `CONTEXT.md` „Cel i weryfikacja”.
 
 - **Przeżycie przed punktami.** Zmiana, która dodaje punkty kosztem choćby jednej przegranej w
   benchmarku, jest odrzucana. Punkty rozstrzygają tylko remis w przeżyciu.
@@ -210,8 +211,17 @@ limit długości partii, nie miara poziomu. Dwa warunki, oba potwierdzone raport
 - **Przegrana w serii:** serię dogrywasz do końca (każda przegrana to dane). Potem: odtwórz w
   symulatorze stan sprzed przegranej (plansza i tacki z mostu), ustal przyczynę (generator apki czy
   ślepa plamka przeszukania), zleć naprawę, odzyskaj warunek 1 i dopiero wtedy nowa seria.
-- **Przerwanie** (nieznane okno, koniec czasu joba, zgon runnera) nie wlicza się do serii — partię
-  gra się od nowa. Dwa przerwania z tej samej przyczyny → zadanie naprawcze mostu.
+- **Rozliczenie partii serii** (decyzja właściciela, 2026-10-02, #345; od s7):
+  - **Niezaliczona** → seria niezaliczona: przegrana (także po niezauważonym 1 mln), przerwanie po
+    pierwszym ruchu bez dowodu awarii infrastruktury, `limit_minut` poniżej 1 mln.
+  - **Awaria infrastruktury** wymaga dowodu w logu joba (runner zginął, GitHub przerwał job, `adb`
+    stracił urządzenie przy działającym moście). Brak dowodu = wina mostu. Taką partię i każdą awarię
+    przed pierwszym ruchem (APK, start emulatora) ponawiasz w tej samej serii (`gh run rerun <run>
+    --failed`), bez limitu powtórek. Dwie z tej samej przyczyny → issue do właściciela.
+  - **Cel ponad 1 mln** (most nie zauważył 1 mln i grał dalej, partia żywa): cel, ale obowiązkowo
+    analiza przyczyny i naprawa — to nie może się powtarzać.
+  - **Każde przerwanie** analizujesz (przyczyna z logów i zrzutów) i dopiero wtedy decydujesz, czy
+    zlecasz naprawę od razu, czy czekasz na powtórkę. Decyzję z uzasadnieniem zapisz w dzienniku.
 - Nieudana seria to **nie porażka**, tylko pełne źródło danych. Bez limitu prób i bez stopu.
 - **Sesje danych** (krótkie `rola:verifier`, zbierające stan+trójkę+ruch z mostu) zlecasz
   osobno od serii: po pierwszym moście, po zmianie symulatora, po nieudanej serii.
