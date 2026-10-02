@@ -254,6 +254,47 @@ Nieustalone: dlaczego s6 ma około sześciokrotnie wyższe ryzyko takiej decyzji
    z całego `docs/seria` (pułapka 28).
 3. Test regresji na `s6/partia-{2,3,8,10}/kawalek_*/NNN_state.png` z polami z tabeli „duch w `board`”.
 
+## Po #339 i naprawie (#342)
+
+Pytanie: czy most z `main` (`drop_banner_ghosts` z #333 + `drop_banner_text` z #339) podaje polityce prawdziwą planszę
+w każdym z dziewięciu ruchów decydujących? Pomiar na zrzutach `NNN_state.png` (numer = n ruchu poprzedzającego decyzję + 1;
+zrzut wczytany jako `int`, jak po `bridge.screenshot()`), przez ten sam przebieg co w pętli ruchu
+(`tools/duchy_serii.py --po-korekcie`, `koryguj_main`). Prawda = `expected` poprzedniego ruchu: jego plansza była odczytana
+dobrze (`ok: true` przed nim), a w czterech ruchach s6 równa się prawdzie z łańcucha `tools/przeglad_s6.py` (sprawdzone
+dla wszystkich dziewięciu). `read_board(zrzut)` równa się `observed` z logu we wszystkich dziewięciu, więc to ten sam odczyt,
+który robi żywy most.
+
+| ruch decydujący | odczyt ≠ prawda | reguła `main` | plansza po korekcie mostu z `main` | po mojej korekcie | prawda (`przeglad_s6`) | ruch polityki na planszy po korekcie | ruch ma układ |
+|---|---|---|---|---|---|---|---|
+| s4 p.1 n=55 | (4,3) | `drop_banner_text` | równa prawdzie | bez zmian (`bridge.py` nietknięty) | = `expected` poprzednika | (2,4,0) | tak |
+| s4 p.4 n=66 | (3,2)–(3,5) | `drop_banner_text` | równa prawdzie | bez zmian | jw. | (0,5,3) | tak |
+| s4 p.6 n=89 | (2,3),(3,3),(4,3),(5,3) | `drop_banner_ghosts` | równa prawdzie | bez zmian | jw. | (1,3,5) | tak |
+| s4 p.10 n=27 | (4,3)–(4,5) | `drop_banner_text` | równa prawdzie | bez zmian | jw. | (1,4,1) | tak |
+| s5 p.7 n=39 | (1,6),(1,7) | `drop_banner_ghosts` | równa prawdzie | bez zmian | jw. | (1,6,1) | tak |
+| s6 p.2 n=15 | (4,4) | `drop_banner_text` | równa prawdzie | bez zmian | (4,4) puste | (0,4,0) = ruch z przeglądu | tak |
+| s6 p.3 n=14 | (3,2),(4,3),(4,4),(4,5) | `drop_banner_text` | równa prawdzie | bez zmian | (3,2) zajęte, reszta puste | (2,3,4) = ruch z przeglądu | tak |
+| s6 p.8 n=32 | (4,5) | `drop_banner_text` | równa prawdzie | bez zmian | (4,5) puste | (0,5,2) = ruch z przeglądu | tak |
+| s6 p.10 n=44 | (4,2),(4,3) | `drop_banner_text` | równa prawdzie | bez zmian | (4,2),(4,3) puste | (0,3,6) = ruch z przeglądu | tak |
+
+Zrzuty były dostępne dla wszystkich dziewięciu ruchów, więc nie ma wpisów „niemierzalne”. „Ruch ma układ” = po ruchu polityki
+na prawdziwej planszy reszta bieżącej tacki da się ułożyć w całości (`przeglad_s6.seq_completable`, bez późniejszych tacek,
+jak w `duchy_serii`); w czterech ruchach s6 to dokładnie ruchy z przeglądu wstecznego wyżej.
+
+**Wniosek: `main` pokrywa wszystkie dziewięć, więc krok 2 z #342 (zmiana `bridge.py`) odpadł.** Tabela wyżej opisuje most
+po #339; s6 grała bez tej poprawki (jej logi mają `board` z duchem: różnica z kolumny „odczyt ≠ prawda” trwa w `board`
+następnego wpisu — to sprawdza `tests/test_bridge_banner.py::TestS6Przegrane`). Siedem z dziewięciu decyzji naprawia
+`drop_banner_text` (wszystkie cztery z s6 i trzy z s4); w s4 p.6 i s5 p.7 wystarcza #333 (duch w linii wyczyszczonej).
+Propozycja 1 (ponowny odczyt po zniknięciu baneru) i propozycja 2 (rozszerzenie `drop_banner_ghosts`) nie były potrzebne:
+`drop_banner_text` robi to, co propozycja 2, ale z dowodem z ekranu (rozrzut koloru komórki), a nie z progu na kolorze łaty.
+
+Czego to **nie** dowodzi: pokrycie jest sprawdzone na dziewięciu znanych szkodliwych decyzjach, nie na wszystkich możliwych.
+Baner poza wierszami 3–5 i poza liniami wyczyszczonymi ruchem nie ma reguły (nie wystąpił w materiale s3–s6; s5 p.7 miał
+baner w wierszu 1, ale w linii wyczyszczonej). Czy `drop_banner_text` zmniejszy częstość szkodliwych decyzji w realnej grze,
+pokaże dopiero seria s7 (pole `napis` w logu wpisu); do jej pomiaru służy `python3 tools/duchy_serii.py --serie s7`.
+Test regresji: `tests/test_bridge_banner.py::TestS6Przegrane` na `partia-2/kawalek_8/015_state.png`,
+`partia-3/kawalek_6/014_state.png`, `partia-8/kawalek_6/032_state.png`, `partia-10/kawalek_2/044_state.png`.
+`bridge.py` się nie zmienił, więc `tools/porownanie_odczytu.py` i `tools/detektory_na_planszy.py` nie były potrzebne.
+
 ## Poza zadaniem (odkrycia)
 
 - **W s4 były cztery prawdopodobne przegrane zapisane jako `przerwanie`**: p.1, p.4, p.6 i p.10 kończą się dokładnie po
@@ -272,5 +313,6 @@ python3 tools/przegrana_serii.py docs/seria/s6/partia-K          # K = 2, 3, 8, 
 python3 tools/przeglad_s6.py docs/seria/s6/partia-K --md          # tabele wyżej
 python3 tools/rozklad_tacek.py                                   # rozkład tacek, s3–s6
 python3 tools/duchy_serii.py                                     # częstość, s3–s6
-python3 -m unittest tests.test_przeglad_s6 tests.test_rozklad_tacek tests.test_duchy_serii
+python3 tools/duchy_serii.py --serie s4,s5,s6 --po-korekcie      # tabela „Po #339 i naprawie” (#342)
+python3 -m unittest tests.test_przeglad_s6 tests.test_rozklad_tacek tests.test_duchy_serii tests.test_bridge_banner
 ```
