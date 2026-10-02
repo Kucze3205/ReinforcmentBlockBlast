@@ -58,6 +58,14 @@ class TestOcen(unittest.TestCase):
         self.assertFalse(a["koniec_partii_przed"])
         self.assertTrue(L.wiersz_tabeli(d, a).endswith("| tak |"))
 
+    def test_s4_partia_8_cel_ukryty_za_przerwaniem(self):
+        d = os.path.join(ROOT, "docs", "seria", "s4", "partia-8")
+        a = L.ocen(L.wczytaj(d))
+        self.assertEqual(a["przekroczenie"], (16, 17))  # HUD na kawalek_16/final.png: 1 077 946
+        self.assertFalse(a["koniec_partii_przed"])
+        self.assertGreater(a["maksimum"], 3_000_000)  # HUD na kawalek_57/final.png: 3 172 913
+        self.assertTrue(L.wiersz_tabeli(d, a).endswith("| tak |"))  # pomiar.json: przerwanie (limit_minut)
+
 
 if __name__ == "__main__":
     unittest.main()
