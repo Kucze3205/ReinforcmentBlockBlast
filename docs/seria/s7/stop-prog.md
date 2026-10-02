@@ -8,6 +8,15 @@ Run 37046972994 @ `40137e2`. Odczyty odtworzone `bridge.read_score` na zapisanyc
 | 2 | 7 | 1 000 888 | 1 001 782 | `stabilny: false`, brak celu |
 | 4 | 8 | 1 002 693 | 1 004 232 | `stabilny: false`, brak celu |
 | 9 | 7 | 1 013 223 | 1 013 223 | stabilny, `potwierdzony: true` |
+| 5 | 11 | 1 003 568 | 1 005 197 | `stabilny: false`; cel dopiero kawałek później (1 277 590, `licznik_12.png`) |
+| 10 | 10 | 1 004 546 | 1 006 670 | `stabilny: false`; cel dopiero kawałek później (1 109 502, `licznik_11.png`) |
+
+Nowe przypadki p.5 i p.10 (#358, ta sama metoda: `bridge.read_score` na `kawalek_K/final.png` i `licznik_K.png`;
+materiał z `task/357`): HUD w chwili stopu 1 003 568 / 1 004 546, ostatnia klatka odczytu 1 005 197 / 1 006 670, czyli
+ekran wyższy od HUD o 1 629 / 2 124. Pasuje do hipotezy doliczania (jak p.2 i p.4: licznik apki rośnie po ostatnim
+ruchu, a odczyty z kolejnych klatek się różnią). Nie dowodzi jej: ciągu odczytów nadal nie ma, bo pole `odczyty`
+w `stop_prog` dochodzi dopiero w #358 — następna seria pokaże go wprost (lista list, po jednej na wywołanie
+`read_stable_counter`).
 
 Pełna lista odczytów z chwili stopu nie przetrwała: `pomiar.json` nadpisał `licznik_apki` odczytem z następnego
 kawałka, a `licznik_odrzucone` jest puste (`counter_consistent` nie odrzucił niczego). `licznik_k.png` zapisuje się

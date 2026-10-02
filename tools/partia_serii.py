@@ -233,14 +233,17 @@ def run(args, now=time.time):
         stop = last.get("stop_prog") is not None
         if stop:
             pomiar["stop_prog"].append({"kawalek": k, "n": last.get("n"), "licznik": last.get("score"),
-                                        "potwierdzony": False})
+                                        "potwierdzony": False, "odczyty": []})
         stop_prog = args.prog
         value, reads, stable, img = read_stable_counter()
+        if stop:
+            pomiar["stop_prog"][-1]["odczyty"].append(list(reads))
         for _ in range(STOP_PONOWIENIA if stop else 0):
             if stable or value is None or value < args.prog:
                 break
             time.sleep(STOP_PRZERWA_S)  # licznik jeszcze się doolicza po ostatnim ruchu
             value, reads, stable, img = read_stable_counter()
+            pomiar["stop_prog"][-1]["odczyty"].append(list(reads))
         moves_since = sum(moves_in[j] for j in range(accepted_k + 1, k + 1))
         if value is not None and not counter_consistent(accepted, value, moves_since):
             pomiar["licznik_odrzucone"].append({"kawalek": k, "wartosc": value, "odczyty": reads, "poprzedni": accepted})
