@@ -1345,7 +1345,7 @@ def main(max_moves, policy_spec="greedy", policy_source="domyślna", seria=False
         ok = grid == expected
         ponowny = None
         observed_pierwszy = observed
-        if not ok:
+        if not ok and PONOWNY_ODCZYT_LIMIT > 0:  # limit 0 wyłącza pętlę (atrapy testów bez zrzutów)
             img, observed, slots, grid, duchy, napis, ponowny = reread_until_match(board, pieces, i, x, y, expected)
             ok = grid == expected
         frozen = observed == board.grid

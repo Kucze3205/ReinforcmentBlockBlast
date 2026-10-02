@@ -40,6 +40,13 @@ def _imgs():
     return base.copy(), base.copy(), _load("495cd91", "before_retry.png")
 
 
+
+def setUpModule():
+    # #351: atrapy mostu nie mają zrzutów do ponownego odczytu po `ok: false` — pętlę wyłączamy limitem 0
+    p = mock.patch("bridge.PONOWNY_ODCZYT_LIMIT", 0)
+    p.start()
+    unittest.addModuleCleanup(p.stop)
+
 class Scenario:
     """Kolejka klatek dla `settled_state` i kolejnych `stable_state`; ostatnia powtarza się bez końca.
     Licznik HUD bierze z `scores` po tożsamości obrazu."""

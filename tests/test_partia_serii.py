@@ -38,6 +38,13 @@ def chunk(n0, count, end_row=None):
     return rows
 
 
+
+def setUpModule():
+    # #351: atrapy mostu nie mają zrzutów do ponownego odczytu po `ok: false` — pętlę wyłączamy limitem 0
+    p = mock.patch("bridge.PONOWNY_ODCZYT_LIMIT", 0)
+    p.start()
+    unittest.addModuleCleanup(p.stop)
+
 class Harness:
     """Podstawia `bridge.main` (pisze scenariusz do moves.jsonl) oraz odczyt licznika."""
 

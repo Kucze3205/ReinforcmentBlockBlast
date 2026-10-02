@@ -342,6 +342,6 @@ class TestPonownyOdczyt(unittest.TestCase):
         # pole `ponowny_odczyt` powstaje wyłącznie w gałęzi `not ok` (brak dodatkowych zrzutów przy ok: true)
         with open(os.path.join(ROOT, "bridge.py"), encoding="utf-8") as f:
             src = f.read()
-        i = src.index("        if not ok:\n            img, observed, slots, grid, duchy, napis, ponowny")
+        i = src.index("        if not ok and PONOWNY_ODCZYT_LIMIT > 0:  # limit 0 wyłącza pętlę (atrapy testów bez zrzutów)\n            img, observed, slots, grid, duchy, napis, ponowny")
         self.assertIn("reread_until_match", src[i:i + 200])
         self.assertEqual(src.count("reread_until_match("), 2)  # definicja + jedno wywołanie
