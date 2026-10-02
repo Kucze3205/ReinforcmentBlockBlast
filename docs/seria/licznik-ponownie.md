@@ -6,7 +6,7 @@ się przez ≥ 3 kolejne wpisy z odczytem (wpisy z `score: null` serii nie przer
 z zapisanego `pomiar.json`; **nie została zmieniona**. „rozjazd” = tak, gdy ponowna ocena („≥ 1 mln utrzymany, bez `koniec_partii`
 przed”) i `zakonczenie == cel` się różnią.
 
-Wynik: jedyny rozjazd to **s4/1** — klasyfikacja `przerwanie (petla_bez_postepu)`, a licznik przekroczył 1 mln w kawałku 18
+Wynik: rozjazdy to **s4/1** i **s4/8** (s4/8 opisane niżej); s4/1 — klasyfikacja `przerwanie (petla_bez_postepu)`, a licznik przekroczył 1 mln w kawałku 18
 (`n` 71; wzrokowo ✔ na `kawalek_18/final.png`), bez końca partii, i doszedł do 1 285 808. Przyczyna: kotwica `counter_consistent`
 utknęła na 25 662 (#324); poprawka reguły: `docs/seria-skrypt.md`. Pozostałe partie s1–s4 zgadzają się z klasyfikacją
 (s1 nie ma odczytów licznika, `score` = `null`).
@@ -49,5 +49,11 @@ utknęła na 25 662 (#324); poprawka reguły: `docs/seria-skrypt.md`. Pozostałe
 | s4/4 | przerwanie (petla_bez_postepu) | 436 322 | nie | nie | nie |
 | s4/5 | cel | 1 027 739 | kawałek 25, n 80 | nie | nie |
 | s4/6 | przerwanie (petla_bez_postepu) | 236 443 | nie | nie | nie |
+| s4/8 | przerwanie (limit_minut) | 3 172 549 | kawałek 16, n 17 | nie | tak |
 | s4/9 | cel | 1 009 327 | kawałek 16, n 135 | nie | nie |
 | s4/10 | przerwanie (plansza_zawieszona) | 549 327 | nie | nie | nie |
+
+**s4/8 (#336):** `pomiar.json` mówi `przerwanie (limit_minut)` z `licznik_apki` 107 069, ale `licznik_odrzucone` to rosnący ciąg z kawałków
+4–57 z tym samym `poprzedni` 13 212. Ponowna ocena znajduje ≥ 1 mln od kawałka 16, `n` 17 (HUD na `kawalek_16/final.png`: 1 077 946; na
+`kawalek_57/final.png`: 3 172 913), bez `koniec_partii` — partia przekroczyła 1 mln, czyli to cel. Narzędzie rozpoznawało to już bez zmian
+(czyta `score` z `chunk*_moves.jsonl`, nie `pomiar.json`); dodano tylko test regresji i wiersz tabeli.
