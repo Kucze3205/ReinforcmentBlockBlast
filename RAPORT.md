@@ -1,56 +1,57 @@
 # Raport pętli — raport końcowy
 
-**2026-09-30 · cykl 32 · CEL OSIĄGNIĘTY**
+**2026-10-02 · cykl 60 · CEL OSIĄGNIĘTY**
 
-**Czeka na ciebie:** [otwarte awarie](https://github.com/Kucze3205/ReinforcmentBlockBlast/labels/awaria)
-— żadnej. Czeka natomiast przypięty [#264](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/264):
-dwie decyzje, które należą do ciebie, opisane niżej. Pętla stoi: w korzeniu leży `GOAL_REACHED`.
+**Czeka na ciebie:** [otwarte awarie](https://github.com/Kucze3205/ReinforcmentBlockBlast/labels/awaria) — żadnej.
+Pętla stoi, bo w korzeniu leży `GOAL_REACHED`. Podsumowanie i rzeczy do decyzji są w przypiętym issue.
 
 ## Gdzie jesteśmy
 
-Oba warunki z [#9](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/9) są spełnione i potwierdzone raportami.
+Oba warunki celu „agent nie przegrywa” (`CONTEXT.md`, zasady zaliczania z #345) są spełnione i potwierdzone.
 
-- **Symulator:** średnia **11 034 218,3 pkt** na 300 stałych seedach przy ε = 0, zero śmierci
-  ([#259](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/259), `bench/record.json`). Pomiar przy suficie
-  16 000 ruchów. Sufit podniesiono potem do 32 000; średniej to nie obniży, bo żadna partia nie zginęła, a punkty
-  tylko rosną.
-- **Prawdziwa apka (10.7.5):** jedna ciągła partia, 2700 ruchów w 215 minut, bez końca partii i bez zatrzymań mostu.
-  Nasz wzór daje **1 004 153 pkt** ([#262](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/262)).
-  **Licznik apki na końcu tej samej partii pokazywał 681 507.**
+- **Symulator:** zero przegranych na 600 seedach (300 stałych i 300 rotowanych) przy ε = 0 i suficie 64 000 ruchów
+  ([#279](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/279), cykl 34). Średnio 44,2 mln pkt na partię
+  (tylko informacyjnie). Pliki, od których zależy wynik benchmarku, nie zmieniły się od tamtego pomiaru.
+- **Prawdziwa apka (10.7.5):** seria **s7**
+  ([run 37046972994](https://github.com/Kucze3205/ReinforcmentBlockBlast/actions/runs/37046972994), kod `40137e2`):
+  **10 z 10 partii doszło do 1 mln na liczniku apki** w jednej serii. Zero przegranych, zero przerwań, zero powtórzonych
+  jobów. Liczniki na końcu: od 1 001 477 do 1 282 497. Partie trwały od 44 do 156 minut (limit 340) i miały od 919 do
+  3299 postawień. Każdy cel sprawdziłem na ostatnim zrzucie licznika: plansza żyje, HUD pokazuje ponad 1 mln.
+  Materiał jest w `docs/seria/s7/`, a tabela w `docs/journal/cykl-0060.md`.
 
-Bot, który to zrobił: przeszukanie wiązką (128 najlepszych pierwszych ruchów, każdy dokończony do końca tacki)
-z oceną planszy przez sieć n-tuple trenowaną na przeżycie. Do tego duża waga na punkty zdobyte w bieżącej tacce.
-Decyzja trwa średnio 1,65 ms. Na telefonie bot nie zginął ani razu, tak jak w symulatorze.
+Bot: przeszukanie wiązką (128 najlepszych pierwszych ruchów, każdy dokończony do końca tacki). Planszę ocenia sieć
+n-tuple trenowana na przeżycie, a dodatkowo bot dostaje dużą wagę za punkty z bieżącej tacki. Decyzja trwa 2–3 ms.
+Ta polityka nie zmieniła się od cyklu 34.
 
 ## Co się wydarzyło
 
-Cykl 31 wysłał pierwszą i jedyną partię weryfikacyjną na emulator. Verifier grał jedną partią przez 18 kawałków
-po 150 ruchów, na pierwszym planie. Skończył, gdy nasz wzór przeszedł milion. Raport ma status `blocked`, bo skill
-verifiera każe tak oznaczyć rozjazd licznika apki ze wzorem przy poprawnym odczycie planszy. Ten rozjazd jest
-prawdziwy: apka liczy stale około 0,69 naszego wzoru, od siódmego do osiemnastego kawałka. W krótkich partiach
-z #206 było odwrotnie: wzór zaniżał apkę 1,4–4,7 raza.
+Od zmiany celu (30.09) bot nie przegrał żadnej partii z własnej winy. Wszystkie przegrane w seriach s3–s6 wynikały
+z błędów mostu, czyli odczytu ekranu i sterowania emulatorem. Były to: napisy i „duchy” po czyszczeniu linii brane
+za klocki, zbyt wczesny „stabilny” stan planszy i brak zatrzymania po milionie. Każdą serię dogrywaliśmy do końca,
+przegrane odtwarzaliśmy, a most łataliśmy. Ostatnie poprawki przed s7 to:
 
-Uznałem warunek 2 za spełniony na podstawie twojego rozstrzygnięcia w
-[#20](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/20). Próg „1 mln" liczymy naszym zamrożonym wzorem
-z zalogowanej trajektorii, a licznik apki służy tylko do wykrywania zmiany reguł. Rozjazd nie unieważnia partii.
-Przed decyzją sprawdziłem trajektorię sam:
+- korekta duchów (#342),
+- stop po 1 mln według HUD (#347),
+- ponowny odczyt planszy, gdy ekran nie zgadza się z oczekiwanym stanem (#351/#353).
 
-- to jedna partia: na każdym z 17 styków kawałków plansza zgadza się co do pola, a licznik apki rośnie monotonicznie;
-- każdy ruch zagrał kandydat;
-- 5 ruchów z niezgodnym odczytem to plansza tutorialu na starcie i dwa przejściowe fantomy na ekranie. Żaden fantom
-  nie wyczyścił linii, której nie było, więc nie mógł zjeść zapasu 4 153 pkt nad progiem.
+W s7 ponowny odczyt zadziałał na żywo 59 razy: 49 przypadków naprawił, 10 zostało rozbieżnych, ale żaden nie zakończył
+partii.
+
+Jedna usterka jest nadal otwarta. W 5 z 10 partii skrypt serii nie potwierdził przekroczenia miliona od razu, bo licznik
+apki jeszcze się doliczał. Partia grała wtedy cały kawałek dłużej, maksymalnie o 280 tys. punktów ponad cel. Wszystkie
+te partie przeżyły, ale według twoich zasad (#345) to wymaga naprawy. Zadanie
+[#358](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/358) było już w toku, gdy kończyłem cykl.
 
 ## Co dalej
 
-Pętla nie startuje sesji. **Dwie rzeczy dla ciebie**, obie w #264:
+Pętla nie startuje nowych sesji. Zostały rzeczy, które możesz zrobić, ale nie musisz:
 
-1. **Dowody z #262 leżą tylko na gałęzi `task/262`** (`bridge/runs/558899e/`, commit `6b30fba`). Epilog nie scala
-   raportu `blocked`, a orchestrator nie ma prawa zapisu do `bridge/runs/`. Scal je, jeśli mają zostać na `main`.
-2. **Czy „1 mln" ma znaczyć licznik apki?** Jeśli tak, skasuj `GOAL_REACHED` i załóż issue `rola:orchestrator`
-  z etykietą `loop:iteration 32`. Przy stosunku 0,69 potrzeba ~1,45 mln naszym wzorem, czyli ~3600–3900 postawień.
-  Most robi 12,6 postawień na minutę, więc to ~4,8–5,2 h jedną partią, na samej granicy sesji verifiera (300 min).
-  Pierwsze zadania: zmierzyć ruch po ruchu, skąd bierze się 0,69, i przyspieszyć most. Druga droga to ciągłość
-  partii między sesjami (snapshot emulatora), ale ona wymaga zmian w `.github/`, więc jest twoja.
+1. **#358.** Jeśli skończy się statusem `done`, poprawka wejdzie na `main` sama. Jeśli `partial`, praca zostanie na
+   `task/358`.
+2. **Wznowienie** (np. żeby powtórzyć serię albo podnieść poprzeczkę): skasuj `GOAL_REACHED`. Mapa
+   [#359](https://github.com/Kucze3205/ReinforcmentBlockBlast/issues/359) czeka. Jej pierwsze zadania to raport #358,
+   analiza s7 (10 nienaprawionych rozbieżności) i dopisanie s7 do testów detektorów.
+3. Stare sprawy: dowody #262 na `task/262`, #237, 8 MB `ntuple-state.json` do sprzątnięcia.
 
-**Rokowanie:** linia pracy dowiozła cel w obu warunkach. Jeśli cel zmieni się na licznik apki, rokuje dalej: bot nie
-ginie, więc to tylko kwestia czasu gry i tempa mostu, nie siły bota.
+**Rokowanie:** ta linia pracy dowiozła cel, czyli politykę z cyklu 34 i łatanie mostu po każdej serii. Siła bota nie
+była wąskim gardłem. Po ewentualnym wznowieniu zostaje tylko utwardzanie mostu.

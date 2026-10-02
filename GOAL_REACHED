@@ -1,0 +1,8 @@
+Cel osiągnięty — cykl 60, 2026-10-02.
+
+Warunek 1 (symulator): 0/600 przegranych przy suficie 64 000 ruchów, #279 (cykl 34); odcisk benchmarku nietknięty od tamtej pory.
+Warunek 2 (oryginał): seria s7, run https://github.com/Kucze3205/ReinforcmentBlockBlast/actions/runs/37046972994
+@ 40137e2, apka 10.7.5 — 10/10 partii do 1 mln licznika apki w jednej serii, 0 przegranych, 0 przerwań, 0 ponowień.
+Materiał: docs/seria/s7/partia-1..10. Dziennik: docs/journal/cykl-0060.md. Raport: RAPORT.md.
+
+Wznowienie pętli: skasuj ten plik.
