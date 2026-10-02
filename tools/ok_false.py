@@ -380,23 +380,32 @@ def zbuduj_polityke(spec=None):
 
 
 def tabela_decyzji(wpisy, polityka):
-    """Markdown: per podgrupa liczby z `decyzja` na wpisach z `dotrwal` i następnym wpisem."""
-    licz = {}
+    """Markdown: per podgrupa i per `odczyt_bledny` liczby z `decyzja` na wpisach z `dotrwal` i następnym wpisem."""
+    pola = ("wpisy", "dotrwal", "rozni", "tylko_odczyt_bez_ulozenia", "nielegalny")
+    licz, razem = {}, {}
     for ws in wpisy.values():
         for w in ws:
-            if not w["dotrwal"]:
-                continue
-            d = decyzja(w, polityka)
-            c = licz.setdefault((w["grupa"], w["podgrupa"]), dict.fromkeys(("dotrwal", "rozni", "tylko_odczyt_bez_ulozenia", "nielegalny"), 0))
-            c["dotrwal"] += 1
-            c["rozni"] += d["rozni"]
-            c["tylko_odczyt_bez_ulozenia"] += d["odczyt_bez_ulozenia_expected_ma"]
-            c["nielegalny"] += d["nielegalny_na_expected"]
-    linie = ["| grupa | podgrupa | odczyt_bledny | dotrwal | decyzja_inna | odczyt_bez_ulozenia_a_expected_ma | "
-             "ruch_odczytu_nielegalny_na_expected |", "|---|---|---|---|---|---|---|"]
-    for (g, p), c in sorted(licz.items(), key=lambda t: (GRUPY.index(t[0][0]), -t[1]["dotrwal"], t[0][1])):
-        linie.append(f"| {g} | {p} | {odczyt_bledny(p)} | {c['dotrwal']} | {c['rozni']} | {c['tylko_odczyt_bez_ulozenia']} | {c['nielegalny']} |")
-    return "\n".join(linie), licz
+            kluczow = [(w["grupa"], w["podgrupa"]), (w["grupa"], "odczyt_bledny=" + odczyt_bledny(w["podgrupa"]))]
+            d = decyzja(w, polityka) if w["dotrwal"] else None
+            for k, slownik in zip(kluczow, (licz, razem)):
+                c = slownik.setdefault(k, dict.fromkeys(pola, 0))
+                c["wpisy"] += 1
+                if d:
+                    c["dotrwal"] += 1
+                    c["rozni"] += d["rozni"]
+                    c["tylko_odczyt_bez_ulozenia"] += d["odczyt_bez_ulozenia_expected_ma"]
+                    c["nielegalny"] += d["nielegalny_na_expected"]
+    kolumny = "wpisy | dotrwal | decyzja_inna | odczyt_bez_ulozenia_a_expected_ma | ruch_odczytu_nielegalny_na_expected"
+
+    def tab(slownik, kol, z_odczytem):
+        linie = [f"| grupa | {kol} | " + ("odczyt_bledny | " if z_odczytem else "") + kolumny + " |",
+                 "|---|---|" + "---|" * (6 if z_odczytem else 5)]
+        for (g, p), c in sorted(slownik.items(), key=lambda t: (GRUPY.index(t[0][0]), -t[1]["wpisy"], t[0][1])):
+            ob = f"{odczyt_bledny(p)} | " if z_odczytem else ""
+            linie.append(f"| {g} | {p} | {ob}" + " | ".join(str(c[x]) for x in pola) + " |")
+        return "\n".join(linie)
+
+    return tab(licz, "podgrupa", True) + "\n\n" + tab(razem, "odczyt", False), licz
 
 
 def main(argv=None):
