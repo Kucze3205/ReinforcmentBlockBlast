@@ -136,7 +136,8 @@ NAPIS_WIERSZE = (3, 4, 5)  # napis „Perfect!" / „+N Combo N" wisi na środku
 NAPIS_POLOWA = 10  # `cell_flatness`: połowa boku okna wokół środka komórki (21x21 px, wnętrze ściany klocka)
 NAPIS_ROZRZUT = 100  # `cell_flatness`: od tego rozrzutu koloru okno nie jest ścianą klocka ani pustym polem (zmierzone:
 # napis 162-255 na 24 zrzutach z napisem; wpisy z echem i bez nakładki 0-9; patrz `docs/seria/ok-false.md`)
-# #351: tymczasowy, górna granica z #345; do potwierdzenia pomiarem `bridge/runs/*/napis-czas.md`
+# #351: limit z pomiaru #350 (`bridge/runs/a9fdeb1/napis-czas.md`, 80 serii): napis wisiał najdłużej 2,0 s, do stabilnego odczytu 2,64 s,
+# po 3 s w żadnej serii; 5 s to zapas ok. 2x (bezpieczeństwo przed czasem)
 PONOWNY_ODCZYT_LIMIT = 5.0  # s: po ruchu z `ok: false` czytamy planszę ponownie do zgodności z `expected` albo do limitu
 PONOWNY_ODCZYT_PAUZA = 0.2  # s między kolejnymi odczytami w tej pętli
 TRAY_DEAL_WAIT = 1.0  # s przerwy przed ponownym odczytem, gdy tacka jest pusta albo widać nakładkę pucharu (#294)

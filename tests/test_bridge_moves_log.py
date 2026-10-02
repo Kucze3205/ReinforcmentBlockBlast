@@ -275,5 +275,51 @@ class TestMainDetectsFrozenBoard(unittest.TestCase):
         self.assertTrue(all("okno" not in e for e in entries))
 
 
+class TestMainPonownyOdczyt(unittest.TestCase):
+    """#353: ruch z `ok: false` na pierwszym odczycie i zgodnym ponownym odczycie trafia do logu jako `ok: true`."""
+
+    def test_wpis_z_ponownym_odczytem_zgodnym(self):
+        board_img = _load("0d96333", "120_state.png")
+        pusta = [[0] * 8 for _ in range(8)]
+        slots = [([[1, 1]], (20, 460)), None, None]
+        ruch = {}
+
+        def fake_drag(slot_center, piece, x, y):
+            ruch.update(x=x, y=y)
+            return {"finger": [0, 0]}, board_img
+
+        def po_ruchu(frame):  # ponowny odczyt widzi stan zgodny z `expected`
+            b = Board()
+            b.grid = [row[:] for row in pusta]
+            b.place_piece(BEAM2, ruch["x"], ruch["y"])
+            return b.grid
+
+        with mock.patch("bridge.PONOWNY_ODCZYT_LIMIT", 5.0), \
+             mock.patch("bridge.settled_state", return_value=(board_img, pusta, slots)), \
+             mock.patch("bridge.stable_state", return_value=(board_img, pusta, slots)), \
+             mock.patch("bridge.in_game", return_value=True), \
+             mock.patch("bridge.read_score", return_value=100), \
+             mock.patch("bridge.drag", side_effect=fake_drag), \
+             mock.patch("bridge.screenshot", return_value=board_img), \
+             mock.patch("bridge.read_board", side_effect=po_ruchu), \
+             mock.patch("bridge.read_tray", return_value=[None, None, None]), \
+             mock.patch("bridge.drop_banner_text", side_effect=lambda img, g, e, a: (g, [])), \
+             mock.patch("bridge.annotate"), \
+             mock.patch("PIL.Image.Image.save"), \
+             mock.patch("bridge.os.makedirs"), \
+             mock.patch("bridge.time.sleep"), \
+             mock.patch("builtins.open", mock.mock_open()) as m_open:
+            bridge.main(1, policy_spec="greedy")
+
+        entries = [json.loads(c.args[0]) for c in m_open().write.call_args_list]
+        self.assertEqual(len(entries), 1)
+        e = entries[0]
+        self.assertTrue(e["ok"])
+        self.assertTrue(e["ponowny_odczyt"]["zgodny"])
+        self.assertEqual(e["observed"], pusta)
+        self.assertNotEqual(e["observed"], e["expected"])
+        self.assertEqual(e["observed_ponowny"], e["expected"])
+
+
 if __name__ == "__main__":
     unittest.main()
