@@ -350,7 +350,30 @@ class TestStopProgu(unittest.TestCase):
         self.assertEqual((code, pomiar["zakonczenie"]), (0, "cel"))
         self.assertEqual(len(h.calls), 1)
         self.assertEqual(h.progs, [1_000_000])
-        self.assertEqual(pomiar["stop_prog"], [{"kawalek": 1, "n": 5, "licznik": 1_002_000, "potwierdzony": True}])
+        self.assertEqual(pomiar["stop_prog"], [{"kawalek": 1, "n": 5, "licznik": 1_002_000, "potwierdzony": True,
+                                                "odczyty": [[1_003_000, 1_003_000]]}])
+
+    def test_niestabilne_odczyty_po_stopie_stabilizuja_sie_przy_ponowieniu(self):
+        h = Harness(self, [self.stop_chunk()],
+                    counter_reads=[[1_003_000, 1_003_500, 1_004_000], [1_004_232, 1_004_232]])
+        with mock.patch("partia_serii.time.sleep"):
+            code, pomiar = h.run()
+        self.assertEqual((code, pomiar["zakonczenie"]), (0, "cel"))
+        self.assertEqual(len(h.calls), 1)
+        self.assertEqual(pomiar["stop_prog"][0]["potwierdzony"], True)
+        self.assertEqual(pomiar["licznik_apki"]["wartosc"], 1_004_232)
+        self.assertEqual(pomiar["stop_prog"][0]["odczyty"],
+                         [[1_003_000, 1_003_500, 1_004_000], [1_004_232, 1_004_232]])
+
+    def test_ponowienia_po_stopie_maja_limit(self):
+        n = partia_serii.STOP_PONOWIENIA + 1
+        h = Harness(self, [self.stop_chunk(), chunk(5, 5, {"end": "koniec_partii"})],
+                    counter_reads=[[1_000_100 + 10 * i, 1_000_200 + 10 * i] for i in range(n)] + [[1, 2]])
+        with mock.patch("partia_serii.time.sleep"):
+            code, pomiar = h.run()
+        self.assertEqual(h.progs, [1_000_000, None])
+        self.assertEqual(pomiar["stop_prog"][0]["potwierdzony"], False)
+        self.assertEqual(len(pomiar["stop_prog"][0]["odczyty"]), n)
 
     def test_niepotwierdzony_stop_gra_dalej_bez_progu_w_moscie(self):
         h = Harness(self, [self.stop_chunk(), chunk(5, 5), chunk(10, 5, {"end": "koniec_partii"})],

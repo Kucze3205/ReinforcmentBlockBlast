@@ -30,6 +30,10 @@ STABLE_TRIES = 6
 # Górna granica przyrostu licznika na postawienie (#324). Zmierzone na s2–s4: największy średni przyrost w oknie
 # >= 150 postawień to ok. 3 050 (s2/5); 6 000 to dwukrotny zapas. Uzasadnienie: docs/seria-skrypt.md.
 MAX_PRZYROST_NA_POSTAWIENIE = 6000
+# Po `stop_prog` licznik apki jeszcze się doliczał (#356: HUD 1 002 693, na ekranie 1 004 232) i kolejne odczyty się
+# różniły; powtarzamy odczyt z przerwą, aż dwa kolejne będą zgodne (najwyżej tyle razy, docs/seria/s7/stop-prog.md).
+STOP_PONOWIENIA = 5
+STOP_PRZERWA_S = 1.5
 LAST_MOVES = 5
 # Koniec po oknach po grze (#347): ogon logu to wiersze od końca do ostatniego ruchu zgodnego i niezamrożonego, najwyżej tyle.
 OGON_MAX = 60
@@ -229,9 +233,17 @@ def run(args, now=time.time):
         stop = last.get("stop_prog") is not None
         if stop:
             pomiar["stop_prog"].append({"kawalek": k, "n": last.get("n"), "licznik": last.get("score"),
-                                        "potwierdzony": False})
+                                        "potwierdzony": False, "odczyty": []})
         stop_prog = args.prog
         value, reads, stable, img = read_stable_counter()
+        if stop:
+            pomiar["stop_prog"][-1]["odczyty"].append(list(reads))
+        for _ in range(STOP_PONOWIENIA if stop else 0):
+            if stable or value is None or value < args.prog:
+                break
+            time.sleep(STOP_PRZERWA_S)  # licznik jeszcze się doolicza po ostatnim ruchu
+            value, reads, stable, img = read_stable_counter()
+            pomiar["stop_prog"][-1]["odczyty"].append(list(reads))
         moves_since = sum(moves_in[j] for j in range(accepted_k + 1, k + 1))
         if value is not None and not counter_consistent(accepted, value, moves_since):
             pomiar["licznik_odrzucone"].append({"kawalek": k, "wartosc": value, "odczyty": reads, "poprzedni": accepted})
