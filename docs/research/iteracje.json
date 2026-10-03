@@ -1,0 +1,1518 @@
+{
+ "meta": {
+  "zrodla": [
+   "docs/journal/cykl-*.md (czasy = pierwszy commit dziennika; cel/werdykt = Zlecone/Liczby/Decyzja)",
+   "git log (commity w oknie)",
+   "gh issue list: etykiety loop:iteration N",
+   "bench/record.json (historia gita)"
+  ],
+  "definicja_okna": "cykl N = [commit dziennika N, commit dziennika N+1]; dziennik N powstaje na poczatku cyklu N (zlecenia), wyniki wracaja w oknie N i w dzienniku N+1. Cykle 1-2: okna z dat issues (#43-#55), dzienniki odzyskane w c.3. Cykl 10 okno do dziennika 14 (11-13 padly). Cykl 60: do ostatniego commitu #358.",
+  "ograniczenia": [
+   "godziny to czas miedzy dziennikami (z kolejkami, seriami 3-5 h, przestojami), nie czas pracy sesji",
+   "issues = etykieta loop:iteration N (z zlaczeniowym); c.1-2 z dziennika; bez serii (seria nie jest issue)",
+   "srednie rekordu miedzy zmianami sufitu/generatora/odcisku nie sa porownywalne (c.20, 23, 26, 29, 30, 33) - patrz uwaga",
+   "werdykt: promocja = zmiana bench/record.json w oknie; bez efektu; cofniete; dodatkowo awaria, infrastruktura (zmiana mostu/serii bez ruchu rekordu), cel; ocena reczna z dziennikow"
+  ]
+ },
+ "cykle": [
+  {
+   "cykl": 1,
+   "cel": "Bieg na sucho: research kar terminalnych (#43), testy (#44), pomiar sygnalu (#45)",
+   "werdykt": "awaria",
+   "uwaga": "zamek na issue blokuje publikacje raportu (#47); petla staje",
+   "start_utc": "2026-09-24T18:29:45+00:00",
+   "koniec_utc": "2026-09-24T20:05:02+00:00",
+   "godziny": 1.59,
+   "commity": 1,
+   "issues": 5,
+   "issues_role": {
+    "researcher": 1,
+    "implementer": 3,
+    "awaria": 1
+   },
+   "issues_nr": [
+    43,
+    44,
+    45,
+    46,
+    47
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 2,
+   "cel": "Puste zadanie domykajace cykl; zadania zablokowane awaria #48",
+   "werdykt": "awaria",
+   "uwaga": "agent.sh bez GH_TOKEN (#48); nic nie zadispatchowano; naprawa 25.09 rano (12,7 h to przestoj)",
+   "start_utc": "2026-09-24T20:05:02+00:00",
+   "koniec_utc": "2026-09-25T08:46:15+00:00",
+   "godziny": 12.69,
+   "commity": 9,
+   "issues": 8,
+   "issues_role": {
+    "awaria": 1,
+    "implementer": 1,
+    "researcher": 3,
+    "inne": 3
+   },
+   "issues_nr": [
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 3,
+   "cel": "Zmiana kierunku: DQN -> funkcja oceny planszy + przeszukanie tacki + CEM (#56-#61)",
+   "werdykt": "bez efektu",
+   "uwaga": "brak pomiaru; czesc dorobku nie dojechala na main (odzysk w c.4)",
+   "start_utc": "2026-09-25T08:46:15+00:00",
+   "koniec_utc": "2026-09-25T15:15:28+00:00",
+   "godziny": 6.49,
+   "commity": 15,
+   "issues": 4,
+   "issues_role": {
+    "orchestrator": 1,
+    "bench": 1,
+    "implementer": 2
+   },
+   "issues_nr": [
+    58,
+    59,
+    61,
+    62
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 4,
+   "cel": "Odzysk dorobku (#77), koszt TrayPolicy (#79), benchmark ze strojonymi wagami (#80), pierwsze wagi CEM (#81), pomiar #82",
+   "werdykt": "bez efektu",
+   "uwaga": "pomiar #82 policzony i utracony (crashed)",
+   "start_utc": "2026-09-25T15:15:28+00:00",
+   "koniec_utc": "2026-09-25T19:05:16+00:00",
+   "godziny": 3.83,
+   "commity": 19,
+   "issues": 7,
+   "issues_role": {
+    "orchestrator": 1,
+    "bench": 1,
+    "implementer": 5
+   },
+   "issues_nr": [
+    77,
+    78,
+    79,
+    80,
+    81,
+    82,
+    84
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 5,
+   "cel": "Powtorka pomiaru #87 (tray:weights vs greedy), przyspieszenie TrayPolicy 3,14x (#88)",
+   "werdykt": "promocja",
+   "uwaga": "pierwszy rekord w historii: 4510,24 (greedy 704,79; prog 2100 przekroczony 2,15x)",
+   "start_utc": "2026-09-25T19:05:16+00:00",
+   "koniec_utc": "2026-09-25T20:03:49+00:00",
+   "godziny": 0.98,
+   "commity": 7,
+   "issues": 4,
+   "issues_role": {
+    "orchestrator": 1,
+    "researcher": 1,
+    "implementer": 1,
+    "bench": 1
+   },
+   "issues_nr": [
+    87,
+    88,
+    89,
+    91
+   ],
+   "rekord_w_oknie": [
+    {
+     "commit": "6b6b671",
+     "issue": 87,
+     "cap": 2000,
+     "srednia_fixed": 4510.24,
+     "spec": null
+    }
+   ]
+  },
+  {
+   "cykl": 6,
+   "cel": "Kierunek: glebokosc przeszukania, lookahead (#92), pomiar #97",
+   "werdykt": "bez efektu",
+   "uwaga": "wynik #97 policzony, ale zostal na task/97 (odzysk w c.7)",
+   "start_utc": "2026-09-25T20:03:49+00:00",
+   "koniec_utc": "2026-09-26T04:23:57+00:00",
+   "godziny": 8.34,
+   "commity": 10,
+   "issues": 7,
+   "issues_role": {
+    "orchestrator": 1,
+    "bench": 1,
+    "verifier": 1,
+    "implementer": 3,
+    "researcher": 1
+   },
+   "issues_nr": [
+    92,
+    93,
+    94,
+    95,
+    96,
+    97,
+    98
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 7,
+   "cel": "Ratunek wyniku #97 (#100), sigma wyniku (#101), source_hashes (#102), start CEM pod lookahead (#104)",
+   "werdykt": "promocja",
+   "uwaga": "rekord 6171,04 (+36,8%, x1,37)",
+   "start_utc": "2026-09-26T04:23:57+00:00",
+   "koniec_utc": "2026-09-26T10:32:02+00:00",
+   "godziny": 6.13,
+   "commity": 11,
+   "issues": 8,
+   "issues_role": {
+    "orchestrator": 1,
+    "verifier": 1,
+    "bench": 2,
+    "implementer": 4
+   },
+   "issues_nr": [
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107
+   ],
+   "rekord_w_oknie": [
+    {
+     "commit": "0baf89a",
+     "issue": 97,
+     "cap": 2000,
+     "srednia_fixed": 6171.04,
+     "spec": null
+    }
+   ]
+  },
+  {
+   "cykl": 8,
+   "cel": "Dokonczenie CEM (#110), pomiar wag lookahead vs rekord (#111)",
+   "werdykt": "bez efektu",
+   "uwaga": "5772,95 < 6171,04 (-6,45%); CEM na 6 cechach zamkniety",
+   "start_utc": "2026-09-26T10:32:02+00:00",
+   "koniec_utc": "2026-09-26T12:41:43+00:00",
+   "godziny": 2.16,
+   "commity": 12,
+   "issues": 5,
+   "issues_role": {
+    "orchestrator": 1,
+    "verifier": 1,
+    "implementer": 1,
+    "bench": 2
+   },
+   "issues_nr": [
+    110,
+    111,
+    112,
+    113,
+    115
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 9,
+   "cel": "Combo w ocenie liscia (#118), ile do 10 mln (#119), budzet wyuczonej oceny (#120), Z-6 na oryginale (#121)",
+   "werdykt": "bez efektu",
+   "uwaga": "combo w ocenie -6,6%; zmiana linii na wyuczona ocene planszy (przezycie)",
+   "start_utc": "2026-09-26T12:41:43+00:00",
+   "koniec_utc": "2026-09-26T16:16:46+00:00",
+   "godziny": 3.58,
+   "commity": 18,
+   "issues": 7,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 3,
+    "bench": 1,
+    "verifier": 1,
+    "researcher": 1
+   },
+   "issues_nr": [
+    118,
+    119,
+    120,
+    121,
+    122,
+    123,
+    124
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 10,
+   "cel": "Wyuczona ocena N-tuple/TD (#123), hak liscia (#125), pomiar #127",
+   "werdykt": "bez efektu",
+   "uwaga": "N-tuple scalone na main, ale pomiar #127 padl; cykle 11-13 padly (okno obejmuje 11-13)",
+   "start_utc": "2026-09-26T16:16:46+00:00",
+   "koniec_utc": "2026-09-27T14:40:39+00:00",
+   "godziny": 22.4,
+   "commity": 16,
+   "issues": 8,
+   "issues_role": {
+    "orchestrator": 1,
+    "researcher": 1,
+    "verifier": 1,
+    "implementer": 4,
+    "bench": 1
+   },
+   "issues_nr": [
+    125,
+    126,
+    127,
+    128,
+    129,
+    130,
+    131,
+    132
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 11,
+   "cel": "brak dziennika",
+   "werdykt": "awaria",
+   "uwaga": "sesja padla (API 400), awaria #137; domkniecie #132 recznie",
+   "dziennik": false
+  },
+  {
+   "cykl": 12,
+   "cel": "brak dziennika",
+   "werdykt": "awaria",
+   "uwaga": "sesja padla (API 400), awaria #137",
+   "dziennik": false
+  },
+  {
+   "cykl": 13,
+   "cel": "brak dziennika",
+   "werdykt": "awaria",
+   "uwaga": "sesja padla (API 400), awaria #137; naprawa przez wlasciciela 27.09 (#137 zamkniete 14:29)",
+   "dziennik": false
+  },
+  {
+   "cykl": 14,
+   "cel": "Eksperyment sygnal/krok z uczciwym narzedziem; mapa #140-#146",
+   "werdykt": "bez efektu",
+   "uwaga": "krzywa N-tuple zawraca; ramie score przegrywa, linia na sygnal przezycia",
+   "start_utc": "2026-09-27T14:40:39+00:00",
+   "koniec_utc": "2026-09-27T17:52:01+00:00",
+   "godziny": 3.19,
+   "commity": 24,
+   "issues": 8,
+   "issues_role": {
+    "orchestrator": 2,
+    "verifier": 1,
+    "bench": 2,
+    "implementer": 3
+   },
+   "issues_nr": [
+    139,
+    140,
+    141,
+    142,
+    143,
+    144,
+    145,
+    146
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 15,
+   "cel": "Dluzszy trening A (#147->#151) i bogatszy uklad AD z kwadratami 3x3 (#149->#156) rownolegle",
+   "werdykt": "bez efektu",
+   "uwaga": "A zamkniety (6017 < 6171); wynik AD dopiero w c.16",
+   "start_utc": "2026-09-27T17:52:01+00:00",
+   "koniec_utc": "2026-09-27T20:29:33+00:00",
+   "godziny": 2.63,
+   "commity": 17,
+   "issues": 9,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 7,
+    "bench": 1
+   },
+   "issues_nr": [
+    147,
+    148,
+    149,
+    150,
+    151,
+    152,
+    153,
+    154,
+    155
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 16,
+   "cel": "Bench AD 40k (#156), trening AD do 70k (#157)",
+   "werdykt": "promocja",
+   "uwaga": "rekord 10584,01 (+71,5%)",
+   "start_utc": "2026-09-27T20:29:33+00:00",
+   "koniec_utc": "2026-09-27T22:35:25+00:00",
+   "godziny": 2.1,
+   "commity": 13,
+   "issues": 5,
+   "issues_role": {
+    "orchestrator": 1,
+    "verifier": 1,
+    "implementer": 2,
+    "bench": 1
+   },
+   "issues_nr": [
+    156,
+    157,
+    158,
+    159,
+    160
+   ],
+   "rekord_w_oknie": [
+    {
+     "commit": "2496d15",
+     "issue": 156,
+     "cap": 2000,
+     "srednia_fixed": 10584.01,
+     "spec": null
+    }
+   ]
+  },
+  {
+   "cykl": 17,
+   "cel": "Bench AD 50k i 70k (#161)",
+   "werdykt": "promocja",
+   "uwaga": "rekord 14791,52 (+39,8%) - AD 70k",
+   "start_utc": "2026-09-27T22:35:25+00:00",
+   "koniec_utc": "2026-09-28T00:57:59+00:00",
+   "godziny": 2.38,
+   "commity": 27,
+   "issues": 5,
+   "issues_role": {
+    "orchestrator": 1,
+    "verifier": 1,
+    "implementer": 2,
+    "bench": 1
+   },
+   "issues_nr": [
+    161,
+    162,
+    163,
+    164,
+    165
+   ],
+   "rekord_w_oknie": [
+    {
+     "commit": "0e99527",
+     "issue": 161,
+     "cap": 2000,
+     "srednia_fixed": 14791.52,
+     "spec": null
+    }
+   ]
+  },
+  {
+   "cykl": 18,
+   "cel": "ADC do 70k vs AD (#166->#171), bench w kawalkach (#167)",
+   "werdykt": "bez efektu",
+   "uwaga": "rekord bez zmian",
+   "start_utc": "2026-09-28T00:57:59+00:00",
+   "koniec_utc": "2026-09-28T06:37:07+00:00",
+   "godziny": 5.65,
+   "commity": 28,
+   "issues": 9,
+   "issues_role": {
+    "orchestrator": 1,
+    "verifier": 1,
+    "implementer": 6,
+    "bench": 1
+   },
+   "issues_nr": [
+    166,
+    167,
+    168,
+    169,
+    170,
+    171,
+    172,
+    173,
+    174
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 19,
+   "cel": "Dokonczyc #171, starty z pozdniej gry (#177), ADC/ADC-SS do 100k, przepustowosc treningu",
+   "werdykt": "bez efektu",
+   "uwaga": "rekord bez zmian (2 cykle)",
+   "start_utc": "2026-09-28T06:37:07+00:00",
+   "koniec_utc": "2026-09-28T10:51:45+00:00",
+   "godziny": 4.24,
+   "commity": 37,
+   "issues": 11,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 7,
+    "verifier": 1,
+    "bench": 2
+   },
+   "issues_nr": [
+    175,
+    176,
+    177,
+    178,
+    179,
+    180,
+    181,
+    182,
+    183,
+    184,
+    185
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 20,
+   "cel": "Kalibracja generatora (#186), trening 500k, nowa linia bazowa (#192)",
+   "werdykt": "promocja",
+   "uwaga": "linia bazowa nowego generatora: 25946,36 (niepor. z poprzednimi liczbami)",
+   "start_utc": "2026-09-28T10:51:45+00:00",
+   "koniec_utc": "2026-09-28T18:49:04+00:00",
+   "godziny": 7.96,
+   "commity": 30,
+   "issues": 8,
+   "issues_role": {
+    "orchestrator": 1,
+    "bench": 1,
+    "implementer": 5,
+    "verifier": 1
+   },
+   "issues_nr": [
+    186,
+    187,
+    188,
+    189,
+    190,
+    191,
+    192,
+    193
+   ],
+   "rekord_w_oknie": [
+    {
+     "commit": "c238484",
+     "issue": 192,
+     "cap": 2000,
+     "srednia_fixed": 25946.36,
+     "spec": null
+    }
+   ]
+  },
+  {
+   "cykl": 21,
+   "cel": "Skala 180k-500k, bench migawek (#194), test hipotezy kroku alpha/4, /16 (#196, #197)",
+   "werdykt": "promocja",
+   "uwaga": "rekord 34657,70 (+33,6%) - adcg 400k beam=8",
+   "start_utc": "2026-09-28T18:49:04+00:00",
+   "koniec_utc": "2026-09-28T20:22:48+00:00",
+   "godziny": 1.56,
+   "commity": 24,
+   "issues": 7,
+   "issues_role": {
+    "orchestrator": 1,
+    "verifier": 1,
+    "implementer": 4,
+    "bench": 1
+   },
+   "issues_nr": [
+    194,
+    195,
+    196,
+    197,
+    198,
+    199,
+    200
+   ],
+   "rekord_w_oknie": [
+    {
+     "commit": "c3ec0d2",
+     "issue": 194,
+     "cap": 2000,
+     "srednia_fixed": 34657.7,
+     "spec": null
+    }
+   ]
+  },
+  {
+   "cykl": 22,
+   "cel": "Przeszukanie przed wagami: szeroki beam (#201), diagnoza drugiego poziomu (#202)",
+   "werdykt": "promocja",
+   "uwaga": "rekord 83865,64 (+142%) - adcga16 800k beam=128",
+   "start_utc": "2026-09-28T20:22:48+00:00",
+   "koniec_utc": "2026-09-29T01:49:12+00:00",
+   "godziny": 5.44,
+   "commity": 36,
+   "issues": 7,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 4,
+    "verifier": 1,
+    "bench": 1
+   },
+   "issues_nr": [
+    201,
+    202,
+    203,
+    204,
+    205,
+    206,
+    207
+   ],
+   "rekord_w_oknie": [
+    {
+     "commit": "a783996",
+     "issue": 201,
+     "cap": 2000,
+     "srednia_fixed": 83865.64,
+     "spec": "lookahead-ntuple:ntuple/survival-adcga16-800k.json@beam=128"
+    }
+   ]
+  },
+  {
+   "cykl": 23,
+   "cel": "Zmiana sposobu uczenia: research #208, pilot TD na stanach z przeszukania (#214), sufit 4000",
+   "werdykt": "bez efektu",
+   "uwaga": "linia bazowa przy suficie 4000: 88133,50; pilot adgs2 66-70k - ponizej rekordu",
+   "start_utc": "2026-09-29T01:49:12+00:00",
+   "koniec_utc": "2026-09-29T07:04:51+00:00",
+   "godziny": 5.26,
+   "commity": 20,
+   "issues": 8,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 4,
+    "bench": 1,
+    "verifier": 1,
+    "researcher": 1
+   },
+   "issues_nr": [
+    208,
+    209,
+    210,
+    211,
+    212,
+    213,
+    214,
+    215
+   ],
+   "rekord_w_oknie": [
+    {
+     "commit": "e685809",
+     "issue": 213,
+     "cap": 4000,
+     "srednia_fixed": 88133.5,
+     "spec": "lookahead-ntuple:ntuple/survival-adcga16-800k.json@beam=128"
+    }
+   ]
+  },
+  {
+   "cykl": 24,
+   "cel": "Srodowisko przed ocena: generator swiadomy planszy (#217) (#216-#219)",
+   "werdykt": "bez efektu",
+   "uwaga": "rekord bez zmian; generator zmienia odcisk benchmarku",
+   "start_utc": "2026-09-29T07:04:51+00:00",
+   "koniec_utc": "2026-09-29T11:18:11+00:00",
+   "godziny": 4.22,
+   "commity": 8,
+   "issues": 5,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 4
+   },
+   "issues_nr": [
+    216,
+    217,
+    218,
+    219,
+    220
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 25,
+   "cel": "Os pojemnosci: ADCE (#222), pilot #216",
+   "werdykt": "bez efektu",
+   "uwaga": "ADCE jako pierwszy czynnik istotnie rusza ocene, ale rekord starego generatora bez zmian",
+   "start_utc": "2026-09-29T11:18:11+00:00",
+   "koniec_utc": "2026-09-29T14:52:21+00:00",
+   "godziny": 3.57,
+   "commity": 16,
+   "issues": 5,
+   "issues_role": {
+    "orchestrator": 1,
+    "bench": 1,
+    "verifier": 1,
+    "implementer": 2
+   },
+   "issues_nr": [
+    221,
+    222,
+    223,
+    224,
+    225
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 26,
+   "cel": "ADCE 200k->600k (#228), bench 400k/600k (#229), port #221",
+   "werdykt": "promocja",
+   "uwaga": "linia bazowa na nowym generatorze 92772,85 (+5,3%, generator zmieniony)",
+   "start_utc": "2026-09-29T14:52:21+00:00",
+   "koniec_utc": "2026-09-29T19:20:39+00:00",
+   "godziny": 4.47,
+   "commity": 9,
+   "issues": 7,
+   "issues_role": {
+    "researcher": 1,
+    "orchestrator": 1,
+    "implementer": 3,
+    "bench": 2
+   },
+   "issues_nr": [
+    226,
+    227,
+    228,
+    229,
+    230,
+    231,
+    232
+   ],
+   "rekord_w_oknie": [
+    {
+     "commit": "554c224",
+     "issue": 227,
+     "cap": 4000,
+     "srednia_fixed": 92772.85,
+     "spec": "lookahead-ntuple:ntuple/survival-adcga16-800k.json@beam=128,samples=0"
+    }
+   ]
+  },
+  {
+   "cykl": 27,
+   "cel": "Dokonczenie ADCE, bench, pomiar unikalnosci smierci (#236)",
+   "werdykt": "promocja",
+   "uwaga": "rekord 123077,03 (+32,7%, 3,3 SE) - ADCE 400k",
+   "start_utc": "2026-09-29T19:20:39+00:00",
+   "koniec_utc": "2026-09-29T21:40:03+00:00",
+   "godziny": 2.32,
+   "commity": 12,
+   "issues": 6,
+   "issues_role": {
+    "orchestrator": 1,
+    "inne": 1,
+    "implementer": 3,
+    "bench": 1
+   },
+   "issues_nr": [
+    233,
+    234,
+    235,
+    236,
+    237,
+    238
+   ],
+   "rekord_w_oknie": [
+    {
+     "commit": "ac81f97",
+     "issue": 234,
+     "cap": 4000,
+     "srednia_fixed": 123077.03,
+     "spec": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0"
+    }
+   ]
+  },
+  {
+   "cykl": 28,
+   "cel": "Gwarancja ulozenia tacki complete=1 (#240), smierc = chybienie wiazki",
+   "werdykt": "promocja",
+   "uwaga": "560858,53 (+355,7%, 52 SE) - 0 smierci w symulatorze",
+   "start_utc": "2026-09-29T21:40:03+00:00",
+   "koniec_utc": "2026-09-30T00:14:59+00:00",
+   "godziny": 2.58,
+   "commity": 15,
+   "issues": 4,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 2,
+    "bench": 1
+   },
+   "issues_nr": [
+    239,
+    240,
+    241,
+    242
+   ],
+   "rekord_w_oknie": [
+    {
+     "commit": "8d2681c",
+     "issue": 240,
+     "cap": 4000,
+     "srednia_fixed": 560858.53,
+     "spec": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1"
+    }
+   ]
+  },
+  {
+   "cykl": 29,
+   "cel": "Sufit x2 4000->8000 (#243), pomiar gain_weight (#248), ukladalnosc tacek w apce (#249)",
+   "werdykt": "promocja",
+   "uwaga": "linia bazowa 1126300,71 (+100% = sufit x2, nie poprawa polityki); gain_weight x4,9 pkt/postawienie",
+   "start_utc": "2026-09-30T00:14:59+00:00",
+   "koniec_utc": "2026-09-30T01:57:17+00:00",
+   "godziny": 1.71,
+   "commity": 20,
+   "issues": 8,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 2,
+    "bench": 5
+   },
+   "issues_nr": [
+    243,
+    244,
+    245,
+    246,
+    247,
+    248,
+    249,
+    250
+   ],
+   "rekord_w_oknie": [
+    {
+     "commit": "b79e018",
+     "issue": 243,
+     "cap": 8000,
+     "srednia_fixed": 1126300.71,
+     "spec": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1"
+    }
+   ]
+  },
+  {
+   "cykl": 30,
+   "cel": "Sufit x2 ->16000, bench gain_weight=100000 (#251-#259), gotowosc mostu (#260)",
+   "werdykt": "promocja",
+   "uwaga": "rekord 11034218,3 (+386,5% wobec 2,27 mln przeliczonego) - powyzej 10 mln",
+   "start_utc": "2026-09-30T01:57:17+00:00",
+   "koniec_utc": "2026-09-30T04:24:43+00:00",
+   "godziny": 2.46,
+   "commity": 29,
+   "issues": 11,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 1,
+    "bench": 9
+   },
+   "issues_nr": [
+    251,
+    252,
+    253,
+    254,
+    255,
+    256,
+    257,
+    258,
+    259,
+    260,
+    261
+   ],
+   "rekord_w_oknie": [
+    {
+     "commit": "558899e",
+     "issue": 251,
+     "cap": 16000,
+     "srednia_fixed": 11034218.3,
+     "spec": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000"
+    }
+   ]
+  },
+  {
+   "cykl": 31,
+   "cel": "Weryfikacja na oryginale (#262): partia >= 1 mln w apce",
+   "werdykt": "cel",
+   "uwaga": "partia 1 004 153 pkt wzorem; warunek 2 (10 mln) spelniony",
+   "start_utc": "2026-09-30T04:24:43+00:00",
+   "koniec_utc": "2026-09-30T08:13:03+00:00",
+   "godziny": 3.81,
+   "commity": 2,
+   "issues": 2,
+   "issues_role": {
+    "orchestrator": 1,
+    "verifier": 1
+   },
+   "issues_nr": [
+    262,
+    263
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 32,
+   "cel": "Cel osiagniety - GOAL_REACHED (#259 11,03 mln + #262 1 004 153)",
+   "werdykt": "cel / cofniete",
+   "uwaga": "petla staje; wlasciciel odwoluje cel i ustawia nowy 'agent nie przegrywa' (c.33)",
+   "start_utc": "2026-09-30T08:13:03+00:00",
+   "koniec_utc": "2026-09-30T10:33:12+00:00",
+   "godziny": 2.34,
+   "commity": 4,
+   "issues": 1,
+   "issues_role": {
+    "inne": 1
+   },
+   "issues_nr": [
+    264
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 33,
+   "cel": "Nowy cel: nieprzegrywanie. Bench przy suficie 64000 (#265-#279), tempo mostu, skrypt serii",
+   "werdykt": "promocja",
+   "uwaga": "linia bazowa 44163856,2; 0/600 przegranych (warunek 1) - polityka bez zmian, sufit x4",
+   "start_utc": "2026-09-30T10:33:12+00:00",
+   "koniec_utc": "2026-09-30T17:29:44+00:00",
+   "godziny": 6.94,
+   "commity": 52,
+   "issues": 17,
+   "issues_role": {
+    "orchestrator": 2,
+    "inne": 1,
+    "bench": 11,
+    "verifier": 1,
+    "implementer": 2
+   },
+   "issues_nr": [
+    265,
+    266,
+    267,
+    268,
+    269,
+    270,
+    271,
+    272,
+    273,
+    274,
+    275,
+    276,
+    277,
+    278,
+    279,
+    280,
+    281
+   ],
+   "rekord_w_oknie": [
+    {
+     "commit": "65c7500",
+     "issue": 265,
+     "cap": 64000,
+     "srednia_fixed": 44163856.2,
+     "spec": "lookahead-ntuple:ntuple/survival-adce-400k.json@beam=128,samples=0,complete=1,gain_weight=100000"
+    }
+   ]
+  },
+  {
+   "cykl": 34,
+   "cel": "Warunek 1 potwierdzony (#279); #282-#284: domkniecie #266, skrypt serii, pomiar",
+   "werdykt": "infrastruktura",
+   "uwaga": "rekord nietkniety",
+   "start_utc": "2026-09-30T17:29:44+00:00",
+   "koniec_utc": "2026-09-30T18:08:16+00:00",
+   "godziny": 0.64,
+   "commity": 2,
+   "issues": 4,
+   "issues_role": {
+    "orchestrator": 1,
+    "verifier": 1,
+    "implementer": 2
+   },
+   "issues_nr": [
+    282,
+    283,
+    284,
+    285
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 35,
+   "cel": "Pomiar tempa (#286) + proba skryptu serii na emulatorze",
+   "werdykt": "infrastruktura",
+   "uwaga": "rekord nietkniety; #284 blocked (prefiks zmiennej)",
+   "start_utc": "2026-09-30T18:08:16+00:00",
+   "koniec_utc": "2026-09-30T21:14:49+00:00",
+   "godziny": 3.11,
+   "commity": 22,
+   "issues": 3,
+   "issues_role": {
+    "orchestrator": 1,
+    "inne": 1,
+    "verifier": 1
+   },
+   "issues_nr": [
+    286,
+    287,
+    288
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 36,
+   "cel": "Pewny licznik apki: OCR 7 cyfr (#290)",
+   "werdykt": "infrastruktura",
+   "uwaga": "rekord nietkniety",
+   "start_utc": "2026-09-30T21:14:49+00:00",
+   "koniec_utc": "2026-09-30T21:42:16+00:00",
+   "godziny": 0.46,
+   "commity": 5,
+   "issues": 2,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 1
+   },
+   "issues_nr": [
+    290,
+    291
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 37,
+   "cel": "Start serii s1, narzedzie diagnozy przegranej (#292)",
+   "werdykt": "infrastruktura",
+   "uwaga": "s1: 8 przerwan z 5 przyczyn, 0 przegranych",
+   "start_utc": "2026-09-30T21:42:16+00:00",
+   "koniec_utc": "2026-09-30T23:21:27+00:00",
+   "godziny": 1.65,
+   "commity": 13,
+   "issues": 2,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 1
+   },
+   "issues_nr": [
+    292,
+    293
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 38,
+   "cel": "Naprawa mostu po przerwaniach s1 (#294)",
+   "werdykt": "infrastruktura",
+   "uwaga": "0 przegranych; polityka niekwestionowana",
+   "start_utc": "2026-09-30T23:21:27+00:00",
+   "koniec_utc": "2026-09-30T23:44:26+00:00",
+   "godziny": 0.38,
+   "commity": 2,
+   "issues": 3,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 2
+   },
+   "issues_nr": [
+    294,
+    295,
+    296
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 39,
+   "cel": "s2 zakolejkowana, HUD na zlotym rombie (#297)",
+   "werdykt": "infrastruktura",
+   "uwaga": "",
+   "start_utc": "2026-09-30T23:44:26+00:00",
+   "koniec_utc": "2026-10-01T00:17:04+00:00",
+   "godziny": 0.54,
+   "commity": 2,
+   "issues": 2,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 1
+   },
+   "issues_nr": [
+    297,
+    298
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 40,
+   "cel": "s2 na 8fde499, diagnoza nowej tacki (#299)",
+   "werdykt": "infrastruktura",
+   "uwaga": "",
+   "start_utc": "2026-10-01T00:17:04+00:00",
+   "koniec_utc": "2026-10-01T01:40:14+00:00",
+   "godziny": 1.39,
+   "commity": 2,
+   "issues": 2,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 1
+   },
+   "issues_nr": [
+    299,
+    300
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 41,
+   "cel": "Bez zadan - czeka na artefakty s1",
+   "werdykt": "bez efektu",
+   "uwaga": "pusty cykl (s1 partie 1/3 graja ~4 h)",
+   "start_utc": "2026-10-01T01:40:14+00:00",
+   "koniec_utc": "2026-10-01T03:04:44+00:00",
+   "godziny": 1.41,
+   "commity": 2,
+   "issues": 1,
+   "issues_role": {
+    "orchestrator": 1
+   },
+   "issues_nr": [
+    301
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 42,
+   "cel": "Test read_hud_score na 7 cyfrach (#302)",
+   "werdykt": "infrastruktura",
+   "uwaga": "",
+   "start_utc": "2026-10-01T03:04:44+00:00",
+   "koniec_utc": "2026-10-01T03:29:53+00:00",
+   "godziny": 0.42,
+   "commity": 3,
+   "issues": 2,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 1
+   },
+   "issues_nr": [
+    302,
+    303
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 43,
+   "cel": "Naprawa infrastruktury mostu (#304), diagnoza przegranych (#305)",
+   "werdykt": "infrastruktura",
+   "uwaga": "s2: 4 falszywe przegrane po restarcie, przegrana p.3",
+   "start_utc": "2026-10-01T03:29:53+00:00",
+   "koniec_utc": "2026-10-01T04:13:11+00:00",
+   "godziny": 0.72,
+   "commity": 4,
+   "issues": 3,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 2
+   },
+   "issues_nr": [
+    304,
+    305,
+    306
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 44,
+   "cel": "Naprawa read_tray (#307)",
+   "werdykt": "infrastruktura",
+   "uwaga": "s2 p.5-7 do 1,2 mln; przegrane 2/3 = read_tray",
+   "start_utc": "2026-10-01T04:13:11+00:00",
+   "koniec_utc": "2026-10-01T05:35:59+00:00",
+   "godziny": 1.38,
+   "commity": 5,
+   "issues": 2,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 1
+   },
+   "issues_nr": [
+    307,
+    308
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 45,
+   "cel": "s2 anulowana, s3 z limitem 340 min (#308)",
+   "werdykt": "infrastruktura",
+   "uwaga": "dwa tryby licznika apki",
+   "start_utc": "2026-10-01T05:35:59+00:00",
+   "koniec_utc": "2026-10-01T05:56:03+00:00",
+   "godziny": 0.33,
+   "commity": 3,
+   "issues": 2,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 1
+   },
+   "issues_nr": [
+    309,
+    310
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 46,
+   "cel": "Dwie poprawki mostu lancuchem (#311 ekran startowy, #312 read_tray z banerem)",
+   "werdykt": "infrastruktura",
+   "uwaga": "s3: 4 przerwania z winy mostu",
+   "start_utc": "2026-10-01T05:56:03+00:00",
+   "koniec_utc": "2026-10-01T07:15:37+00:00",
+   "godziny": 1.33,
+   "commity": 8,
+   "issues": 3,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 2
+   },
+   "issues_nr": [
+    311,
+    312,
+    313
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 47,
+   "cel": "s4 w kolejce; detektory (#314), roznice planszy (#315)",
+   "werdykt": "infrastruktura",
+   "uwaga": "s3: cele p.4 i p.6",
+   "start_utc": "2026-10-01T07:15:37+00:00",
+   "koniec_utc": "2026-10-01T09:37:38+00:00",
+   "godziny": 2.37,
+   "commity": 9,
+   "issues": 4,
+   "issues_role": {
+    "implementer": 3,
+    "orchestrator": 1
+   },
+   "issues_nr": [
+    314,
+    315,
+    316,
+    317
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 48,
+   "cel": "Regula ostatniej deski: twardy restart (#318), pomiar force-stop (#319)",
+   "werdykt": "infrastruktura",
+   "uwaga": "s3 zamknieta: 4 cele, 0 przegranych",
+   "start_utc": "2026-10-01T09:37:38+00:00",
+   "koniec_utc": "2026-10-01T10:43:53+00:00",
+   "godziny": 1.1,
+   "commity": 4,
+   "issues": 3,
+   "issues_role": {
+    "orchestrator": 1,
+    "verifier": 1,
+    "implementer": 1
+   },
+   "issues_nr": [
+    318,
+    319,
+    320
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 49,
+   "cel": "s5 w kolejce, test wariantu X kola fortuny (#321)",
+   "werdykt": "infrastruktura",
+   "uwaga": "s4: p.2 cel, p.4/p.6 kolo fortuny z X",
+   "start_utc": "2026-10-01T10:43:53+00:00",
+   "koniec_utc": "2026-10-01T14:56:37+00:00",
+   "godziny": 4.21,
+   "commity": 6,
+   "issues": 4,
+   "issues_role": {
+    "implementer": 3,
+    "orchestrator": 1
+   },
+   "issues_nr": [
+    321,
+    322,
+    323,
+    324
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 50,
+   "cel": "Zadanie scalajace poprawki (#325)",
+   "werdykt": "infrastruktura",
+   "uwaga": "s4 p.1 liczone jako cel (9 celow)",
+   "start_utc": "2026-10-01T14:56:37+00:00",
+   "koniec_utc": "2026-10-01T18:11:14+00:00",
+   "godziny": 3.24,
+   "commity": 3,
+   "issues": 2,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 1
+   },
+   "issues_nr": [
+    325,
+    326
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 51,
+   "cel": "Rozliczenie s4/s5, #326",
+   "werdykt": "cofniete",
+   "uwaga": "bez GOAL_REACHED: s5 p.7 przegrana zeruje licznik celow (0)",
+   "start_utc": "2026-10-01T18:11:14+00:00",
+   "koniec_utc": "2026-10-01T22:15:30+00:00",
+   "godziny": 4.07,
+   "commity": 4,
+   "issues": 5,
+   "issues_role": {
+    "orchestrator": 1,
+    "inne": 1,
+    "implementer": 3
+   },
+   "issues_nr": [
+    327,
+    328,
+    329,
+    330,
+    331
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 52,
+   "cel": "Naprawa mostu: baner Combo w odczycie (#333)",
+   "werdykt": "infrastruktura",
+   "uwaga": "przyczyna przegranej s5 p.7",
+   "start_utc": "2026-10-01T22:15:30+00:00",
+   "koniec_utc": "2026-10-02T00:46:22+00:00",
+   "godziny": 2.51,
+   "commity": 4,
+   "issues": 2,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 1
+   },
+   "issues_nr": [
+    333,
+    334
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 53,
+   "cel": "s6 start @6c4c88b, pomiar pozostalych ok:false (#335), test licznika s4 p.8 (#336)",
+   "werdykt": "infrastruktura",
+   "uwaga": "",
+   "start_utc": "2026-10-02T00:46:22+00:00",
+   "koniec_utc": "2026-10-02T02:23:52+00:00",
+   "godziny": 1.62,
+   "commity": 6,
+   "issues": 3,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 2
+   },
+   "issues_nr": [
+    335,
+    336,
+    337
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 54,
+   "cel": "Przyczyna przegranych s6 (#341), domkniecie #335 (#338), napis w moscie (#339)",
+   "werdykt": "infrastruktura",
+   "uwaga": "s6: 4 przegrane z 6 partii",
+   "start_utc": "2026-10-02T02:23:52+00:00",
+   "koniec_utc": "2026-10-02T06:33:18+00:00",
+   "godziny": 4.16,
+   "commity": 8,
+   "issues": 4,
+   "issues_role": {
+    "implementer": 3,
+    "orchestrator": 1
+   },
+   "issues_nr": [
+    338,
+    339,
+    340,
+    341
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 55,
+   "cel": "Naprawa duchow baneru (#342), przerwania s6 (#343), konce partii s4 (#344)",
+   "werdykt": "infrastruktura",
+   "uwaga": "s6: 4 cele, 4 przegrane (most), 2 przerwania",
+   "start_utc": "2026-10-02T06:33:18+00:00",
+   "koniec_utc": "2026-10-02T09:52:48+00:00",
+   "godziny": 3.33,
+   "commity": 6,
+   "issues": 4,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 3
+   },
+   "issues_nr": [
+    342,
+    343,
+    344,
+    345
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 56,
+   "cel": "Nowe zasady serii 10/10 (#345): czas napisu (#346), koniec przy 1 mln (#347), ponowny odczyt (#348)",
+   "werdykt": "infrastruktura",
+   "uwaga": "",
+   "start_utc": "2026-10-02T09:52:48+00:00",
+   "koniec_utc": "2026-10-02T12:04:23+00:00",
+   "godziny": 2.19,
+   "commity": 4,
+   "issues": 4,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 2,
+    "verifier": 1
+   },
+   "issues_nr": [
+    346,
+    347,
+    348,
+    349
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 57,
+   "cel": "Pomiar napisu (#350) i ponowny odczyt z limitem 5 s (#351) rownolegle",
+   "werdykt": "infrastruktura",
+   "uwaga": "#346 blocked na starcie apki; #347 done",
+   "start_utc": "2026-10-02T12:04:23+00:00",
+   "koniec_utc": "2026-10-02T15:46:42+00:00",
+   "godziny": 3.71,
+   "commity": 8,
+   "issues": 3,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 1,
+    "verifier": 1
+   },
+   "issues_nr": [
+    350,
+    351,
+    352
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 58,
+   "cel": "Domkniecie #351 pelnym zestawem testow (#353)",
+   "werdykt": "infrastruktura",
+   "uwaga": "#350 done: napis <= 2,0 s; #351 partial",
+   "start_utc": "2026-10-02T15:46:42+00:00",
+   "koniec_utc": "2026-10-02T18:25:06+00:00",
+   "godziny": 2.64,
+   "commity": 3,
+   "issues": 2,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 1
+   },
+   "issues_nr": [
+    353,
+    354
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 59,
+   "cel": "s7 na 40137e2 (limit 340), analiza ok_false --ponowny (#355)",
+   "werdykt": "infrastruktura",
+   "uwaga": "",
+   "start_utc": "2026-10-02T18:25:06+00:00",
+   "koniec_utc": "2026-10-02T20:30:29+00:00",
+   "godziny": 2.09,
+   "commity": 6,
+   "issues": 3,
+   "issues_role": {
+    "orchestrator": 1,
+    "implementer": 2
+   },
+   "issues_nr": [
+    355,
+    356,
+    357
+   ],
+   "rekord_w_oknie": []
+  },
+  {
+   "cykl": 60,
+   "cel": "s7 10/10, GOAL_REACHED, domkniecie #356 (#358)",
+   "werdykt": "cel",
+   "uwaga": "s7: 10/10 partii do 1 mln licznika apki; GOAL_REACHED 2026-10-02; czas = do ostatniego commitu #358",
+   "start_utc": "2026-10-02T20:30:29+00:00",
+   "koniec_utc": "2026-10-02T21:34:14+00:00",
+   "godziny": 1.06,
+   "commity": 4,
+   "issues": 3,
+   "issues_role": {
+    "inne": 1,
+    "orchestrator": 1,
+    "implementer": 1
+   },
+   "issues_nr": [
+    358,
+    359,
+    360
+   ],
+   "rekord_w_oknie": []
+  }
+ ]
+}
