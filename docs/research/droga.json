@@ -1,0 +1,789 @@
+{
+ "wersja": 1,
+ "zrodlo_pytania": "issue #368 (mapa #361)",
+ "uwagi": "data = data dziennika cyklu (koniec cyklu); pomiary bywają z cyklu wcześniejszego.",
+ "klasyfikacje": [
+  "przelom",
+  "krok",
+  "slepa_uliczka",
+  "naprawa_narzedzi"
+ ],
+ "wpisy": [
+  {
+   "id": 1,
+   "cykl": "przed pętlą",
+   "data": "2026-09-20",
+   "tytul": "DQN na zwykłym runnerze",
+   "proba": "Sieć DQN uczona od zera (kod z 2026-03, agent.py/model.py), pomiar #40.",
+   "hipoteza": "Uczenie wzmacniane z siecią da agenta lepszego od zachłannej heurystyki.",
+   "wynik": "Około 53 kroków/s, krzywa płaska po ~80 tys. kroków, przeżycie gorsze od zachłannej; symulator bez sieci robi ~10 tys. kroków/s.",
+   "liczby": {
+    "kroki_na_s": 53,
+    "symulator_bez_sieci_kroki_na_s": 10000
+   },
+   "klasyfikacja": "slepa_uliczka",
+   "punkt_zwrotny": false,
+   "powod": "Koszt (brak GPU, limit 3600 s na polecenie) i płaska krzywa; w klasycznym Tetrisie DQN/C51/PPO przegrywają z heurystyką z przeszukaniem (#54). agent.py i model.py nie skasowane (sieć miała wrócić jako naprowadzanie przeszukania; nie wróciła).",
+   "zrodla": [
+    "docs/journal/cykl-0001.md (#40)",
+    "docs/journal/cykl-0003.md",
+    "docs/research/kierunek-algorytmiczny.md"
+   ]
+  },
+  {
+   "id": 2,
+   "cykl": "1-2",
+   "data": "2026-09-25",
+   "tytul": "Pętla nie działa: zamek, GH_TOKEN, scalanie",
+   "proba": "Bieg na sucho mechaniki pętli (orchestrator/implementer/verifier/researcher).",
+   "hipoteza": "Pętla przejdzie pełny cykl bez ręki człowieka.",
+   "wynik": "Nie przeszła: gh issue lock blokował raport, GH_TOKEN eksportowany za późno (żadna rola nie dostawała treści zadania), merge_main nie scalał przez czerwone testy (from turtle import done w model.py). Zero commitów sesji na main przez dwa cykle. Linia bazowa (zachłanna) 704,79 śr. / 34,99 postawień.",
+   "liczby": {
+    "zachlanna_srednia": 704.79,
+    "zachlanna_postawienia": 34.99
+   },
+   "klasyfikacja": "naprawa_narzedzi",
+   "punkt_zwrotny": false,
+   "powod": "Mechanika nigdy nie działała; poprawki #47, #49. Cykl 3 potwierdził działanie całej ścieżki.",
+   "zrodla": [
+    "docs/journal/cykl-0001.md",
+    "docs/journal/cykl-0002.md",
+    "docs/journal/cykl-0003.md"
+   ]
+  },
+  {
+   "id": 3,
+   "cykl": "3",
+   "data": "2026-09-25",
+   "tytul": "Zmiana kierunku: ocena planszy + przeszukanie tacki + strojenie na CPU",
+   "proba": "Research #54 (kierunek algorytmiczny) i pomiar #40.",
+   "hipoteza": "Przy braku GPU wartość siedzi w funkcji oceny i przeszukaniu, nie w sieci.",
+   "wynik": "DQN schodzi z linii głównej. Ręcznie ważone cechy dają w Tetrisie ~5 mln linii, strojone CBMPI ~51 mln (źródła zewnętrzne z #54). Próg decyzyjny na wynik #82 ustawiony przed pomiarem (cykl 4).",
+   "liczby": {},
+   "klasyfikacja": "przelom",
+   "punkt_zwrotny": true,
+   "powod": "Decyzja o kierunku, od której zależało wszystko dalej; zapisany z góry próg zapobiegł nieskończonemu odraczaniu.",
+   "zrodla": [
+    "docs/journal/cykl-0003.md",
+    "docs/journal/cykl-0004.md",
+    "docs/research/kierunek-algorytmiczny.md"
+   ]
+  },
+  {
+   "id": 4,
+   "cykl": "3-5",
+   "data": "2026-09-25",
+   "tytul": "Awarie pomiaru: crashed, bench bez liczb, wynik ginie po benchmarku",
+   "proba": "Łańcuch #57, #58, #59, #61 oraz #82 (CEM i benchmark).",
+   "hipoteza": "Pomiar kandydata da liczbę.",
+   "wynik": "Trzy awarie mechaniki zjadły łańcuch; rola bench zameldowała done i nic nie policzyła (ls zamiast benchmarku); wynik #82 przepadł, bo padł skrypt promocji po benchmarku (59 min CPU). Pięć cykli bez zmierzonego kandydata.",
+   "liczby": {},
+   "klasyfikacja": "naprawa_narzedzi",
+   "punkt_zwrotny": false,
+   "powod": "Raport crashed bywa fałszywy w obie strony (gałąź ma pracę albo jej nie ma), więc trzeba oglądać git log origin/task/N; run_verification zwraca tylko wyjście polecenia, które padło.",
+   "zrodla": [
+    "docs/journal/cykl-0004.md",
+    "docs/journal/cykl-0005.md",
+    "docs/journal/cykl-0007.md"
+   ]
+  },
+  {
+   "id": 5,
+   "cykl": "4",
+   "data": "2026-09-25",
+   "tytul": "HeuristicPolicy z ręcznymi wagami (#57)",
+   "proba": "Sześć cech planszy, ręczne wagi, ruch o pół kroku w przód.",
+   "hipoteza": "Cechy dadzą istotnie więcej niż zachłanna.",
+   "wynik": "762,5 / 36,84 vs 704,79 / 34,99: +8,19%, poniżej progu 10%, p10 gorsze (139,9 vs 160).",
+   "liczby": {
+    "srednia": 762.5,
+    "przezycie": 36.84
+   },
+   "klasyfikacja": "krok",
+   "punkt_zwrotny": false,
+   "powod": "Mały zysk: sama ocena bez przeszukania nie wystarcza. Linia zostaje, bo teza #54 dotyczy strojenia, którego jeszcze nikt nie uruchomił.",
+   "zrodla": [
+    "docs/journal/cykl-0004.md",
+    "docs/cechy-planszy.md"
+   ]
+  },
+  {
+   "id": 6,
+   "cykl": "6",
+   "data": "2026-09-25",
+   "tytul": "Przeszukanie tacki + CEM (#87): pierwszy rekord",
+   "proba": "TrayPolicy: wszystkie ułożenia trzech klocków (beam=8) z oceną sześciu cech; wagi z CEM.",
+   "hipoteza": "Przeszukanie całej tacki i strojenie wag podniosą wynik krotnie.",
+   "wynik": "4510,24 / 92,57 postawień (+539,9% vs zachłanna). Rozkład: przeszukanie ×4,89, CEM ×1,21 (ten drugi oparty na 6 partiach, później obalony).",
+   "liczby": {
+    "srednia": 4510.24,
+    "przezycie": 92.57,
+    "mnoznik_vs_zachlanna": 6.4
+   },
+   "klasyfikacja": "przelom",
+   "punkt_zwrotny": false,
+   "powod": "Przeszukanie całej tacki to pierwsza duża dźwignia (cztery piąte skoku). Dystans do 10 mln: ~2217× zamiast ~14 000×.",
+   "zrodla": [
+    "docs/journal/cykl-0006.md",
+    "bench/87-kandydat.json"
+   ]
+  },
+  {
+   "id": 7,
+   "cykl": "7",
+   "data": "2026-09-26",
+   "tytul": "Drugi poziom przeszukania (LookaheadPolicy, #97)",
+   "proba": "Dodanie wartości oczekiwanej po następnej tacce.",
+   "hipoteza": "Spojrzenie na losowy dopływ podniesie wynik.",
+   "wynik": "6171,04 / 110,5 (+36,8%, ~3 SE), ×1,37 względem tacki.",
+   "liczby": {
+    "srednia": 6171.04,
+    "przezycie": 110.5
+   },
+   "klasyfikacja": "krok",
+   "punkt_zwrotny": false,
+   "powod": "Realny, ale niewielki zysk; później okazuje się, że drugi poziom przy szerokiej wiązce szkodzi (wpis o drugim poziomie).",
+   "zrodla": [
+    "docs/journal/cykl-0007.md",
+    "bench/97-lookahead.json"
+   ]
+  },
+  {
+   "id": 8,
+   "cykl": "8-9",
+   "data": "2026-09-26",
+   "tytul": "CEM na wagach lookahead (#104, #110, #111)",
+   "proba": "6 pokoleń CEM, 32 partie na kandydata.",
+   "hipoteza": "Strojenie wag podniesie rekord 6171.",
+   "wynik": "5772,95 / 106,28 vs 6171,04 / 110,5: -6,45% (-0,76 SE), bez zmian. Średnia populacji rosła 5310 do 7231 w logu treningu.",
+   "liczby": {
+    "delta_pct": -6.45,
+    "SE": -0.76
+   },
+   "klasyfikacja": "slepa_uliczka",
+   "punkt_zwrotny": false,
+   "powod": "CEM wyselekcjonował szum: 32 partie dają próg wykrywalności ~64% średniej (#101), a elitę ocenia się na tych samych seedach. Obalone założenie cykli 5-8 o tanim mnożniku x1,21.",
+   "zrodla": [
+    "docs/journal/cykl-0009.md",
+    "bench/110-cem-wagi.json",
+    "bench/111-cem.json",
+    "docs/strojenie-lookahead.md"
+   ]
+  },
+  {
+   "id": 9,
+   "cykl": "9-10",
+   "data": "2026-09-26",
+   "tytul": "Combo w ocenie (#118, #122)",
+   "proba": "Wagi combo w funkcji oceny, bo 93% punktów to clear_points.",
+   "hipoteza": "Ocena widząca combo podniesie wynik.",
+   "wynik": "5763,49 / 95,97 vs 6171,04 / 110,5: wynik x0,934, przeżycie x0,8685; tempo +7,5% na postawienie, życie planszy -13,1%.",
+   "liczby": {
+    "wynik_x": 0.934,
+    "przezycie_x": 0.8685
+   },
+   "klasyfikacja": "slepa_uliczka",
+   "punkt_zwrotny": false,
+   "powod": "Wagi combo kupują punkty za życie planszy, a wiążącym ograniczeniem jest przeżycie. Mechanizm zostaje jako bezwładna infrastruktura (wagi 0).",
+   "zrodla": [
+    "docs/journal/cykl-0010.md",
+    "bench/122-combo.json",
+    "docs/combo-w-ocenie.md"
+   ]
+  },
+  {
+   "id": 10,
+   "cykl": "9-10",
+   "data": "2026-09-26",
+   "tytul": "Co naprawdę wiąże: przeżycie, nie jakość łańcucha",
+   "proba": "Pomiar #119 (skąd punkty), wyprowadzenie ~5n^2 z cyklu 9, pomiar sd_diff.",
+   "hipoteza": "10 mln wypada przy ~1414 postawieniach (~5n^2).",
+   "wynik": "Obalone: rzeczywisty współczynnik 0,213 (24x mniej), wykładnik 1,55; mediana łańcucha 9, 3 zerwania na partię. Sufit 2000 ruchów nigdy nie wiązał. Dystans do celu to 40-1600x w przeżyciu. sd_diff policzony poprawnie (wspólne seedy obniżają sigmę tylko o 6,6%).",
+   "liczby": {
+    "wykladnik": 1.55
+   },
+   "klasyfikacja": "krok",
+   "punkt_zwrotny": false,
+   "powod": "Zmieniło kierunek poszukiwań z jakości łańcucha na przeżycie. Walidacja metodologii benchmarku zdjęła z pętli ryzyko błędnych promocji rekordu.",
+   "zrodla": [
+    "docs/journal/cykl-0009.md",
+    "docs/journal/cykl-0010.md",
+    "docs/punkty-na-postawienie.md",
+    "docs/ile-do-10-mln.md"
+   ]
+  },
+  {
+   "id": 11,
+   "cykl": "11-13",
+   "data": "2026-09-27",
+   "tytul": "Cykle 11-13: padnięte sesje",
+   "proba": "Sesje bez wpisów w dzienniku.",
+   "hipoteza": "-",
+   "wynik": "Padnięte sesje (API 400, awaria #137 naprawiona przez właściciela); cykle 11-13 nie mają dzienników.",
+   "liczby": {},
+   "klasyfikacja": "naprawa_narzedzi",
+   "punkt_zwrotny": false,
+   "powod": "Awaria infrastruktury, nie linii pracy.",
+   "zrodla": [
+    "docs/journal/cykl-0014.md"
+   ]
+  },
+  {
+   "id": 12,
+   "cykl": "10-14",
+   "data": "2026-09-27",
+   "tytul": "Tabelaryczna ocena N-tuple/TD (#126)",
+   "proba": "Sieć n-tuple (4096 wag, TD po afterstate) zamiast sześciu ręcznych cech; research #94, #120, #131.",
+   "hipoteza": "Uczona ocena przebije ręczne cechy.",
+   "wynik": "Sygnał score alpha 0,001: wynik 506, 1220, 819 (szczyt w oknie 13, potem zawrót), przeżycie 28,4, 45,6, 36,4. W szczycie ~1,6x lepiej niż ręczne cechy w tej samej polityce (1220 vs 762,5).",
+   "liczby": {
+    "score_szczyt": 1220.1,
+    "heuristic": 762.5
+   },
+   "klasyfikacja": "krok",
+   "punkt_zwrotny": false,
+   "powod": "Pierwszy dowód, że uczona ocena łapie coś, czego ręczne cechy nie mają; zawrót krzywej rozdzielony na dwie przyczyny (krok vs sygnał) i sprawdzony w cyklach 14-15.",
+   "zrodla": [
+    "docs/journal/cykl-0014.md",
+    "docs/ntuple.md",
+    "docs/research/przeszukanie-z-wyuczona-ocena.md"
+   ]
+  },
+  {
+   "id": 13,
+   "cykl": "15",
+   "data": "2026-09-27",
+   "tytul": "Sygnał punktowy (score) vs przeżycie (survival)",
+   "proba": "#143 score alpha 0,0002 vs #144 survival alpha 0,001, ta sama architektura.",
+   "hipoteza": "Sygnał przeżycia da lepszą ocenę niż punkty.",
+   "wynik": "Survival 5839,48 / 120,31 (bez zmian vs rekord); score 4571,95 / 77,26 (-25,91%, -2,86 SE, regresja). Krzywa score przestała zawracać przy mniejszym kroku, ale jest słabsza.",
+   "liczby": {
+    "score": 4571.95,
+    "survival": 5839.48
+   },
+   "klasyfikacja": "slepa_uliczka",
+   "punkt_zwrotny": false,
+   "powod": "Sygnał score porzucony (w tej grze wiąże przeżycie, #119/#131); wygrywa survival. Przy okazji poprawiono przesunięcie celu TD o jeden krok (#153); dla survival bitowo bez skutku.",
+   "zrodla": [
+    "docs/journal/cykl-0015.md",
+    "docs/ntuple-score-a0002.md",
+    "docs/ntuple-survival.md",
+    "docs/research/sygnal-uczenia.md"
+   ]
+  },
+  {
+   "id": 14,
+   "cykl": "16",
+   "data": "2026-09-27",
+   "tytul": "Dłuższy trening układu A (100k)",
+   "proba": "#147, #151: trening do 100k odcinków.",
+   "hipoteza": "Więcej odcinków podniesie rekord.",
+   "wynik": "6017,08 / 119,43 vs rekord 6171: -0,25 SE, bez zmian; plateau od ~66-70k, przeżycie +1%.",
+   "liczby": {
+    "srednia": 6017.08
+   },
+   "klasyfikacja": "slepa_uliczka",
+   "punkt_zwrotny": false,
+   "powod": "Linia A wyczerpana. Układ łat to dźwignia, nie liczba odcinków: AD (łaty widzące kwadraty 3x3, główny zabójca partii wg #128) dało +42% przeżycia zachłannie przy tej samej liczbie odcinków.",
+   "zrodla": [
+    "docs/journal/cykl-0016.md",
+    "docs/ntuple-survival-100k.md"
+   ]
+  },
+  {
+   "id": 15,
+   "cykl": "17",
+   "data": "2026-09-27",
+   "tytul": "Układ AD w przeszukaniu (#156): drugi przełom",
+   "proba": "Łaty AD (kwadraty 3x3), 40k odcinków, survival, przeszukanie tacki.",
+   "hipoteza": "Lepsza ocena opłaca się w przeszukaniu bardziej niż zachłannie.",
+   "wynik": "10 584,01 / 216,57 vs 6171,04 / 110,5: +71,5% (5,5 SE). Przeżycie w przeszukaniu 216,6 vs 91,2 zachłannie (x2,4).",
+   "liczby": {
+    "srednia": 10584.01,
+    "przezycie": 216.57,
+    "zysk_pct": 71.5
+   },
+   "klasyfikacja": "przelom",
+   "punkt_zwrotny": false,
+   "powod": "Ocena celowana w głównego zabójcę (kwadrat 3x3) i przeszukanie wzmacniają się nawzajem: zysk zachłanny +55% dał +76% w przeszukaniu. Dystans do celu ~945x.",
+   "zrodla": [
+    "docs/journal/cykl-0017.md",
+    "bench/156-ntuple-survival-ad.json",
+    "docs/ntuple-survival-ad.md"
+   ]
+  },
+  {
+   "id": 16,
+   "cykl": "18",
+   "data": "2026-09-28",
+   "tytul": "AD 70k",
+   "proba": "Dociągnięcie AD 40k do 70k.",
+   "hipoteza": "Dalszy trening wciąż pomaga.",
+   "wynik": "14 791,52 / 281,14: +39,8% (3,98 SE) vs AD 40k. Obalone 'plateau ~60-65k'. Reguła: o zatrzymaniu treningu decyduje bench, nie krzywa zachłanna.",
+   "liczby": {
+    "srednia": 14791.52,
+    "przezycie": 281.14
+   },
+   "klasyfikacja": "krok",
+   "punkt_zwrotny": false,
+   "powod": "Przeszukanie wzmacnia przyrost oceny ~2x; pojedyncze okno spadku nie jest plateau.",
+   "zrodla": [
+    "docs/journal/cykl-0018.md",
+    "bench/161-ad-70k.json"
+   ]
+  },
+  {
+   "id": 17,
+   "cykl": "19-21",
+   "data": "2026-09-28",
+   "tytul": "ADC i start z późnej gry (ss)",
+   "proba": "Układ ADC (większy od AD) 70k oraz ADC ss (--start-prob 0,5, stany z późnej gry).",
+   "hipoteza": "ADC > AD przeniesie się na przeszukanie; stany z późnej gry przyspieszą naukę.",
+   "wynik": "ADC 70k 15 357,71: +3,8% (0,46 SE, bez zmian); przewaga zachłanna +14% przy 40k stopniała do +1,2% przy 70k. ADC ss 14 274,63: -7,05% vs ADC. Przy nowym generatorze (cykl 21) ADC 100k 28 041 (+8,07%, bez zmian).",
+   "liczby": {
+    "adc_delta_pct": 3.8,
+    "adc_ss_delta_pct": -7.05
+   },
+   "klasyfikacja": "slepa_uliczka",
+   "punkt_zwrotny": false,
+   "powod": "Przy 70k wiąże liczba odcinków, nie pojemność układu; literatura mówi o 1-5 mln odcinków, mieliśmy 70 tys. Starty z późnej gry bez efektu.",
+   "zrodla": [
+    "docs/journal/cykl-0019.md",
+    "docs/journal/cykl-0020.md",
+    "bench/171-adc-70k.json",
+    "bench/177-adc-ss-70k.json",
+    "docs/ntuple-survival-adc-ss.md"
+   ]
+  },
+  {
+   "id": 18,
+   "cykl": "20-21",
+   "data": "2026-09-28",
+   "tytul": "Rdzeń natywny w C i kalibracja generatora",
+   "proba": "#184 przeszukanie wiązką w C (ntuple_native.c); #186 wagi typów klocków z 326 tacek apki.",
+   "hipoteza": "Przyspieszenie otworzy dłuższe treningi; symulator zgodny z apką da trafniejszy cel.",
+   "wynik": "Trening 0,149 do 0,011 s/odcinek (13,4x), 3 partie 15,9 do 0,5 s (32x), wyniki bitowo te same; pełny bench ~97,5 s. Nowy generator: ~1,75x więcej punktów przy +11% przeżycia (linia bazowa AD 70k 25 946,36).",
+   "liczby": {
+    "trening_x": 13.4,
+    "partie_x": 32
+   },
+   "klasyfikacja": "naprawa_narzedzi",
+   "punkt_zwrotny": false,
+   "powod": "Szybkość zmieniła ekonomię: parametry przeszukania dobrane pod 1800 s w Pythonie stały się przestarzałe, a 500k odcinków mieści się w jednej sesji.",
+   "zrodla": [
+    "docs/journal/cykl-0020.md",
+    "docs/journal/cykl-0021.md",
+    "docs/ntuple-natywny.md",
+    "docs/generator-wagi-typow.md"
+   ]
+  },
+  {
+   "id": 19,
+   "cykl": "22",
+   "data": "2026-09-28",
+   "tytul": "Szeroka wiązka: beam 8 do 128 (#195)",
+   "proba": "Siatka koszt/jakość parametrów przeszukania na wagach AD 70k.",
+   "hipoteza": "Parametry domyślne są dobre.",
+   "wynik": "beam=8 23 292/281; 16 35 162; 32 44 605/407; 64 47 033; 128 51 432/433 (0,41 s/partię): +121% za ~7x kosztu decyzji.",
+   "liczby": {
+    "beam8": 23292,
+    "beam128": 51432,
+    "rekord_c23": 83865.64
+   },
+   "klasyfikacja": "przelom",
+   "punkt_zwrotny": true,
+   "powod": "Największa dźwignia od przejścia na n-tuple, przy tych samych wagach; w cyklu 23 rekord 83 865,64 / 619 przy beam=128 na adcga16 800k. Wzrost wklęsły: sam beam nie wystarczy na tysiące postawień.",
+   "zrodla": [
+    "docs/journal/cykl-0022.md",
+    "docs/journal/cykl-0023.md",
+    "docs/przeszukanie-siatka.md",
+    "bench/201-adcga16-800k-beam128.json"
+   ]
+  },
+  {
+   "id": 20,
+   "cykl": "22-23",
+   "data": "2026-09-28",
+   "tytul": "Skala treningu 200k-800k i mniejszy krok TD (adg, adcg, adcga4, adcga16)",
+   "proba": "Migawki adg/adcg 200-500k (#194), adcga4/16 do 800k (#196, #197, #201).",
+   "hipoteza": "Dłuższy trening i mniejszy krok podniosą krzywą.",
+   "wynik": "Krzywe zachłanne płaskie od ~180k (~6-7 tys.), przy beam=8 wszystko w paśmie 27-35 tys. (se ~9%); rekord adcg 400k 34 657,70 to maksimum z 8 szumów (klątwa zwycięzcy). Przy beam=128 adcga16 vs adcg +18% (granica szumu).",
+   "liczby": {
+    "adcg_400k": 34657.7
+   },
+   "klasyfikacja": "slepa_uliczka",
+   "punkt_zwrotny": false,
+   "powod": "Skala przestała być dźwignią, pojemność łat też (adcg 136 łat = adg 52 łaty). Krzywa zachłanna i beam=8 przestały mierzyć jakość oceny; od teraz ocena przy beam=128.",
+   "zrodla": [
+    "docs/journal/cykl-0022.md",
+    "docs/journal/cykl-0023.md",
+    "docs/ntuple-survival-adcg.md",
+    "docs/ntuple-survival-adcga16.md"
+   ]
+  },
+  {
+   "id": 21,
+   "cykl": "22-24",
+   "data": "2026-09-29",
+   "tytul": "Drugi poziom przeszukania szkodzi (#195, #202, #210)",
+   "proba": "Siatka #195; diagnoza #202; warianty samples/margin przy beam=128 (#210).",
+   "hipoteza": "Więcej próbek drugiego poziomu poprawi decyzje.",
+   "wynik": "Domyślny drugi poziom pogarsza wynik; diagnoza: maksimum próbek Monte Carlo i drugie max po zawyżonych szacunkach (przekleństwo optymalizatora, obciążenie x2,1). Przy beam=128 żaden wariant nie odbiega o więcej niż 1 se; samples=0 daje to samo 18% taniej.",
+   "liczby": {
+    "obciazenie": 2.1
+   },
+   "klasyfikacja": "slepa_uliczka",
+   "punkt_zwrotny": false,
+   "powod": "Poprawka nie jest warta kosztu; samples=0 przyjęte w ustawieniu rekordu.",
+   "zrodla": [
+    "docs/przeszukanie-glebokie-diagnoza.md",
+    "docs/przeszukanie-drugi-poziom.md",
+    "docs/journal/cykl-0024.md"
+   ]
+  },
+  {
+   "id": 22,
+   "cykl": "23-24",
+   "data": "2026-09-29",
+   "tytul": "Sufit ruchów i etapy N-tuple (adgs2)",
+   "proba": "Sufit 2000 do 4000 (5,33% partii wiązało); #209, #213 dwustopniowy trening wg postawień.",
+   "hipoteza": "Etapy poprawią ocenę późnej gry.",
+   "wynik": "Rekord przy 4000: 88 133,50 / 647 (sufit ścinał ogon). adgs2 300k/400k: 70 670 / 66 926, poniżej rekordu, +6% nad kontrolą w szumie (wykrywalne dopiero ~18%).",
+   "liczby": {
+    "rekord": 88133.5
+   },
+   "klasyfikacja": "slepa_uliczka",
+   "punkt_zwrotny": false,
+   "powod": "Etapy zamknięte (nie trenujemy dalej adgs2). Sufit zostaje 4000 (0,33% < 5%).",
+   "zrodla": [
+    "docs/journal/cykl-0024.md",
+    "docs/ntuple-survival-adgs2.md",
+    "bench/213-baseline-cap4000.json"
+   ]
+  },
+  {
+   "id": 23,
+   "cykl": "25",
+   "data": "2026-09-29",
+   "tytul": "Uczenie z przeszukania (#216)",
+   "proba": "TD na stanach z gry tanią wiązką beam=8 (tools/train_ntuple_search.py), start adcga16-800k, test przy beam=128; kontrola: dalszy trening zachłanny.",
+   "hipoteza": "Stany z silniejszej polityki ruszą ocenę z plateau.",
+   "wynik": "8k odcinków -46,6% (5,72 SE); 16k -59,6% (7,40 SE); kontrola -12,8% (1,33 SE, szum).",
+   "liczby": {
+    "8k_pct": -46.6,
+    "16k_pct": -59.6
+   },
+   "klasyfikacja": "slepa_uliczka",
+   "punkt_zwrotny": false,
+   "powod": "Szkodzi tym bardziej, im dłużej; prawdopodobna przyczyna to off-policy (cel TD zakłada zachłanną kontynuację), niezmierzona. Kontrola też nie zyskuje, więc plateau nie wynika ze źródła stanów.",
+   "zrodla": [
+    "docs/uczenie-z-przeszukania-pilot.md",
+    "docs/research/uczenie-z-przeszukania.md",
+    "docs/journal/cykl-0025.md"
+   ]
+  },
+  {
+   "id": 24,
+   "cykl": "25-28",
+   "data": "2026-09-29",
+   "tytul": "ADCE: prostokąty 3x4/4x3 (#222, #234)",
+   "proba": "Nowy układ ADCE (196 łat, 273 664 wagi).",
+   "hipoteza": "Plateau to granica reprezentacji.",
+   "wynik": "ADCE 200k vs ADC 200k: +34,6% (2,69 SE); rekord #234 ADCE 400k beam=128,samples=0: 123 077,03 / 922,94 (+32,7%, 3,3 SE); realny poziom ~115 tys. (maksimum z dwóch migawek).",
+   "liczby": {
+    "srednia": 123077.03,
+    "przezycie": 922.94
+   },
+   "klasyfikacja": "krok",
+   "punkt_zwrotny": false,
+   "powod": "Pojemność oceny rusza plateau bez kosztu czasu treningu (rdzeń natywny). Pierwsza poprawa od cyklu 22.",
+   "zrodla": [
+    "docs/journal/cykl-0026.md",
+    "docs/journal/cykl-0028.md",
+    "docs/ntuple-wieksze-laty.md",
+    "bench/234-adce-400k.json"
+   ]
+  },
+  {
+   "id": 25,
+   "cykl": "24-27",
+   "data": "2026-09-29",
+   "tytul": "Generator świadomy planszy i model generatora",
+   "proba": "#211, #217, #221, #226: model losowania tacek, test hipotezy 'tacka zależy od planszy' (Z-6).",
+   "hipoteza": "Generator apki zależy od planszy; symulator powinien to odtwarzać.",
+   "wynik": "Z-6 nierozstrzygnięte (potrzeba ~1700 par). Wybrany M2-simple; nowy generator zmienia poziom o +5% (88 133 do 92 773, w szumie).",
+   "liczby": {
+    "po_zmianie": 92772.85
+   },
+   "klasyfikacja": "naprawa_narzedzi",
+   "punkt_zwrotny": false,
+   "powod": "Kalibracja wierności symulatora; konflikt rebase (#221) rozwiązany przeniesieniem plików przez git checkout origin/task/N --.",
+   "zrodla": [
+    "docs/z6-model-generatora.md",
+    "docs/generator-swiadomy-planszy.md",
+    "docs/journal/cykl-0027.md"
+   ]
+  },
+  {
+   "id": 26,
+   "cykl": "28",
+   "data": "2026-09-29",
+   "tytul": "100/100 śmierci to błąd przeszukania (#236)",
+   "proba": "Wyczerpujący przegląd tacki w chwili śmierci (100 partii polityki #227).",
+   "hipoteza": "Przeżycie wiąże ocena lub horyzont.",
+   "wynik": "W 100/100 przypadków ostatnia tacka była układalna w całości, a wiązka jej nie znalazła; w kodzie generator.next_pieces losuje do skutku aż tray_playable, więc w symulatorze każda śmierć to błąd przeszukania.",
+   "liczby": {},
+   "klasyfikacja": "przelom",
+   "punkt_zwrotny": true,
+   "powod": "Obalone założenie cykli 22-27. Wiąże kompletność przeszukania w obrębie tacki, nie ocena ani horyzont.",
+   "zrodla": [
+    "docs/journal/cykl-0028.md",
+    "docs/data/death-avoidability-100.json"
+   ]
+  },
+  {
+   "id": 27,
+   "cykl": "29",
+   "data": "2026-09-30",
+   "tytul": "Gwarancja tacki: complete=1 (#239, #240)",
+   "proba": "Przegląd wyczerpujący jako zapas, gdy wiązka nie znajdzie kompletnego ułożenia.",
+   "hipoteza": "Polityka nie umrze, jeśli zawsze znajdzie ułożenie całej tacki.",
+   "wynik": "560 858,53 śr. fixed, 100% partii do sufitu 4000, mediana 555 620; +355,7% vs #234 (52 SE). Zero śmierci w ~1,9 mln postawień; 48/48 do 20 000 (#241).",
+   "liczby": {
+    "srednia": 560858.53,
+    "zysk_pct": 355.7,
+    "smierci": 0
+   },
+   "klasyfikacja": "przelom",
+   "punkt_zwrotny": true,
+   "powod": "Rozwiązało przeżycie w symulatorze. Benchmark przestał mierzyć przeżycie (średnia = sufit x pkt/postawienie); wąskim gardłem stał się koszt benchmarku i apka.",
+   "zrodla": [
+    "docs/journal/cykl-0029.md",
+    "bench/240-complete.json",
+    "docs/gwarancja-tacki.md"
+   ]
+  },
+  {
+   "id": 28,
+   "cykl": "30-31",
+   "data": "2026-09-30",
+   "tytul": "Waga punktów w ścieżce: gain_weight (#248, #259): cel symulatorowy",
+   "proba": "Duża waga punktów bieżącej tacki w składniku ścieżki (gain_weight=100000), pomiar #248, bench #251-#259 przy suficie 16 000.",
+   "hipoteza": "Przy gwarantowanym przeżyciu punkty na postawienie można podnieść.",
+   "wynik": "pkt/postawienie przy beam=128: 140,9 do 684,6 (x4,9); beam 8: 105,5 do 290,5. Rekord #259: 11 034 218,3 śr. fixed (16 000/16 000, 0 śmierci); cel >=10 mln osiągnięty.",
+   "liczby": {
+    "srednia": 11034218.3,
+    "pkt_na_postawienie": 689.6
+   },
+   "klasyfikacja": "przelom",
+   "punkt_zwrotny": true,
+   "powod": "Ocena n-tuple wśród kompletnych ułożeń prawie nie liczy się dla punktów (nasycenie przy w=1e5, rozstrzyga tylko remisy); apka daje tylko układalne tacki (0/1160, #249), więc complete=1 przenosi się na oryginał.",
+   "zrodla": [
+    "docs/journal/cykl-0030.md",
+    "docs/journal/cykl-0031.md",
+    "bench/record.json"
+   ]
+  },
+  {
+   "id": 29,
+   "cykl": "32",
+   "data": "2026-09-30",
+   "tytul": "Pierwsza długa partia w apce (#262)",
+   "proba": "Jedna ciągła partia polityki rekordu na emulatorze, 10.7.5.",
+   "hipoteza": "Polityka z symulatora przeniesie się na oryginał.",
+   "wynik": "2700 ruchów (2695 zgodnych odczytów), 1 004 153 pkt wzorem, licznik apki 681 507, bez końca partii, 12,6 postawień/min, decyzja mediana 1,65 ms. Trajektoria sprawdzona ręcznie (jq).",
+   "liczby": {
+    "ruchy": 2700,
+    "licznik": 681507
+   },
+   "klasyfikacja": "krok",
+   "punkt_zwrotny": false,
+   "powod": "Pierwszy dowód transferu na oryginał. Stosunek licznik/wzór ~0,69 (wzór scoring.py nie trzyma ±10% na kilku partiach), scoring.py zamrożona.",
+   "zrodla": [
+    "docs/journal/cykl-0032.md",
+    "docs/punktacja-apka-vs-wzor.md"
+   ]
+  },
+  {
+   "id": 30,
+   "cykl": "33-34",
+   "data": "2026-09-30",
+   "tytul": "Zmiana celu: agent nie przegrywa (#264) i sufit 64 000 (#279)",
+   "proba": "Komentarz właściciela w #264; bench #265-#279 przy suficie 64 000.",
+   "hipoteza": "Średnia >=10 mln punktów nie jest właściwym kryterium.",
+   "wynik": "Nowy cel: nie przegrywa; 1 mln licznika apki to limit długości partii. #279: 0 przegranych na 600 seedach (300 stałych + 300 rotowanych), epsilon=0, sufit 64 000, średnio 44,2 mln pkt (informacyjnie), ~16,5 h CPU. Polityka od cyklu 34 bez zmian.",
+   "liczby": {
+    "przegrane": 0,
+    "partie": 600,
+    "srednia": 44163856
+   },
+   "klasyfikacja": "krok",
+   "punkt_zwrotny": true,
+   "powod": "Średnia punktów jest teraz informacją; wiąże przeżycie i licznik apki. Cała linia symulatora (wiązka + n-tuple) zostaje. Reguła sufitu x2 przy >5% partii wymuszałaby podwajanie bez końca, więc sufit podniesiony raz (10x ~3950 postawień).",
+   "zrodla": [
+    "docs/journal/cykl-0033.md",
+    "docs/journal/cykl-0034.md",
+    "bench/265-cap64000.json"
+   ]
+  },
+  {
+   "id": 31,
+   "cykl": "34-37",
+   "data": "2026-09-30",
+   "tytul": "Most: tempo, skrypt serii, czytnik licznika HUD",
+   "proba": "#266 rozpiska kosztu ruchu i znaczniki t, #283 tools/partia_serii.py, #290, #294, #297, #302 czytnik licznika.",
+   "hipoteza": "Most nie jest wąskim gardłem; licznik czytelny tesseractem.",
+   "wynik": "Pomiar #286: ~1720 postawień do 1 mln licznika (szacunek 3950 obalony). read_score myli 4. cyfrę 7-cyfrowego licznika; czytnik zmieniony na wzorce cyfr; czytnik działał tylko na testach (uint8), nie przez screenshot().",
+   "liczby": {},
+   "klasyfikacja": "naprawa_narzedzi",
+   "punkt_zwrotny": false,
+   "powod": "Od celu nieprzegrywania jedyne przegrane to błędy mostu; test czytnika musi iść tą samą ścieżką co produkcja.",
+   "zrodla": [
+    "docs/journal/cykl-0035.md",
+    "docs/journal/cykl-0036.md",
+    "docs/journal/cykl-0037.md",
+    "docs/seria-skrypt.md",
+    "docs/tempo-licznika.md"
+   ]
+  },
+  {
+   "id": 32,
+   "cykl": "38-42",
+   "data": "2026-10-01",
+   "tytul": "Serie s1-s2: skórki, nakładki, okna",
+   "proba": "Seria 10 partii na emulatorze (s1), potem s2.",
+   "hipoteza": "Most przeżyje partię do 1 mln.",
+   "wynik": "Skórki zmieniane w trakcie partii i nakładki (puchar, napis Combo) mylone z klockami; s1 8/10 przerwań; mimo to dwie partie doszły do 8,28 mln i 6,69 mln licznika bez przegranej (~4,6x i ~4,8x potrzebnej liczby postawień). Tempo ~26-27 postawień/min.",
+   "liczby": {
+    "licznik_max": 8280000
+   },
+   "klasyfikacja": "naprawa_narzedzi",
+   "punkt_zwrotny": false,
+   "powod": "Polityka nie przegrywa na prawdziwym generatorze w długiej partii; poprawiano detektory okien i diagnozę przegranych (#299).",
+   "zrodla": [
+    "docs/journal/cykl-0038.md",
+    "docs/journal/cykl-0039.md",
+    "docs/journal/cykl-0040.md",
+    "docs/journal/cykl-0041.md",
+    "docs/journal/cykl-0042.md",
+    "docs/seria/s1"
+   ]
+  },
+  {
+   "id": 33,
+   "cykl": "43-47",
+   "data": "2026-10-01",
+   "tytul": "Pierwsza przegrana na oryginale i fałszywe detektory",
+   "proba": "s2 partia 3 (392 postawienia), analiza #305, regresja detektorów (#311, #312).",
+   "hipoteza": "Przegrana oznacza ślepą plamkę polityki.",
+   "wynik": "Obalone: przegrane 2/3 to read_tray na drewnianej skórce (tło paska przechodzi is_block), nie polityka ani generator. Zabijanie gry ~16-18 min po starcie emulatora (usługi Google) mylone z ekranem końca; #304 wprowadził regresję (SPLASH_LOGO_BOX łapał górne wiersze planszy); is_home_screen dawał 147 fałszywych trafień. Regresja detektorów: 14 różnic przed, 0 po.",
+   "liczby": {},
+   "klasyfikacja": "naprawa_narzedzi",
+   "punkt_zwrotny": false,
+   "powod": "Przegrane z mostu, nie z polityki; narzędzia regresji (tools/porownanie_odczytu.py, tools/detektory_na_planszy.py) zwróciły się od pierwszego użycia.",
+   "zrodla": [
+    "docs/journal/cykl-0043.md",
+    "docs/journal/cykl-0044.md",
+    "docs/journal/cykl-0045.md",
+    "docs/journal/cykl-0046.md",
+    "docs/journal/cykl-0047.md"
+   ]
+  },
+  {
+   "id": 34,
+   "cykl": "48-53",
+   "data": "2026-10-02",
+   "tytul": "Serie s3-s5: reklamy, restart, baner Combo",
+   "proba": "Detektory reklam, restart_app, kontrola utraty partii (#318), przegrana s5 p.7 (#329).",
+   "hipoteza": "Przegrana s5 p.7 to polityka (cykl 51).",
+   "wynik": "Obalone w cyklu 52: odczyt planszy bierze glify baneru 'Combo 145' za klocki; na prawdziwej planszy polityka ułożyłaby całą tackę. Baner to tylko 25% przypadków ok:false (cykl 53). Pełny unittest po rebase przewracał sesje z poprawnymi zmianami.",
+   "liczby": {},
+   "klasyfikacja": "naprawa_narzedzi",
+   "punkt_zwrotny": false,
+   "powod": "Wszystkie przegrane s3-s5 to most. Dodano docs/seria/plansza-roznice.md (100 klatek, 11 błędów mostu z ruchem).",
+   "zrodla": [
+    "docs/journal/cykl-0050.md",
+    "docs/journal/cykl-0051.md",
+    "docs/journal/cykl-0052.md",
+    "docs/journal/cykl-0053.md",
+    "docs/seria/plansza-roznice.md"
+   ]
+  },
+  {
+   "id": 35,
+   "cykl": "54-56",
+   "data": "2026-10-02",
+   "tytul": "Seria s6: 4 przegrane, nowe zasady 10/10",
+   "proba": "s6 (10 partii): analiza wsteczna (#341), korekta duchów (#342), zasady zaliczania (#345).",
+   "hipoteza": "Polityka przegrywa z własnej winy lub generator apki zmienił rozkład (cykle 54-55).",
+   "wynik": "Oba obalone: we wszystkich czterech przegranych polityka na prawdziwej planszy kładzie całą tackę; ostatnie tacki układalne, rozkład tacek bez odchylenia. Obalone też 's4 bez przegranej' (4 przerwania to przegrane po kole fortuny). Nowa zasada właściciela: seria liczy się dopiero przy 10/10 do 1 mln.",
+   "liczby": {},
+   "klasyfikacja": "naprawa_narzedzi",
+   "punkt_zwrotny": false,
+   "powod": "Zamyka wątek wątpliwości o politykę: przegrane s3-s6 wynikają z odczytu i sterowania. tools/przeglad_s6.py daje powtarzalną diagnozę.",
+   "zrodla": [
+    "docs/journal/cykl-0054.md",
+    "docs/journal/cykl-0055.md",
+    "docs/journal/cykl-0056.md"
+   ]
+  },
+  {
+   "id": 36,
+   "cykl": "57-59",
+   "data": "2026-10-02",
+   "tytul": "Czas napisu, ponowny odczyt, stop po 1 mln",
+   "proba": "#350 pomiar czasu napisu (80 serii), #347 stop po 1 mln wg HUD, #351, #353 ponowny odczyt planszy, gdy ekran nie zgadza się z oczekiwanym.",
+   "hipoteza": "Reguła ogólna ponownego odczytu usunie błędy odczytu.",
+   "wynik": "Napisy Combo N 61/80, duże liczby 12/80; pełny zestaw testów ~30 min (obalone 'rośnie i blokuje'). s7 pierwszy przebieg: 3 cele po 80 min, stop_prog niepotwierdzony 2/3 (#356).",
+   "liczby": {},
+   "klasyfikacja": "naprawa_narzedzi",
+   "punkt_zwrotny": false,
+   "powod": "Przeszukania nie ruszano; poprawki wyłącznie w moście.",
+   "zrodla": [
+    "docs/journal/cykl-0057.md",
+    "docs/journal/cykl-0058.md",
+    "docs/journal/cykl-0059.md"
+   ]
+  },
+  {
+   "id": 37,
+   "cykl": "60",
+   "data": "2026-10-02",
+   "tytul": "Cel osiągnięty: s7 10/10, 0 przegranych",
+   "proba": "Seria s7 (run 37046972994, kod 40137e2) z kompletem poprawek mostu.",
+   "hipoteza": "Z poprawkami mostu ta sama polityka przejdzie 10/10.",
+   "wynik": "10/10 partii do 1 mln licznika (od 1 001 477 do 1 282 497), 44-156 min, 919-3299 postawień, zero przegranych i przerwań. Ponowny odczyt zadziałał 59 razy (49 naprawionych, 10 rozbieżnych, żaden nie zakończył partii). Symulator: 0/600 przegranych (#279).",
+   "liczby": {
+    "partie": 10,
+    "zaliczone": 10,
+    "przegrane": 0
+   },
+   "klasyfikacja": "przelom",
+   "punkt_zwrotny": true,
+   "powod": "Potwierdza tezę cyklu 59: przegrane s3-s6 były mostem, nie polityką; polityka niezmieniona od cyklu 34. GOAL_REACHED dodany w git 2026-10-02 (wcześniej 2026-09-30, przy starym celu).",
+   "zrodla": [
+    "docs/journal/cykl-0060.md",
+    "RAPORT.md",
+    "docs/seria/s7"
+   ]
+  },
+  {
+   "id": 38,
+   "cykl": "59-60",
+   "data": "2026-10-02",
+   "tytul": "Doliczanie licznika po stop_prog (#356, #358)",
+   "proba": "Ponowny odczyt licznika po stop_prog; pole odczyty w pomiar[stop_prog].",
+   "hipoteza": "Usterka: w 5/10 partii s7 skrypt nie potwierdził miliona od razu (licznik się doliczał), partia grała do 280 tys. dłużej.",
+   "wynik": "Poprawka #356 weszła; #358 scalone na main. Wszystkie partie przeżyły mimo opóźnienia.",
+   "liczby": {},
+   "klasyfikacja": "naprawa_narzedzi",
+   "punkt_zwrotny": false,
+   "powod": "Według zasad #345 wymagało naprawy; hipoteza diamentu obalona (read_hud_score czyta zrzuty poprawnie).",
+   "zrodla": [
+    "RAPORT.md",
+    "docs/seria/s7/stop-prog.md",
+    "docs/journal/cykl-0060.md"
+   ]
+  }
+ ]
+}
